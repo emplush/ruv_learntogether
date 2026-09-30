@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.15.0 (30.09.2026)
+- Admin: Veranstaltungstabelle überarbeitet (schmalere Navigation, breitere Tabelle, weniger Spalten, Bereich/Art/Thema unter dem Titel, Aktionen in einer Zeile).
+- Admin: Teilnehmende erscheinen jetzt in einem Popup (Belegungsbalken, Tabelle mit Name, E-Mail und Buchungscode, Entfernen mit Rückfrage, E-Mail-Adressen kopieren, Teams-Link).
+
 ## 0.14.0 (30.09.2026)
 - R+V-Schrift „RuV Sans“ (Light, Regular, Bold, Black) eingebunden: in der Anwendung, im Handbuch (HTML und PDF). IIS-Paket enthält `AppData/fonts`, `web.config` kennt `.woff2`; das Artefakt bettet die Schrift ein.
 

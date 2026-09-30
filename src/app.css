@@ -315,7 +315,7 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .stage-prev .sw { background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: .9rem; }
 
 /* Admin: Navigation links, Inhalt rechts */
-.admin-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 16px; }
+.admin-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 28px; align-items: start; margin-top: 16px; }
 .admin-nav { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 20px; }
 .admin-grp { display: flex; flex-direction: column; gap: 2px; }
 .admin-grp h3 { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 4px 12px; }
@@ -352,3 +352,28 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 
 .notice.warn { background: var(--sand); border-left: 5px solid #eb6504; color: var(--text); display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
 .notice.warn b { color: var(--text); font-size: 1.05rem; }
+
+/* Admin: Veranstaltungstabelle und Teilnehmenden-Popup */
+.tbl-events { min-width: 0; table-layout: auto; }
+.tbl-events th, .tbl-events td { padding: 14px 16px; }
+.tbl-events tbody tr:hover { background: var(--surface); }
+.tbl-events .c-title { width: 40%; }
+.tbl-events .c-title b { font-size: 1rem; overflow-wrap: anywhere; }
+.tbl-events .meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 6px; color: var(--muted); font-size: .86rem; }
+.tbl-events .meta .tag { margin: 0; }
+.tbl-events .c-when { white-space: nowrap; }
+.tbl-events .c-occ { min-width: 110px; }
+.tbl-events .c-occ .bar { width: 100%; max-width: 120px; }
+.tbl-events .c-act { width: 1%; white-space: nowrap; }
+.tbl-events .c-act .acts { flex-wrap: nowrap; justify-content: flex-end; }
+.tag.cat-dienstlich { background: var(--blue); color: #fff; }
+.tag.cat-privat { background: #f79506; color: #001957; }
+@media (max-width: 1100px) { .tbl-events .c-act { white-space: normal; } .tbl-events .c-act .acts { flex-wrap: wrap; } }
+.people { gap: 18px; padding-top: 28px; }
+.people h2 { font-size: 1.35rem; padding-right: 44px; }
+.people-occ { display: grid; gap: 6px; }
+.bar.wide { width: 100%; height: 10px; }
+.people-tbl { min-width: 0; }
+.people-tbl td.r { text-align: right; white-space: nowrap; }
+.people-tbl code { font-family: ui-monospace, Consolas, monospace; background: var(--surface-2); padding: 2px 8px; border-radius: 6px; }
+.people-foot { display: flex; gap: 10px; flex-wrap: wrap; }

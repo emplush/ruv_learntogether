@@ -1177,7 +1177,7 @@ function viewAdmin() {
   }
   function adminEvents() {
     return Api.adminEvents().then(function (list) {
-      var open = {}, F = { q: '', cat: '', type: '', topic: '', from: '', to: '' };
+      var F = { q: '', cat: '', type: '', topic: '', from: '', to: '' };
       var host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
       var search = h('input', { type: 'search', id: 'af-q', placeholder: 'Titel, Person, E-Mail, Thema …', 'aria-label': 'Veranstaltungen durchsuchen' });
       var catSel = h('select', { id: 'af-cat', 'aria-label': 'Bereich' }), typeSel = h('select', { id: 'af-type', 'aria-label': 'Art' }), topicSel = h('select', { id: 'af-topic', 'aria-label': 'Thema' });
@@ -1211,7 +1211,7 @@ function viewAdmin() {
         if (F.to && e.date > F.to) return false;
         return true;
       }
-      function reload() { return Api.adminEvents().then(function (l) { list = l; render(); }); }
+      function reload() { return Api.adminEvents().then(function (l) { list = l; render(); if (peopleId) { if (list.some(function (x) { return x.id === peopleId; })) showPeople(peopleId); else if (peopleModal) peopleModal.close(); } }); }
       function render() {
         clear(host);
         var now = new Date();
@@ -1228,21 +1228,45 @@ function viewAdmin() {
             del._c = true; del.textContent = 'Wirklich löschen?'; setTimeout(function () { del._c = false; del.textContent = 'Löschen'; }, 4000);
           });
           tb.appendChild(h('tr', { class: past ? 'past' : '' }, [
-            h('td', null, [h('b', { text: e.title, style: 'overflow-wrap:anywhere' }), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null, h('div', null, [e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null])]),
-            h('td', { text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) }),
-            h('td', null, [CAT_LABEL[e.category], h('div', { class: 'hint', text: e.type + ' \u00b7 ' + e.topic })]),
-            h('td', null, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
-            h('td', null, [e.booked + ' / ' + e.capacity, h('div', { class: 'bar' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]),
-            h('td', null, h('div', { class: 'acts' }, [
-              h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Teilnehmende (' + e.booked + ')', 'aria-expanded': String(!!open[e.id]), onclick: function () { open[e.id] = !open[e.id]; render(); } }),
+            h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { class: 'tag cat-' + e.category, text: CAT_LABEL[e.category] }), h('span', { text: e.type + ' · ' + capFirst(e.topic) }), e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null]), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null]),
+            h('td', { class: 'c-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '–' + endHm(e) + ' Uhr' })]),
+            h('td', { class: 'c-host' }, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
+            h('td', { class: 'c-occ' }, [h('b', { text: e.booked + ' / ' + e.capacity }), h('div', { class: 'bar' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]),
+            h('td', { class: 'c-act' }, h('div', { class: 'acts' }, [
+              h('button', { class: 'btn btn-primary btn-sm', type: 'button', text: 'Teilnehmende (' + e.booked + ')', onclick: function () { showPeople(e.id); } }),
               h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Bearbeiten', onclick: function () { editEvent(e, reload); } }), del]))]));
-          if (open[e.id]) {
-            var ul = h('ul');
-            e.bookings.forEach(function (b) { ul.appendChild(h('li', null, [h('b', { text: b.name }), h('span', { text: b.email }), h('span', { class: 'hint', text: 'Code ' + b.code }), h('button', { class: 'btn btn-danger btn-sm', type: 'button', text: 'Entfernen', onclick: function () { Api.adminDeleteBooking(b.id).then(function () { toast('Anmeldung entfernt.'); return reload(); }); } })])); });
-            tb.appendChild(h('tr', null, h('td', { colspan: '6', class: 'plist' }, [h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('b', { text: 'Angemeldete Personen' }), e.bookings.length ? h('button', { class: 'linkbtn', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).join('; ')); } }) : null]), e.bookings.length ? ul : h('p', { class: 'hint', text: 'Noch keine Anmeldungen.' }), h('div', { class: 'hint', style: 'margin-top:8px', html: 'Teams-Link: <a target="_blank" rel="noopener" href="' + esc(e.teamsLink) + '">' + esc(e.teamsLink) + '</a>' })])));
-          }
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Bereich', 'Durchführung', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Durchführung', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+      }
+      var peopleModal = null, peopleId = null;
+      function peopleBody(e) {
+        var f = freeOf(e), pct = Math.min(100, Math.round(e.booked / e.capacity * 100));
+        var body = h('div', { class: 'modal-body people' });
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '–' + endHm(e) + ' Uhr · ' + e.host })]));
+        body.appendChild(h('div', { class: 'people-occ' }, [h('b', { text: e.booked + ' von ' + e.capacity + ' Plätzen belegt' }), h('div', { class: 'bar wide' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]));
+        if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Noch keine Anmeldungen.' })));
+        else {
+          var tb = h('tbody');
+          e.bookings.forEach(function (b, i) {
+            var rm = h('button', { class: 'btn btn-danger btn-sm', type: 'button', text: 'Entfernen' });
+            rm.addEventListener('click', function () {
+              if (!rm._c) { rm._c = true; rm.textContent = 'Wirklich?'; setTimeout(function () { rm._c = false; rm.textContent = 'Entfernen'; }, 4000); return; }
+              Api.adminDeleteBooking(b.id).then(function () { toast('Anmeldung entfernt.'); return reload(); }, function (er) { toast(er.message, true); });
+            });
+            tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.name })), h('td', { text: b.email, style: 'overflow-wrap:anywhere' }), h('td', null, h('code', { text: b.code })), h('td', { class: 'r' }, rm)]));
+          });
+          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Name', 'E-Mail', 'Buchungscode', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
+        }
+        body.appendChild(h('div', { class: 'people-foot' }, [
+          e.bookings.length ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).join('; ')); } }) : null,
+          h('a', { class: 'btn btn-secondary btn-sm', target: '_blank', rel: 'noopener', href: e.teamsLink, text: 'Teams-Link öffnen' })]));
+        return body;
+      }
+      function showPeople(id) {
+        var e = list.filter(function (x) { return x.id === id; })[0]; if (!e) return;
+        peopleId = id;
+        if (peopleModal && peopleModal.node.parentNode) { var old = peopleModal.node.querySelector('.modal-body'); if (old) old.replaceWith(peopleBody(e)); return; }
+        peopleModal = openModal(peopleBody(e), { wide: true, label: 'Teilnehmende', onClose: function () { peopleId = null; } });
       }
       render();
       function fld(label, ctl, cls) { return h('div', { class: 'afld' + (cls ? ' ' + cls : '') }, [h('label', { text: label }), ctl]); }
