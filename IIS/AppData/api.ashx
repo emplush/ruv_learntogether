@@ -81,6 +81,7 @@ namespace LearnTogether
         public string colorPrivat { get; set; }
         public string smtpMethod { get; set; }
         public bool smtpWinAuth { get; set; }
+        public bool smtpTrustCert { get; set; }
         public string mailFolder { get; set; }
         public string headColorDienstlich { get; set; }
         public string headColorPrivat { get; set; }
@@ -143,7 +144,7 @@ namespace LearnTogether
     public class Api : IHttpHandler
     {
         const string DefaultAdminPassword = "RuVTest1234";
-        const string Version = "0.10.0";
+        const string Version = "0.10.1";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         static readonly string[] Days = new string[] { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };
@@ -963,6 +964,7 @@ namespace LearnTogether
             return sb.ToString();
         }
 
+        static readonly object SendGate = new object();
         string lastMailError = "";
 
         // Verstaendliche Erklaerung zu einem Versandfehler plus technische Meldung (nur fuer Administration und Protokoll)
@@ -993,8 +995,10 @@ namespace LearnTogether
                 hint = "Der Server nimmt die Mail nicht an (Relay nicht erlaubt). Die IP des Webservers muss am SMTP-Relay freigegeben sein, und die Absenderadresse muss zum Server passen.";
             else if (all.Contains("mailbox unavailable") || all.Contains("550") || all.Contains("553") || all.Contains("recipient"))
                 hint = "Der Server lehnt Absender oder Empf\u00e4nger ab. Pr\u00fcfe Absender- und Empf\u00e4ngeradresse.";
-            else if (all.Contains("certificate") || all.Contains("ssl") || all.Contains("tls") || all.Contains("handshake") || all.Contains("authentication failed because the remote party"))
-                hint = "Fehler bei der Verschl\u00fcsselung (Zertifikat/TLS). Port 465 (implizites SSL) wird nicht unterst\u00fctzt: nutze Port 587 mit STARTTLS oder Port 25 ohne SSL, sofern der Server das erlaubt.";
+            else if (all.Contains("remote certificate is invalid") || all.Contains("certificate") && (all.Contains("untrusted") || all.Contains("not trusted") || all.Contains("chain") || all.Contains("name mismatch") || all.Contains("expired")))
+                hint = "Das Zertifikat des Mailservers wird nicht als vertrauensw\u00fcrdig akzeptiert. M\u00f6gliche Ursachen: Es wurde von einer internen Zertifizierungsstelle oder selbst ausgestellt, ist abgelaufen oder gilt f\u00fcr einen anderen Servernamen (z. B. bei Verwendung der IP-Adresse). L\u00f6sungen: (1) Den Servernamen eintragen, der im Zertifikat steht. (2) Das Zertifizierungsstellen-Zertifikat auf dem Webserver in \"Vertrauensw\u00fcrdige Stammzertifizierungsstellen\" importieren (empfohlen). (3) Notfalls unter \"Versand\" die Option \"Zertifikatsfehler ignorieren\" aktivieren.";
+            else if (all.Contains("ssl") || all.Contains("tls") || all.Contains("handshake") || all.Contains("certificate") || all.Contains("transport stream") || all.Contains("authentication failed"))
+                hint = "Fehler bei der Verschl\u00fcsselung (TLS). Port 465 (implizites SSL) wird nicht unterst\u00fctzt: nutze Port 587 mit STARTTLS oder Port 25 ohne SSL, sofern der Server das erlaubt.";
             else if (all.Contains("access to the path") || all.Contains("unauthorizedaccess") || all.Contains("pickup"))
                 hint = "Der Ordner f\u00fcr die Ausgabe ist nicht beschreibbar oder existiert nicht. Pr\u00fcfe Pfad und Schreibrechte des Anwendungspools.";
             return (hint.Length > 0 ? hint + " " : "") + "Technische Meldung: " + tech;
@@ -1075,13 +1079,23 @@ namespace LearnTogether
                     }
                     else
                     {
-                        using (SmtpClient c = new SmtpClient(s.smtpHost, s.smtpPort > 0 ? s.smtpPort : 25))
+                        lock (SendGate)
                         {
-                            c.EnableSsl = s.smtpSsl;
-                            c.Timeout = 15000;
-                            if (s.smtpWinAuth) c.UseDefaultCredentials = true;
-                            else if (!string.IsNullOrEmpty(s.smtpUser)) c.Credentials = new NetworkCredential(s.smtpUser, s.smtpPassword);
-                            c.Send(m);
+                            System.Net.Security.RemoteCertificateValidationCallback oldCb = System.Net.ServicePointManager.ServerCertificateValidationCallback;
+                            try
+                            {
+                                // Nur waehrend dieses Versands: Zertifikatsfehler des Mailservers ignorieren, wenn so eingestellt
+                                if (s.smtpTrustCert) System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                                using (SmtpClient c = new SmtpClient(s.smtpHost, s.smtpPort > 0 ? s.smtpPort : 25))
+                                {
+                                    c.EnableSsl = s.smtpSsl;
+                                    c.Timeout = 15000;
+                                    if (s.smtpWinAuth) c.UseDefaultCredentials = true;
+                                    else if (!string.IsNullOrEmpty(s.smtpUser)) c.Credentials = new NetworkCredential(s.smtpUser, s.smtpPassword);
+                                    c.Send(m);
+                                }
+                            }
+                            finally { System.Net.ServicePointManager.ServerCertificateValidationCallback = oldCb; }
                         }
                     }
                 }
@@ -1199,6 +1213,7 @@ namespace LearnTogether
                 smtpUser = s.smtpUser,
                 smtpMethod = s.smtpMethod,
                 smtpWinAuth = s.smtpWinAuth,
+                smtpTrustCert = s.smtpTrustCert,
                 mailFolder = s.mailFolder,
                 smtpPasswordSet = !string.IsNullOrEmpty(s.smtpPassword),
                 mailFrom = s.mailFrom,
@@ -1375,6 +1390,7 @@ namespace LearnTogether
                     if (method != "smtp" && method != "iis" && method != "folder") throw new ApiException("invalid", "Unbekannte Versandart.");
                     s.smtpMethod = method;
                     s.smtpWinAuth = B(b, "smtpWinAuth");
+                    s.smtpTrustCert = B(b, "smtpTrustCert");
                     s.mailFolder = S(b, "mailFolder");
                     s.smtpHost = S(b, "smtpHost");
                     int port = I(b, "smtpPort"); s.smtpPort = port > 0 ? port : 25;

@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.10.1 (30.09.2026)
+- SMTP: Option „Zertifikatsfehler des Mailservers ignorieren“ (nur während des Versands wirksam); genauere Erklärung bei Zertifikats- und TLS-Fehlern.
+
 ## 0.10.0 (30.09.2026)
 - E-Mail-Versand: Versandart wählbar (SMTP, lokaler IIS-SMTP-Dienst, .eml-Dateien in Ordner), Windows-Anmeldung möglich. Versandfehler werden mit verständlicher Ursache und technischer Meldung angezeigt (Test und Protokoll). Fehlgeschlagene Mails werden als .eml gesichert (Download) und können erneut gesendet werden.
 
