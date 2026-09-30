@@ -26,6 +26,7 @@ namespace LearnTogether
         public string id { get; set; }
         public string title { get; set; }
         public string host { get; set; }
+        public string hostEmail { get; set; }
         public string category { get; set; }
         public string type { get; set; }
         public string topic { get; set; }
@@ -512,13 +513,14 @@ namespace LearnTogether
         EventRec ReadEvent(Dictionary<string, object> e, EventRec target, bool admin)
         {
             EventRec r = target ?? new EventRec();
-            string title = S(e, "title"), host = S(e, "host"), cat = S(e, "category"), type = S(e, "type"), topic = S(e, "topic");
+            string title = S(e, "title"), host = S(e, "host"), hostEmail = S(e, "hostEmail").ToLowerInvariant(), cat = S(e, "category"), type = S(e, "type"), topic = S(e, "topic");
             string date = S(e, "date"), start = S(e, "start"), link = S(e, "teamsLink");
             int dur = I(e, "duration"), cap = I(e, "capacity");
             string desc = SanitizeHtml(S(e, "description"));
 
             if (title.Length < 3 || title.Length > 100) throw new ApiException("invalid", "Der Titel muss zwischen 3 und 100 Zeichen lang sein.");
-            if (host.Length < 2 || host.Length > 80) throw new ApiException("invalid", "Bitte gib den Namen der durchf\u00fchrenden Person an.");
+            if (host.Length < 2 || host.Length > 80) throw new ApiException("invalid", "Bitte gib deinen Namen an.");
+            if (!ValidEmail(hostEmail)) throw new ApiException("invalid", "Bitte gib eine g\u00fcltige E-Mail-Adresse an.");
             if (cat != "dienstlich" && cat != "privat") throw new ApiException("invalid", "Bitte w\u00e4hle dienstlich oder privat.");
             if (Array.IndexOf(Types, type) < 0) throw new ApiException("invalid", "Bitte w\u00e4hle eine Art der Veranstaltung.");
             if (Array.IndexOf(cat == "dienstlich" ? TopicsBiz : TopicsPriv, topic) < 0) throw new ApiException("invalid", "Bitte w\u00e4hle ein passendes Thema.");
@@ -535,7 +537,7 @@ namespace LearnTogether
             if (desc.Length > 20000) throw new ApiException("invalid", "Die Beschreibung ist zu lang.");
             if (!admin && StartOfSafe(date, start) <= NowBerlin()) throw new ApiException("invalid", "Der Termin muss in der Zukunft liegen.");
 
-            r.title = title; r.host = host; r.category = cat; r.type = type; r.topic = topic;
+            r.title = title; r.host = host; r.hostEmail = hostEmail; r.category = cat; r.type = type; r.topic = topic;
             r.date = date; r.start = start; r.duration = dur; r.capacity = cap; r.teamsLink = link; r.description = desc;
             return r;
         }
@@ -860,6 +862,7 @@ namespace LearnTogether
                 {
                     Dictionary<string, object> x = PublicEvent(e, 0);
                     x["teamsLink"] = e.teamsLink;
+                    x["hostEmail"] = e.hostEmail ?? "";
                     List<object> bl = new List<object>();
                     foreach (BookingRec bk in d.bookings)
                         if (bk.eventId == e.id) bl.Add(new { id = bk.id, name = bk.name, email = bk.email, code = bk.code, created = bk.created });

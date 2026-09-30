@@ -57,12 +57,12 @@ def js_json(o):
     return json.dumps(o, ensure_ascii=False).replace('</', '<\\/').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
 
 
-def build_manual_page(css, logo_uri, body):
+def build_manual_page(css, logo_uri, body, fav=''):
     body, heads = with_ids(body)
     page = rd(SRC, 'handbuch', 'page.html')
     toc = ''.join('<li>%s</li>' % h for h in heads)
     links = ''.join('<a href="#kap-%d">%s</a>' % (i + 1, h) for i, h in enumerate(heads))
-    for k, v in (('{{CSS}}', css), ('{{LOGO}}', logo_uri), ('{{TOCLINKS}}', links), ('{{TOC}}', toc), ('{{VERSION}}', VERSION), ('{{DATE}}', DATE), ('{{APP_TITLE}}', APP_TITLE), ('{{BODY}}', body)):
+    for k, v in (('{{CSS}}', css), ('{{LOGO}}', logo_uri), ('{{FAV}}', fav), ('{{TOCLINKS}}', links), ('{{TOC}}', toc), ('{{VERSION}}', VERSION), ('{{DATE}}', DATE), ('{{APP_TITLE}}', APP_TITLE), ('{{BODY}}', body)):
         page = page.replace(k, v)
     return page
 
@@ -75,6 +75,7 @@ def main():
     logo_d = os.path.join(SRC, 'assets', 'ruv-logo-dunkelblau.png')
     logo_w = os.path.join(SRC, 'assets', 'ruv-logo-weiss.png')
     body = manual_body()
+    fav = data_uri(os.path.join(SRC, 'assets', 'favicon.png'), 'image/png')
 
     # ---- IIS-Ordner neu aufbauen (Daten bleiben unangetastet, falls dort schon Betrieb laeuft, siehe README)
     if os.path.isdir(IIS):
@@ -86,7 +87,7 @@ def main():
     open(os.path.join(IIS, 'AppData', 'Data', '.gitkeep'), 'w').close()
 
     # ---- Handbuch (HTML + PDF)
-    wr(os.path.join(IIS, 'AppData', 'Handbuch.html'), build_manual_page(css, data_uri(logo_d, 'image/png'), body))
+    wr(os.path.join(IIS, 'AppData', 'Handbuch.html'), build_manual_page(css, data_uri(logo_d, 'image/png'), body, fav))
     pdf_path = os.path.join(IIS, 'AppData', 'Nutzerhandbuch.pdf')
     if want_pdf:
         subprocess.check_call(['node', os.path.join(ROOT, 'tools', 'pdf.mjs'), os.path.join(IIS, 'AppData', 'Handbuch.html'), pdf_path])
@@ -100,16 +101,16 @@ def main():
 
     # ---- IIS index.html
     cfg = {'version': VERSION, 'mode': 'iis', 'manualHtml': body, 'manualUrl': 'AppData/Handbuch.html', 'pdfUrl': 'AppData/Nutzerhandbuch.pdf' if has_pdf else None}
-    page = tpl.replace('/*__CSS__*/', css).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
+    page = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
     wr(os.path.join(IIS, 'index.html'), page)
 
     # ---- Artefakt (Fragment ohne doctype/head/body, Logos und PDF eingebettet)
     cfg = {'version': VERSION, 'mode': 'artifact', 'manualHtml': body, 'logoDark': data_uri(logo_d, 'image/png'), 'logoWhite': data_uri(logo_w, 'image/png'),
            'pdfUrl': data_uri(pdf_path, 'application/pdf') if has_pdf else None}
-    frag = ('<title>%s</title>\n<style>\n%s\n</style>\n<script>window.__LT__ = %s;</script>\n<script>\n%s\n</script>\n' % (APP_TITLE, css, js_json(cfg), js))
+    frag = '<title>%s</title>\n<link rel="icon" type="image/png" href="%s">\n<style>\n%s\n</style>\n<script>window.__LT__ = %s;</script>\n<script>\n%s\n</script>\n' % (APP_TITLE, fav, css, js_json(cfg), js)
     wr(os.path.join(ART, 'LearnTogether-AD.fragment.html'), frag)
     # Vollstaendige Datei zum Testen/Speichern
-    full = tpl.replace('/*__CSS__*/', css).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
+    full = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
     wr(os.path.join(ART, 'LearnTogether-AD.html'), full)
     print('OK  Version %s, Stand %s, PDF: %s' % (VERSION, DATE, 'ja' if has_pdf else 'nein'))
 

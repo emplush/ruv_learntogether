@@ -22,7 +22,7 @@ await go('#/stornieren?code=K7M2-QX9P&email=erika.mustermann%40example.org'); aw
 await shot('stornieren', { clip: { x: 0, y: 0, width: 1280, height: 640 } });
 await go('#/anbieten'); await p.waitForSelector('#f-title');
 await p.fill('#f-title', 'Erfolgreich im Erstgespräch'); await p.fill('#f-host', 'Anna Berger');
-const dates = await p.$$eval('#f-date option', o => o.map(x => x.value).filter(Boolean)); await p.selectOption('#f-date', dates[2]);
+await p.fill('#f-hostmail', 'anna.berger@example.org'); { const d = new Date(); d.setDate(d.getDate() + 4); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); await p.fill('#f-date', d.toISOString().slice(0, 10)); }
 await p.selectOption('#f-dur', '60'); await p.selectOption('#f-start', '17:30'); await p.selectOption('#f-type', 'Workshop'); await p.selectOption('#f-topic', 'vertrieblich');
 await p.fill('#f-cap', '12');
 await p.waitForTimeout(200);

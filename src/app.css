@@ -56,7 +56,9 @@ img { max-width: 100%; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .wrap { width: 100%; max-width: 1240px; margin-inline: auto; padding-inline: 16px; }
 @media (min-width: 720px) { .wrap { padding-inline: 32px; } }
+@media (min-width: 1400px) { .wrap.wide { padding-inline: 48px; } }
 .accent { color: var(--accent); }
+.wrap.wide { max-width: none; }
 
 /* ---------- Kopf ---------- */
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); border-bottom: 1px solid var(--surface-2); }
@@ -112,7 +114,7 @@ footer.foot .sp { margin-left: auto; opacity: .8; }
 .field .req { color: var(--accent); }
 .hint { font-size: .85rem; color: var(--muted); }
 .err { font-size: .875rem; color: var(--danger); font-weight: 600; }
-input[type=text], input[type=email], input[type=url], input[type=number], input[type=password], input[type=search], select, textarea {
+input[type=text], input[type=email], input[type=url], input[type=number], input[type=password], input[type=search], input[type=date], select, textarea {
   font: inherit; color: var(--text); background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 46px; width: 100%; min-width: 0;
 }
 select { padding-right: 8px; }
@@ -298,3 +300,5 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .manual-body kbd { font-family: inherit; background: var(--surface-2); border-radius: 6px; padding: 1px 8px; font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+.top .wrap, footer.foot .wrap { max-width: none; }
+@media (min-width: 1400px) { .top .wrap, footer.foot .wrap { padding-inline: 48px; } }

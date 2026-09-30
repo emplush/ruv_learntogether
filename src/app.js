@@ -135,9 +135,10 @@ function appTitleHtml(t) { var i = t.indexOf('@'); return i < 0 ? esc(t) : esc(t
 function validateEvent(v, admin) {
   var e = {};
   var t = (v.title || '').trim(); if (t.length < 3) e.title = 'Bitte gib einen Titel mit mindestens 3 Zeichen an.'; else if (t.length > 100) e.title = 'Der Titel darf höchstens 100 Zeichen lang sein.';
-  var hn = (v.host || '').trim(); if (hn.length < 2) e.host = 'Bitte gib den Namen der durchführenden Person an.'; else if (hn.length > 80) e.host = 'Der Name darf höchstens 80 Zeichen lang sein.';
+  var he = (v.hostEmail || '').trim(); if (!validEmail(he)) e.hostEmail = 'Bitte gib eine gültige E-Mail-Adresse an.';
+  var hn = (v.host || '').trim(); if (hn.length < 2) e.host = 'Bitte gib deinen Namen an.'; else if (hn.length > 80) e.host = 'Der Name darf höchstens 80 Zeichen lang sein.';
   if (v.category !== 'dienstlich' && v.category !== 'privat') e.category = 'Bitte wähle „Dienstlich“ oder „Privat“.';
-  if (!v.date) e.date = 'Bitte wähle einen Tag (Montag bis Freitag).'; else if (!isWeekday(parseYmd(v.date))) e.date = 'Veranstaltungen sind nur von Montag bis Freitag möglich.';
+  if (!v.date) e.date = 'Bitte wähle einen Tag (Montag bis Freitag).'; else if (!admin && v.date < ymd(new Date())) e.date = 'Der Tag liegt in der Vergangenheit.'; else if (!isWeekday(parseYmd(v.date))) e.date = 'Veranstaltungen sind nur von Montag bis Freitag möglich.';
   if (!v.duration) e.duration = 'Bitte wähle die Dauer (maximal 2 Stunden).'; else if (v.duration < 15 || v.duration > 120 || v.duration % 15) e.duration = 'Die Dauer muss zwischen 15 und 120 Minuten liegen.';
   if (!v.start) e.start = 'Bitte wähle die Startzeit.';
   else if (!e.duration && !inWindow(toMin(v.start), v.duration)) e.start = 'Die Veranstaltung muss komplett zwischen 06:00–09:00 Uhr oder 17:00–20:00 Uhr liegen.';
@@ -196,7 +197,7 @@ function buildTestData() {
   var events = [], bookings = [], ni = 0;
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1);
-    var e = { id: id, title: r[0], host: H[r[1] % H.length], category: r[2], type: r[3], topic: r[4], date: r[5] < 0 ? past : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', isTest: true };
+    var e = { id: id, title: r[0], host: H[r[1] % H.length], hostEmail: H[r[1] % H.length].toLowerCase().replace(/ü/g, 'ue').replace(/ /g, '.') + '@example.org', category: r[2], type: r[3], topic: r[4], date: r[5] < 0 ? past : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', isTest: true };
     events.push(e);
     for (var b = 0; b < r[9]; b++) { var nm = names[ni++ % names.length]; bookings.push({ eventId: id, name: nm, email: nm.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/[^a-z]+/g, '.') + '.' + (i + 1) + '@example.org' }); }
   });
@@ -289,12 +290,12 @@ var Local = (function () {
     return t;
   }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }
-  function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
+  function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData' && k !== 'hostEmail') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
   function fail(code, msg) { return Promise.reject(ApiErr(code, msg)); }
   function readEvent(v, target, admin) {
     var er = validateEvent(v, admin); var k = Object.keys(er);
     if (k.length) throw ApiErr('invalid', er[k[0]]);
-    target.title = v.title.trim(); target.host = v.host.trim(); target.category = v.category; target.type = v.type; target.topic = v.topic;
+    target.title = v.title.trim(); target.host = v.host.trim(); target.hostEmail = (v.hostEmail || '').trim(); target.category = v.category; target.type = v.type; target.topic = v.topic;
     target.date = v.date; target.start = v.start; target.duration = Number(v.duration); target.capacity = Number(v.capacity); target.teamsLink = v.teamsLink.trim();
     target.description = sanitizeHtml(v.description);
     if (v.imageData) target.imageData = v.imageData; else if (v.removeImage) target.imageData = '';
@@ -333,7 +334,7 @@ var Local = (function () {
       });
     },
     login: function (pw) { return wrap(function () { if (pw !== cfg.pw) throw ApiErr('password', 'Das Passwort ist nicht korrekt.'); adminToken = 'local'; sess.set('lt_admin', 'local'); }); },
-    adminEvents: function () { return wrap(function () { return data.events.map(function (e) { var o = pub(e); o.teamsLink = e.teamsLink; o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }); return o; }); }); },
+    adminEvents: function () { return wrap(function () { return data.events.map(function (e) { var o = pub(e); o.teamsLink = e.teamsLink; o.hostEmail = e.hostEmail || ''; o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }); return o; }); }); },
     adminSaveEvent: function (v) {
       return wrap(function () {
         var e = data.events.filter(function (x) { return x.id === v.id; })[0], isNew = !e; if (isNew) e = { id: rid(8), created: new Date().toISOString(), isTest: false };
@@ -504,25 +505,30 @@ function weekdayOptions(selected, admin) {
 }
 function buildEventForm(o) {
   o = o || {}; var ev = o.event || {}, admin = !!o.admin;
-  var v = { title: ev.title || '', host: ev.host || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false };
+  var v = { title: ev.title || '', host: ev.host || '', hostEmail: ev.hostEmail || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false };
   var existingImg = ev.image || '', srcImg = null, previewSrc = existingImg;
   var f = {}; // Felder
   var form = h('form', { class: 'form', novalidate: true });
 
   var title = h('input', { type: 'text', id: 'f-title', maxlength: '100', value: v.title, autocomplete: 'off' });
   var host = h('input', { type: 'text', id: 'f-host', maxlength: '80', value: v.host, autocomplete: 'name' });
-  f.title = field('Titel der Veranstaltung', title, { id: 'f-title', req: true }); f.host = field('Durchführende Person', host, { id: 'f-host', req: true, hint: 'Vor- und Nachname' });
+  f.title = field('Titel der Veranstaltung', title, { id: 'f-title', req: true }); f.host = field('Name', host, { id: 'f-host', req: true, hint: 'Vor- und Nachname' });
+  var hostMail = h('input', { type: 'email', id: 'f-hostmail', maxlength: '200', value: v.hostEmail, autocomplete: 'email' });
+  f.hostEmail = field('E-Mail-Adresse', hostMail, { id: 'f-hostmail', req: true, hint: 'Für Rückfragen der Administration. Sie wird nicht im Katalog angezeigt.' });
 
   var catSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Dienstlich oder privat' }, ['dienstlich', 'privat'].map(function (c) {
     return h('label', null, [h('input', { type: 'radio', name: 'f-cat', value: c, checked: v.category === c }), CAT_LABEL[c]]);
   }));
-  f.category = field('Art des Themas', catSeg, { req: true, legend: true });
+  f.category = field('Auswahl des Themenbereichs', catSeg, { req: true, legend: true });
 
-  var dateSel = h('select', { id: 'f-date' });
+  var todayStr = ymd(new Date()), maxD = new Date(); maxD.setFullYear(maxD.getFullYear() + 2);
+  var dateSel = h('input', { type: 'date', id: 'f-date', value: v.date, min: admin ? null : todayStr, max: ymd(maxD) });
   var durSel = h('select', { id: 'f-dur' });
   var startSel = h('select', { id: 'f-start' });
   var startHint = h('div', { class: 'hint' });
-  f.date = field('Tag', dateSel, { id: 'f-date', req: true, hint: 'Möglich sind Montag bis Freitag.' });
+  f.date = field('Tag', dateSel, { id: 'f-date', req: true, hint: 'Nur Montag bis Freitag sind möglich.' });
+  var dateHint = $('.hint', f.date);
+  function showDay() { dateHint.textContent = v.date ? dateLong(v.date) : 'Nur Montag bis Freitag sind möglich.'; }
   f.duration = field('Dauer', durSel, { id: 'f-dur', req: true, hint: 'Maximal 2 Stunden, in 15-Minuten-Schritten.' });
   f.start = field('Startzeit', startSel, { id: 'f-start', req: true });
   f.start.insertBefore(startHint, $('.err', f.start));
@@ -533,7 +539,7 @@ function buildEventForm(o) {
   f.topic = field('Thema', topicSel, { id: 'f-topic', req: true });
   var cap = h('input', { type: 'number', id: 'f-cap', min: '1', max: '500', step: '1', value: String(v.capacity), inputmode: 'numeric' });
   f.capacity = field('Maximale Teilnehmendenzahl', cap, { id: 'f-cap', req: true });
-  var rte = makeRte(v.description); f.description = field('Beschreibung', rte.node, { req: true, legend: true, hint: 'Der Text erscheint im Katalog, wenn Interessierte auf die Kachel klicken.' });
+  var rte = makeRte(v.description); f.description = field('Beschreibung', rte.node, { req: true, legend: true, hint: 'Diese Beschreibung wird auch im Katalog angezeigt, sobald Interessierte auf die Kachel der Veranstaltung klicken.' });
   var link = h('input', { type: 'url', id: 'f-link', value: v.teamsLink, placeholder: 'https://teams.microsoft.com/l/meetup-join/…', autocomplete: 'off' });
   f.teamsLink = field('Link zum Microsoft-Teams-Meeting', link, { id: 'f-link', req: true, hint: 'Der Link wird nur in der Bestätigungs-E-Mail an angemeldete Personen verschickt.' });
 
@@ -565,10 +571,6 @@ function buildEventForm(o) {
   delBtn.addEventListener('click', function () { v.imageData = ''; v.removeImage = true; previewSrc = ''; srcImg = null; renderPrev(); });
   renderPrev();
 
-  function fillDates() {
-    clear(dateSel); dateSel.appendChild(h('option', { value: '', text: 'Bitte wählen' }));
-    weekdayOptions(v.date, admin).forEach(function (d) { var past = parseYmd(d) < new Date(new Date().setHours(0, 0, 0, 0)); dateSel.appendChild(h('option', { value: d, text: dateFull(d) + (past ? ' (vergangen)' : ''), selected: d === v.date })); });
-  }
   function fillDur() {
     clear(durSel); durSel.appendChild(h('option', { value: '', text: 'Bitte wählen' }));
     [15, 30, 45, 60, 75, 90, 105, 120].forEach(function (d) { durSel.appendChild(h('option', { value: String(d), text: DUR_LABEL[d], selected: d === v.duration })); });
@@ -590,10 +592,14 @@ function buildEventForm(o) {
   }
   function fillTopics() { clear(topicSel); topicSel.appendChild(h('option', { value: '', text: 'Bitte wählen' })); TOPICS[v.category].forEach(function (t) { topicSel.appendChild(h('option', { value: t, text: t, selected: t === v.topic })); }); }
   clear(typeSel); typeSel.appendChild(h('option', { value: '', text: 'Bitte wählen' })); TYPES.forEach(function (t) { typeSel.appendChild(h('option', { value: t, text: t, selected: t === v.type })); });
-  fillDates(); fillDur(); fillStart(); fillTopics();
+  showDay(); fillDur(); fillStart(); fillTopics();
 
   $$('input[name=f-cat]', catSeg).forEach(function (r) { r.addEventListener('change', function () { v.category = r.value; if (TOPICS[v.category].indexOf(v.topic) < 0) v.topic = ''; fillTopics(); f.category.setErr(''); }); });
-  dateSel.addEventListener('change', function () { v.date = dateSel.value; fillStart(); if (v.start && !$('option[value="' + v.start + '"]:not([disabled])', startSel)) { v.start = ''; } f.date.setErr(''); });
+  dateSel.addEventListener('input', function () {
+    var val = dateSel.value;
+    if (val && !isWeekday(parseYmd(val))) { v.date = ''; dateSel.value = ''; showDay(); f.date.setErr('Am Wochenende finden keine Veranstaltungen statt. Bitte wähle einen Tag von Montag bis Freitag.'); fillStart(); return; }
+    v.date = val; showDay(); f.date.setErr(''); var old = v.start; fillStart(); if (old && !$('option[value="' + old + '"]:not([disabled])', startSel)) v.start = '';
+  });
   durSel.addEventListener('change', function () {
     v.duration = Number(durSel.value) || 0; var old = v.start; fillStart();
     if (old && v.duration && !inWindow(toMin(old), v.duration)) { v.start = ''; startSel.value = ''; f.start.setErr('Mit ' + v.duration + ' Minuten passt ' + old + ' Uhr nicht mehr in das Zeitfenster. Bitte wähle eine neue Startzeit.'); } else f.start.setErr('');
@@ -602,11 +608,11 @@ function buildEventForm(o) {
   startSel.addEventListener('change', function () { v.start = startSel.value; f.start.setErr(''); });
   typeSel.addEventListener('change', function () { v.type = typeSel.value; f.type.setErr(''); });
   topicSel.addEventListener('change', function () { v.topic = topicSel.value; f.topic.setErr(''); });
-  title.addEventListener('input', function () { f.title.setErr(''); }); host.addEventListener('input', function () { f.host.setErr(''); });
+  title.addEventListener('input', function () { f.title.setErr(''); }); host.addEventListener('input', function () { f.host.setErr(''); }); hostMail.addEventListener('input', function () { f.hostEmail.setErr(''); });
   cap.addEventListener('input', function () { f.capacity.setErr(''); }); link.addEventListener('input', function () { f.teamsLink.setErr(''); });
   rte.area.addEventListener('input', function () { f.description.setErr(''); });
 
-  function collect() { v.title = title.value; v.host = host.value; v.capacity = Number(cap.value); v.teamsLink = link.value; v.description = rte.getHTML(); return v; }
+  function collect() { v.title = title.value; v.host = host.value; v.hostEmail = hostMail.value; v.capacity = Number(cap.value); v.teamsLink = link.value; v.description = rte.getHTML(); return v; }
   function validate() {
     collect(); var er = validateEvent(v, admin), first = null;
     Object.keys(f).forEach(function (k) { f[k].setErr(er[k] || ''); if (er[k] && !first) first = f[k]; });
@@ -616,17 +622,18 @@ function buildEventForm(o) {
   var submit = h('button', { type: 'submit', class: 'btn btn-primary', text: o.submitLabel || 'Veranstaltung anbieten' });
   var extra = o.extraButtons || [];
   var box = h('div', { class: 'notice bad', role: 'alert', hidden: true });
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), h('div', { class: 'grid2' }, [f.title, f.host]), f.category]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wer bietet es an?' }), h('div', { class: 'grid2' }, [f.host, f.hostEmail])]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), h('div', { class: 'grid3' }, [f.type, f.topic, f.capacity]), f.description]));
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Online-Sitzung und Bild' }), f.teamsLink, f.image]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), h('div', { class: 'grid2' }, [f.type, f.capacity]), f.description, f.image]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Teams-Link' }), f.teamsLink]));
   form.appendChild(box);
   form.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [submit].concat(extra)));
   form.addEventListener('submit', function (e) {
     e.preventDefault(); box.hidden = true;
     if (!validate()) return;
     submit.disabled = true; var old = submit.textContent; submit.textContent = 'Wird gespeichert …';
-    var payload = { id: ev.id, title: v.title.trim(), host: v.host.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage };
+    var payload = { id: ev.id, title: v.title.trim(), host: v.host.trim(), hostEmail: v.hostEmail.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage };
     Promise.resolve(o.onSubmit(payload)).catch(function (err) { box.hidden = false; box.textContent = err.message || 'Das Speichern ist fehlgeschlagen.'; box.scrollIntoView({ block: 'center', behavior: 'smooth' }); }).then(function () { submit.disabled = false; submit.textContent = old; });
   });
   return form;
@@ -656,11 +663,11 @@ function viewCatalog() {
   search.addEventListener('input', function () { filters.q = search.value; renderRows(); });
   durSel.addEventListener('change', function () { filters.dur = durSel.value; renderRows(); });
 
-  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap' }, [h('h1', { text: 'Gemeinsam lernen, wenn es passt' }), h('p', { text: 'Workshops, Austausch und Best Practices von Kolleginnen und Kollegen. Online, morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr.' })])));
-  root.appendChild(h('div', { class: 'wrap' }, h('div', { class: 'toolbar' }, [
+  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: 'Gemeinsam lernen, wenn es passt' }), h('p', { text: 'Workshops, Austausch und Best Practices von Kolleginnen und Kollegen. Online, morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr.' })])));
+  root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [switchSeg, h('div', { class: 'search', html: ico('search') }, search)]),
     h('div', { class: 'r2' }, [typeChips, h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
-  root.appendChild(h('div', { class: 'wrap' }, rowsHost));
+  root.appendChild(h('div', { class: 'wrap wide' }, rowsHost));
 
   function matches(e) {
     if (e.category !== filters.cat) return false;
@@ -832,21 +839,21 @@ function viewManual() {
 
 /* ---- Admin ---- */
 function viewAdmin() {
-  var root = h('div', { class: 'page' }, h('div', { class: 'wrap' })), wrap = root.firstChild;
+  var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' })), wrap = root.firstChild;
   function login() {
     clear(wrap);
     var pw = h('input', { type: 'password', id: 'a-pw', autocomplete: 'current-password' });
     var fp = field('Passwort', pw, { id: 'a-pw', req: true }); var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true }); var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmelden' });
     var form = h('form', { class: 'form', style: 'max-width:420px;margin-top:24px', novalidate: true }, [fp, msg, h('div', null, go)]);
     form.addEventListener('submit', function (e) { e.preventDefault(); msg.hidden = true; go.disabled = true; Api.login(pw.value).then(panel, function (er) { go.disabled = false; msg.hidden = false; msg.textContent = er.message; pw.select(); }); });
-    wrap.appendChild(h('h1', { html: 'Admin<span class="accent">bereich</span>' }));
+    wrap.appendChild(h('h1', { text: 'Administration' }));
     wrap.appendChild(h('p', { class: 'lead', text: 'Dieser Bereich ist passwortgeschützt. Hier verwaltest du Veranstaltungen, Anmeldungen und Einstellungen.' }));
     wrap.appendChild(form); pw.focus();
   }
   var tab = 'events';
   function panel() {
     clear(wrap);
-    wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('h1', { html: 'Admin<span class="accent">bereich</span>', style: 'flex:1' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
+    wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('h1', { text: 'Administration', style: 'flex:1' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
     var tabs = h('div', { class: 'tabs', role: 'tablist' }), content = h('div');
     [['events', 'Veranstaltungen'], ['settings', 'Einstellungen'], ['testdata', 'Testdaten'], ['mail', 'E-Mail-Protokoll']].forEach(function (t) {
       var b = h('button', { role: 'tab', type: 'button', text: t[1], 'aria-selected': String(tab === t[0]), onclick: function () { tab = t[0]; $$('button', tabs).forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); }); draw(); } }); tabs.appendChild(b);
@@ -879,7 +886,7 @@ function viewAdmin() {
             h('td', null, [h('b', { text: e.title, style: 'overflow-wrap:anywhere' }), h('div', null, [e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null])]),
             h('td', { text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) }),
             h('td', null, [CAT_LABEL[e.category], h('div', { class: 'hint', text: e.type + ' \u00b7 ' + e.topic })]),
-            h('td', { text: e.host }),
+            h('td', null, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
             h('td', null, [e.booked + ' / ' + e.capacity, h('div', { class: 'bar' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]),
             h('td', null, h('div', { class: 'acts' }, [
               h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Teilnehmende (' + e.booked + ')', 'aria-expanded': String(!!open[e.id]), onclick: function () { open[e.id] = !open[e.id]; render(); } }),
