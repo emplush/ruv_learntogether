@@ -1,5 +1,4 @@
 <%@ WebHandler Language="C#" Class="SelfTest" %>
-<%@ Assembly Name="System.Web.Extensions" %>
 // Selbsttest fuer die Einrichtung: zeigt Umgebung, Schreibrechte und uebersetzt api.ashx testweise.
 // Aufruf: https://<server>/<pfad>/AppData/selftest.ashx  -  Nach der Fehlersuche bitte loeschen (zeigt Pfade und Benutzernamen).
 using System;

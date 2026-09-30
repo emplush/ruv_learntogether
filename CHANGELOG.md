@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.9.4 (30.09.2026)
+- Fix: Direktive `<%@ Assembly Name="System.Web.Extensions" %>` entfernt (unvollständiger Assembly-Name ließ sich unter .NET 4.8 nicht laden, HTTP 500). Die Assembly ist in ASP.NET 4.x standardmäßig eingebunden; ebenso den Assemblies-Eintrag aus der web.config entfernt.
+
 ## 0.9.3 (30.09.2026)
 - Neu: AppData/selftest.ashx als Selbsttest (Umgebung, Anwendungspool-Benutzer, Schreibrechte, Testübersetzung von api.ashx mit Compiler-Fehlern). Hinweis im Demo-Banner bei HTTP 500.
 

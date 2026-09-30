@@ -1,5 +1,4 @@
 <%@ WebHandler Language="C#" Class="LearnTogether.Api" %>
-<%@ Assembly Name="System.Web.Extensions" %>
 // LearnTogether - serverseitige API (ASP.NET, .NET Framework 4.x, wird von IIS zur Laufzeit kompiliert).
 // Bewusst in C# 5 gehalten, damit kein Roslyn-Compiler-Paket notwendig ist.
 // Datenhaltung: JSON-Dateien im Ordner AppData/Data (Schreibrechte fuer den Anwendungspool erforderlich).
@@ -136,7 +135,7 @@ namespace LearnTogether
     public class Api : IHttpHandler
     {
         const string DefaultAdminPassword = "RuVTest1234";
-        const string Version = "0.9.3";
+        const string Version = "0.9.4";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         static readonly string[] Days = new string[] { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };

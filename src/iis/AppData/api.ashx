@@ -1,5 +1,4 @@
 <%@ WebHandler Language="C#" Class="LearnTogether.Api" %>
-<%@ Assembly Name="System.Web.Extensions" %>
 // LearnTogether - serverseitige API (ASP.NET, .NET Framework 4.x, wird von IIS zur Laufzeit kompiliert).
 // Bewusst in C# 5 gehalten, damit kein Roslyn-Compiler-Paket notwendig ist.
 // Datenhaltung: JSON-Dateien im Ordner AppData/Data (Schreibrechte fuer den Anwendungspool erforderlich).
