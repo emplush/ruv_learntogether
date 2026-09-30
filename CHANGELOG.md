@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.0 (30.09.2026)
+- Teilnehmendenzahl höchstens 50 (Formular, Server, Admin).
+- Admin: Hauptfarbe je Themenbereich einstellbar (mit Vorschau, Kontrollprüfung auf Lesbarkeit, Standardwert); neuer Reiter „Arten“ zum Hinzufügen, Umbenennen und Löschen (nur unbenutzte) der Veranstaltungsarten.
+- Katalog: neue Hero-Texte mit Fokus auf Austausch und Button „Selbst etwas anbieten“; Art-Filter in eigener Zeile, passt sich der Anzahl der Arten an.
+
 ## 0.4.0 (30.09.2026)
 - Admin: neuer Reiter „Themen“. Themen der Bereiche hinzufügen, umbenennen (bestehende Veranstaltungen werden angepasst) und löschen (nur wenn nicht verwendet). Bezeichnungen der Themenbereiche änderbar; die Bereiche selbst bleiben fest.
 - Fokus im Popup überschreibt keine bereits begonnene Eingabe mehr.

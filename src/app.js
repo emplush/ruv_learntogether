@@ -70,17 +70,29 @@ var sess = {
 
 /* ====================================================== Fachliche Konstanten & Datum */
 var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
+var MAX_CAP = 50;
+var COLORS = { dienstlich: '#001957', privat: '#583720' };
 var TOPICS = { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] };
 var CAT_LABEL = { dienstlich: 'Dienstlich', privat: 'Privat' };
-var DEFAULT_TAX = { labels: { dienstlich: 'Dienstlich', privat: 'Privat' }, topics: { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] } };
+var DEFAULT_TAX = { types: ['Workshop', 'Austausch', 'Best Practice'], colors: { dienstlich: '#001957', privat: '#583720' }, labels: { dienstlich: 'Dienstlich', privat: 'Privat' }, topics: { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] } };
 function applyTaxonomy(t) {
   if (!t) return;
   ['dienstlich', 'privat'].forEach(function (c) {
     if (t.labels && t.labels[c]) CAT_LABEL[c] = t.labels[c];
     if (t.topics && t.topics[c] && t.topics[c].length) TOPICS[c] = t.topics[c].slice();
+    if (t.colors && t.colors[c]) COLORS[c] = t.colors[c];
   });
+  if (t.types && t.types.length) TYPES = t.types.slice();
 }
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+function hexRgb(x) { return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }); }
+function lum(x) { var c = hexRgb(x).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+function mixHex(a, b, t) { var A = hexRgb(a), B = hexRgb(b); return '#' + A.map(function (v, i) { return pad(Math.round(v + (B[i] - v) * t).toString(16)); }).join(''); }
+/* Zu helle Farben lassen weisse und orange Schrift unleserlich werden */
+function colorError(x) { if (!/^#[0-9a-fA-F]{6}$/.test(x)) return 'Bitte gib die Farbe als Hex-Wert an, z. B. #001957.'; if (lum(x.toLowerCase()) > 0.107) return 'Die Farbe ist zu hell. Bitte wähle einen dunkleren Ton, damit weiße und orange Schrift gut lesbar bleiben.'; return ''; }
+function stageStyle(x) {
+  return '--bg:' + x + ';--surface:' + mixHex(x, '#ffffff', .1) + ';--surface-2:' + mixHex(x, '#ffffff', .2) + ';--line:' + mixHex(x, '#ffffff', .32) + ';--muted:' + mixHex(x, '#ffffff', .8) + ';--arrow:' + mixHex(x, '#000000', .4);
+}
 var WINDOWS = [{ key: 'morgens', label: 'Morgens', from: 360, to: 540 }, { key: 'nachmittags', label: 'Nachmittags', from: 1020, to: 1200 }];
 var DUR_LABEL = { 15: '15 Minuten', 30: '30 Minuten', 45: '45 Minuten', 60: '60 Minuten (1 Std.)', 75: '75 Minuten', 90: '90 Minuten (1,5 Std.)', 105: '105 Minuten', 120: '120 Minuten (2 Std.)' };
 var DAY_S = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -154,7 +166,7 @@ function validateEvent(v, admin) {
   if (!e.date && !e.start && !admin && startDate(v) <= new Date()) e.start = 'Der Termin muss in der Zukunft liegen.';
   if (TYPES.indexOf(v.type) < 0) e.type = 'Bitte wähle die Art der Veranstaltung.';
   if (!v.category || (TOPICS[v.category] || []).indexOf(v.topic) < 0) e.topic = 'Bitte wähle ein Thema.';
-  var c = Number(v.capacity); if (!c || c < 1 || c > 500 || Math.floor(c) !== c) e.capacity = 'Bitte gib eine Teilnehmendenzahl zwischen 1 und 500 an.';
+  var c = Number(v.capacity); if (!c || c < 1 || c > MAX_CAP || Math.floor(c) !== c) e.capacity = 'Bitte gib eine Teilnehmendenzahl zwischen 1 und ' + MAX_CAP + ' an.';
   if (!v.teamsLink || !validTeams(v.teamsLink.trim())) e.teamsLink = 'Bitte gib einen gültigen Link zu einem Microsoft-Teams-Meeting an (https://teams.microsoft.com/…).';
   if (plainText(v.description).length < 10) e.description = 'Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.';
   return e;
@@ -174,6 +186,7 @@ function makeImage(seed, size) {
   return c.toDataURL('image/jpeg', .72);
 }
 function descHtml(intro, points) { return '<p>' + intro + '</p><h3>Das erwartet dich</h3><ul>' + points.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul><p>Bring gern eigene Fragen und Beispiele mit. Die Sitzung findet online in Microsoft Teams statt.</p>'; }
+function mapType(name) { var i = DEFAULT_TAX.types.indexOf(name); return TYPES[(i < 0 ? 0 : i) % TYPES.length]; }
 function mapTopic(cat, name) { var i = DEFAULT_TAX.topics[cat].indexOf(name); var l = TOPICS[cat]; return l[(i < 0 ? 0 : i) % l.length]; }
 function buildTestData() {
   var d = nextWeekdays(12), past = lastWeekday();
@@ -207,7 +220,7 @@ function buildTestData() {
   var events = [], bookings = [], ni = 0;
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1);
-    var e = { id: id, title: r[0], host: H[r[1] % H.length], hostEmail: H[r[1] % H.length].toLowerCase().replace(/ü/g, 'ue').replace(/ /g, '.') + '@example.org', category: r[2], type: r[3], topic: mapTopic(r[2], r[4]), date: r[5] < 0 ? past : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', isTest: true };
+    var e = { id: id, title: r[0], host: H[r[1] % H.length], hostEmail: H[r[1] % H.length].toLowerCase().replace(/ü/g, 'ue').replace(/ /g, '.') + '@example.org', category: r[2], type: mapType(r[3]), topic: mapTopic(r[2], r[4]), date: r[5] < 0 ? past : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', isTest: true };
     events.push(e);
     for (var b = 0; b < r[9]; b++) { var nm = names[ni++ % names.length]; bookings.push({ eventId: id, name: nm, email: nm.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/[^a-z]+/g, '.') + '.' + (i + 1) + '@example.org' }); }
   });
@@ -260,8 +273,8 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics }; }); },
-  adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, types: j.types }; }); },
+  adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, types: j.types }; }); },
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
   book: function (id, name, email) { return this.call('book', { eventId: id, name: name, email: email }); },
@@ -290,6 +303,8 @@ var Local = (function () {
     if (!cfg) cfg = { appTitle: DEFAULT_TITLE, pw: 'RuVTest1234' };
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
+    if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
+    if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     applyTaxonomy(cfg);
     if (!mail) mail = [];
     if (!store.get('lt_seeded')) { store.set('lt_seeded', '1'); insertTest(); save(); }
@@ -317,28 +332,38 @@ var Local = (function () {
   }
   function wrap(fn) { return new Promise(function (res, rej) { try { load(); res(fn()); } catch (e) { rej(e); } }); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
-        var l = p.labels, c1 = (l.dienstlich || '').trim(), c2 = (l.privat || '').trim();
-        if (c1.length < 2 || c1.length > 30 || c2.length < 2 || c2.length > 30) throw ApiErr('invalid', 'Die Bezeichnungen der Themenbereiche müssen zwischen 2 und 30 Zeichen lang sein.');
-        if (c1.toLowerCase() === c2.toLowerCase()) throw ApiErr('invalid', 'Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.');
-        var res = {}, maps = {};
-        ['dienstlich', 'privat'].forEach(function (cat) {
-          var names = [], map = {};
-          p.topics[cat].forEach(function (it) {
-            var n = (it.name || '').trim(); if (n.length < 1 || n.length > 40) throw ApiErr('invalid', 'Ein Thema muss zwischen 1 und 40 Zeichen lang sein.');
-            if (names.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) throw ApiErr('invalid', 'Das Thema "' + n + '" gibt es doppelt.');
-            names.push(n); if (it.orig) map[it.orig] = n;
+        function names(list, what, max, old, usedFn, map) {
+          var out = [];
+          list.forEach(function (it) {
+            var n = (it.name || '').trim(); if (n.length < 1 || n.length > 40) throw ApiErr('invalid', 'Ein Eintrag (' + what + ') muss zwischen 1 und 40 Zeichen lang sein.');
+            if (out.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) throw ApiErr('invalid', '"' + n + '" gibt es doppelt.');
+            out.push(n); if (it.orig) map[it.orig] = n;
           });
-          if (!names.length) throw ApiErr('invalid', 'Jeder Themenbereich braucht mindestens ein Thema.');
-          if (names.length > 30) throw ApiErr('invalid', 'Pro Themenbereich sind höchstens 30 Themen möglich.');
-          cfg.topics[cat].forEach(function (ot) { if (map[ot] !== undefined) return; var used = data.events.filter(function (e) { return e.category === cat && e.topic === ot; }).length; if (used) throw ApiErr('invalid', 'Das Thema "' + ot + '" wird von ' + used + ' Veranstaltung(en) verwendet und kann nicht gelöscht werden. Bitte ändere zuerst das Thema dieser Veranstaltungen.'); });
-          res[cat] = names; maps[cat] = map;
-        });
-        data.events.forEach(function (e) { var m = maps[e.category]; if (m && Object.prototype.hasOwnProperty.call(m, e.topic)) e.topic = m[e.topic]; });
-        cfg.labels = { dienstlich: c1, privat: c2 }; cfg.topics = res; applyTaxonomy(cfg); save();
-        return { labels: cfg.labels, topics: cfg.topics };
+          if (!out.length) throw ApiErr('invalid', 'Es muss mindestens ein Eintrag (' + what + ') bleiben.');
+          if (out.length > max) throw ApiErr('invalid', 'Höchstens ' + max + ' Einträge (' + what + ') sind möglich.');
+          old.forEach(function (ot) { if (Object.prototype.hasOwnProperty.call(map, ot)) return; var used = usedFn(ot); if (used) throw ApiErr('invalid', '"' + ot + '" wird von ' + used + ' Veranstaltung(en) verwendet und kann nicht gelöscht werden. Bitte ändere zuerst diese Veranstaltungen.'); });
+          return out;
+        }
+        var cats = ['dienstlich', 'privat'], nl, nc, nt = {}, maps = {}, ny, tmap = {};
+        if (p.labels) {
+          var c1 = (p.labels.dienstlich || '').trim(), c2 = (p.labels.privat || '').trim();
+          if (c1.length < 2 || c1.length > 30 || c2.length < 2 || c2.length > 30) throw ApiErr('invalid', 'Die Bezeichnungen der Themenbereiche müssen zwischen 2 und 30 Zeichen lang sein.');
+          if (c1.toLowerCase() === c2.toLowerCase()) throw ApiErr('invalid', 'Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.');
+          nl = { dienstlich: c1, privat: c2 };
+        }
+        if (p.colors) { nc = {}; cats.forEach(function (c) { var x = (p.colors[c] || '').trim().toLowerCase(); var er = colorError(x); if (er) throw ApiErr('invalid', er); nc[c] = x; }); }
+        if (p.topics) {
+          cats.forEach(function (cat) { var map = {}; nt[cat] = names(p.topics[cat], 'Thema', 30, cfg.topics[cat], function (ot) { return data.events.filter(function (e) { return e.category === cat && e.topic === ot; }).length; }, map); maps[cat] = map; });
+        }
+        if (p.types) ny = names(p.types, 'Art', 10, cfg.types, function (ot) { return data.events.filter(function (e) { return e.type === ot; }).length; }, tmap);
+        if (nl) cfg.labels = nl; if (nc) cfg.colors = nc;
+        if (p.topics) { data.events.forEach(function (e) { var m = maps[e.category]; if (m && Object.prototype.hasOwnProperty.call(m, e.topic)) e.topic = m[e.topic]; }); cfg.topics = nt; }
+        if (ny) { data.events.forEach(function (e) { if (Object.prototype.hasOwnProperty.call(tmap, e.type)) e.type = tmap[e.type]; }); cfg.types = ny; }
+        applyTaxonomy(cfg); save();
+        return { labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types };
       });
     },
     events: function () { return wrap(function () { var now = new Date(); return data.events.filter(function (e) { return startDate(e) > now; }).map(pub); }); },
@@ -575,8 +600,8 @@ function buildEventForm(o) {
   var topicSel = h('select', { id: 'f-topic' });
   f.type = field('Art der Veranstaltung', typeSel, { id: 'f-type', req: true });
   f.topic = field('Thema', topicSel, { id: 'f-topic', req: true });
-  var cap = h('input', { type: 'number', id: 'f-cap', min: '1', max: '500', step: '1', value: String(v.capacity), inputmode: 'numeric' });
-  f.capacity = field('Maximale Teilnehmendenzahl', cap, { id: 'f-cap', req: true });
+  var cap = h('input', { type: 'number', id: 'f-cap', min: '1', max: String(MAX_CAP), step: '1', value: String(v.capacity), inputmode: 'numeric' });
+  f.capacity = field('Maximale Teilnehmendenzahl', cap, { id: 'f-cap', req: true, hint: 'Höchstens ' + MAX_CAP + ' Personen.' });
   var rte = makeRte(v.description); f.description = field('Beschreibung', rte.node, { req: true, legend: true, hint: 'Diese Beschreibung wird auch im Katalog angezeigt, sobald Interessierte auf die Kachel der Veranstaltung klicken.' });
   var link = h('input', { type: 'url', id: 'f-link', value: v.teamsLink, placeholder: 'https://teams.microsoft.com/l/meetup-join/…', autocomplete: 'off' });
   f.teamsLink = field('Link zum Microsoft-Teams-Meeting', link, { id: 'f-link', req: true, hint: 'Der Link wird nur in der Bestätigungs-E-Mail an angemeldete Personen verschickt.' });
@@ -684,14 +709,17 @@ function loading() { return h('div', { class: 'empty' }, [h('p', { text: 'Wird g
 var filters = { cat: 'dienstlich', q: '', types: [], topic: 'all', dur: 'all', tod: 'all' };
 function viewCatalog() {
   if (filters.topic !== 'all' && TOPICS[filters.cat].indexOf(filters.topic) < 0) filters.topic = 'all';
+  filters.types = filters.types.filter(function (t) { return TYPES.indexOf(t) >= 0; });
   var root = h('div', { class: 'stage' + (filters.cat === 'privat' ? ' priv' : '') });
+  function paint() { root.style.cssText = stageStyle(COLORS[filters.cat]); }
+  paint();
   var rowsHost = h('div', { class: 'rows' });
   var count = h('span', { class: 'count', 'aria-live': 'polite' });
   var search = h('input', { type: 'search', id: 'c-search', placeholder: 'Titel, Thema oder Person suchen', value: filters.q, 'aria-label': 'Suche' });
   var switchSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Dienstlich oder privat' }, ['dienstlich', 'privat'].map(function (c) {
-    return h('button', { type: 'button', text: CAT_LABEL[c], 'aria-pressed': String(filters.cat === c), onclick: function () { filters.cat = c; filters.topic = 'all'; root.classList.toggle('priv', c === 'privat'); fillTopicSel(); $$('button', switchSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(['dienstlich', 'privat'][i] === c)); }); renderRows(); } });
+    return h('button', { type: 'button', text: CAT_LABEL[c], 'aria-pressed': String(filters.cat === c), onclick: function () { filters.cat = c; filters.topic = 'all'; root.classList.toggle('priv', c === 'privat'); paint(); fillTopicSel(); $$('button', switchSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(['dienstlich', 'privat'][i] === c)); }); renderRows(); } });
   }));
-  var typeChips = h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Art' })].concat(TYPES.map(function (t) {
+  var typeChips = h('div', { class: 'grp types', role: 'group', 'aria-label': 'Art der Veranstaltung' }, [h('span', { class: 'lbl', text: 'Art' })].concat(TYPES.map(function (t) {
     return h('button', { type: 'button', class: 'fchip', text: t, 'aria-pressed': String(filters.types.indexOf(t) >= 0), onclick: function (e) { var i = filters.types.indexOf(t); if (i >= 0) filters.types.splice(i, 1); else filters.types.push(t); e.currentTarget.setAttribute('aria-pressed', String(i < 0)); renderRows(); } });
   })));
   var topicSel = h('select', { id: 'c-topic', 'aria-label': 'Thema' });
@@ -709,10 +737,13 @@ function viewCatalog() {
   search.addEventListener('input', function () { filters.q = search.value; renderRows(); });
   durSel.addEventListener('change', function () { filters.dur = durSel.value; renderRows(); });
 
-  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: 'Gemeinsam lernen, wenn es passt' }), h('p', { text: 'Workshops, Austausch und Best Practices von Kolleginnen und Kollegen. Online, morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr.' })])));
+  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: 'Voneinander lernen. Miteinander wachsen.' }),
+    h('p', { text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' }),
+    h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' }))])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [switchSeg, h('div', { class: 'search', html: ico('search') }, search)]),
-    h('div', { class: 'r2' }, [typeChips, h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Thema' }), topicSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
+    typeChips,
+    h('div', { class: 'r2' }, [h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Thema' }), topicSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
   root.appendChild(h('div', { class: 'wrap wide' }, rowsHost));
 
   function matches(e) {
@@ -902,11 +933,11 @@ function viewAdmin() {
     clear(wrap);
     wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('h1', { text: 'Administration', style: 'flex:1' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
     var tabs = h('div', { class: 'tabs', role: 'tablist' }), content = h('div');
-    [['events', 'Veranstaltungen'], ['taxonomy', 'Themen'], ['settings', 'Einstellungen'], ['testdata', 'Testdaten'], ['mail', 'E-Mail-Protokoll']].forEach(function (t) {
+    [['events', 'Veranstaltungen'], ['taxonomy', 'Themen'], ['types', 'Arten'], ['settings', 'Einstellungen'], ['testdata', 'Testdaten'], ['mail', 'E-Mail-Protokoll']].forEach(function (t) {
       var b = h('button', { role: 'tab', type: 'button', text: t[1], 'aria-selected': String(tab === t[0]), onclick: function () { tab = t[0]; $$('button', tabs).forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); }); draw(); } }); tabs.appendChild(b);
     });
     wrap.appendChild(tabs); wrap.appendChild(content);
-    function draw() { clear(content); content.appendChild(loading()); var p = tab === 'events' ? adminEvents() : tab === 'taxonomy' ? adminTaxonomy() : tab === 'settings' ? adminSettings() : tab === 'testdata' ? adminTest() : adminMail(); p.then(function (n) { clear(content); content.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(content); content.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
+    function draw() { clear(content); content.appendChild(loading()); var p = tab === 'events' ? adminEvents() : tab === 'taxonomy' ? adminTaxonomy() : tab === 'types' ? adminTypes() : tab === 'settings' ? adminSettings() : tab === 'testdata' ? adminTest() : adminMail(); p.then(function (n) { clear(content); content.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(content); content.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
     draw();
   }
   function adminEvents() {
@@ -957,46 +988,79 @@ function viewAdmin() {
     c.appendChild(buildEventForm({ event: e, admin: true, submitLabel: 'Änderungen speichern', extraButtons: [h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: function () { m.close(); } })], onSubmit: function (p) { return Api.adminSaveEvent(p).then(function () { m.close(); toast('Änderungen gespeichert.'); return done(); }); } }));
     m = openModal(c, { wide: true, label: 'Veranstaltung bearbeiten' });
   }
+  /* Liste mit Namen bearbeiten: umbenennen, hinzufuegen, loeschen (nur ohne Verwendung) */
+  function listEditor(list, usageOf, o) {
+    var host = h('div', { style: 'display:flex;flex-direction:column;gap:14px' });
+    function render() {
+      clear(host);
+      var ul = h('div', { style: 'display:flex;flex-direction:column;gap:8px' });
+      list.forEach(function (it, i) {
+        var n = it.orig ? usageOf(it.orig) : 0;
+        var inp = h('input', { type: 'text', value: it.name, maxlength: '40', 'aria-label': o.label + ' ' + (i + 1) + (o.ctx ? ' ' + o.ctx() : '') });
+        inp.addEventListener('input', function () { it.name = inp.value; });
+        var del = h('button', { type: 'button', class: 'btn btn-danger btn-sm', text: 'Löschen', title: n ? 'Wird von ' + n + ' Veranstaltung(en) verwendet' : o.label + ' löschen', disabled: n > 0, onclick: function () { if (list.length <= 1) { o.flash('bad', 'Es muss mindestens ein Eintrag bleiben.'); return; } list.splice(i, 1); render(); } });
+        ul.appendChild(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [h('div', { style: 'flex:1 1 220px;max-width:360px' }, inp), del, n ? h('span', { class: 'hint', text: n + ' Veranstaltung' + (n === 1 ? '' : 'en') + ' – zum Löschen zuerst umstellen' }) : (it.orig ? null : h('span', { class: 'tag test', text: 'neu' }))]));
+      });
+      var add = h('input', { type: 'text', id: o.addId, maxlength: '40', placeholder: o.addPlaceholder, 'aria-label': o.addPlaceholder });
+      function doAdd() { var v = add.value.trim(); if (!v) return; if (list.length >= o.max) { o.flash('bad', 'Höchstens ' + o.max + ' Einträge sind möglich.'); return; } list.push({ name: v, orig: '' }); render(); var f = $('#' + o.addId); if (f) f.focus(); }
+      add.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+      host.appendChild(ul);
+      host.appendChild(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [h('div', { style: 'flex:1 1 220px;max-width:360px' }, add), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: o.addText, onclick: doAdd })]));
+    }
+    render(); return host;
+  }
+  function flasher(msg) { return function (cls, text) { msg.hidden = false; msg.className = 'notice ' + cls; msg.textContent = text; }; }
   function adminTaxonomy() {
     return Api.adminEvents().then(function (evs) {
       var cats = ['dienstlich', 'privat'];
       var usage = {}; evs.forEach(function (e) { var k = e.category + '|' + e.topic; usage[k] = (usage[k] || 0) + 1; });
-      var labels = { dienstlich: CAT_LABEL.dienstlich, privat: CAT_LABEL.privat };
+      var labels = { dienstlich: CAT_LABEL.dienstlich, privat: CAT_LABEL.privat }, colors = { dienstlich: COLORS.dienstlich, privat: COLORS.privat };
       var lists = {}; cats.forEach(function (c) { lists[c] = TOPICS[c].map(function (t) { return { name: t, orig: t }; }); });
-      var msg = h('div', { class: 'notice', hidden: true, role: 'status' });
+      var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), flash = flasher(msg);
       var host = h('div', { style: 'display:flex;flex-direction:column;gap:32px' });
-      function render() {
-        clear(host);
-        cats.forEach(function (c) {
-          var lab = h('input', { type: 'text', id: 'tx-l-' + c, value: labels[c], maxlength: '30' });
-          lab.addEventListener('input', function () { labels[c] = lab.value; });
-          var ul = h('div', { style: 'display:flex;flex-direction:column;gap:8px' });
-          lists[c].forEach(function (it, i) {
-            var n = it.orig ? (usage[c + '|' + it.orig] || 0) : 0;
-            var inp = h('input', { type: 'text', value: it.name, maxlength: '40', 'aria-label': 'Thema ' + (i + 1) + ' im Themenbereich ' + labels[c] });
-            inp.addEventListener('input', function () { it.name = inp.value; });
-            var del = h('button', { type: 'button', class: 'btn btn-danger btn-sm', text: 'Löschen', title: n ? 'Wird von ' + n + ' Veranstaltung(en) verwendet' : 'Thema löschen', disabled: n > 0, onclick: function () { if (lists[c].length <= 1) { flash('bad', 'Jeder Themenbereich braucht mindestens ein Thema.'); return; } lists[c].splice(i, 1); render(); } });
-            ul.appendChild(h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [h('div', { style: 'flex:1 1 220px;max-width:360px' }, inp), del, n ? h('span', { class: 'hint', text: n + ' Veranstaltung' + (n === 1 ? '' : 'en') + ' – zum Löschen zuerst umstellen' }) : (it.orig ? null : h('span', { class: 'tag test', text: 'neu' }))]));
-          });
-          var add = h('input', { type: 'text', id: 'tx-a-' + c, maxlength: '40', placeholder: 'Neues Thema', 'aria-label': 'Neues Thema für ' + labels[c] });
-          function doAdd() { var v = add.value.trim(); if (!v) return; lists[c].push({ name: v, orig: '' }); render(); var f = $('#tx-a-' + c); if (f) f.focus(); }
-          add.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
-          host.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [
-            h('h2', { text: 'Themenbereich „' + labels[c] + '“', style: 'color:var(--accent);font-size:1.25rem' }),
-            h('div', { style: 'max-width:360px' }, field('Bezeichnung des Themenbereichs', lab, { id: 'tx-l-' + c, hint: 'Nur die Bezeichnung ist änderbar. Der Bereich selbst kann nicht gelöscht oder ergänzt werden.' })),
-            h('h3', { text: 'Themen' }), ul,
-            h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [h('div', { style: 'flex:1 1 220px;max-width:360px' }, add), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Thema hinzufügen', onclick: doAdd })])]));
-        });
-      }
-      function flash(cls, text) { msg.hidden = false; msg.className = 'notice ' + cls; msg.textContent = text; }
+      cats.forEach(function (c) {
+        var lab = h('input', { type: 'text', id: 'tx-l-' + c, value: labels[c], maxlength: '30' });
+        lab.addEventListener('input', function () { labels[c] = lab.value; title.textContent = 'Themenbereich „' + labels[c] + '“'; });
+        var title = h('h2', { text: 'Themenbereich „' + labels[c] + '“', style: 'color:var(--accent);font-size:1.25rem' });
+        // Farbe
+        var pick = h('input', { type: 'color', id: 'tx-cp-' + c, value: colors[c], 'aria-label': 'Farbe wählen', style: 'width:56px;min-height:46px;padding:2px;flex:none' });
+        var hex = h('input', { type: 'text', id: 'tx-c-' + c, value: colors[c], maxlength: '7', 'aria-label': 'Hex-Wert der Farbe', style: 'max-width:130px;font-family:ui-monospace,Consolas,monospace' });
+        var prev = h('div', { class: 'stage-prev', 'aria-hidden': 'true' }, [h('b', { text: 'Überschrift' }), h('span', { text: ' Beispieltext in Weiß' }), h('span', { class: 'sw', text: 'Kachel' })]);
+        var fcol = field('Hauptfarbe im Katalog', h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [pick, hex, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Standard', onclick: function () { setColor(DEFAULT_TAX.colors[c]); } })]), { hint: 'Hintergrundfarbe des Katalogs für diesen Themenbereich. Kacheln und Rahmen werden daraus abgeleitet. Die Farbe muss dunkel genug für weiße Schrift sein.' });
+        function paintPrev() { var er = colorError(colors[c]); fcol.setErr(er); if (!er) prev.style.cssText = stageStyle(colors[c].toLowerCase()); }
+        function setColor(x) { colors[c] = x; hex.value = x; if (/^#[0-9a-fA-F]{6}$/.test(x)) pick.value = x.toLowerCase(); paintPrev(); }
+        pick.addEventListener('input', function () { setColor(pick.value); });
+        hex.addEventListener('input', function () { var v = hex.value.trim(); if (v && v[0] !== '#') v = '#' + v; colors[c] = v; if (/^#[0-9a-fA-F]{6}$/.test(v)) pick.value = v.toLowerCase(); paintPrev(); });
+        paintPrev();
+        var ed = listEditor(lists[c], function (orig) { return usage[c + '|' + orig] || 0; }, { label: 'Thema', ctx: function () { return 'im Themenbereich ' + labels[c]; }, addId: 'tx-a-' + c, addPlaceholder: 'Neues Thema', addText: 'Thema hinzufügen', max: 30, flash: flash });
+        host.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [title,
+          h('div', { class: 'grid2' }, [field('Bezeichnung des Themenbereichs', lab, { id: 'tx-l-' + c, hint: 'Nur die Bezeichnung ist änderbar. Der Bereich selbst kann nicht gelöscht oder ergänzt werden.' }), fcol]), prev,
+          h('h3', { text: 'Themen' }), ed]));
+      });
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Änderungen speichern' });
       save.addEventListener('click', function () {
         save.disabled = true;
-        Api.adminSaveTaxonomy({ labels: labels, topics: lists }).then(function (r) { applyTaxonomy(r); toast('Themen gespeichert.'); return adminTaxonomy(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
+        Api.adminSaveTaxonomy({ labels: labels, colors: colors, topics: lists }).then(function (r) { applyTaxonomy(r); toast('Themenbereiche gespeichert.'); return adminTaxonomy(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
       });
-      render();
-      var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:820px' }, [
-        h('p', { class: 'lead', text: 'Hier passt du die Themen der beiden Themenbereiche an. Beim Umbenennen eines Themas werden bestehende Veranstaltungen automatisch angepasst. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet.' }), host, msg, h('div', null, save)]);
+      var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
+        h('p', { class: 'lead', text: 'Hier passt du Bezeichnung, Farbe und Themen der beiden Themenbereiche an. Beim Umbenennen eines Themas werden bestehende Veranstaltungen automatisch angepasst. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet.' }), host, msg, h('div', null, save)]);
+      return self;
+    });
+  }
+  function adminTypes() {
+    return Api.adminEvents().then(function (evs) {
+      var usage = {}; evs.forEach(function (e) { usage[e.type] = (usage[e.type] || 0) + 1; });
+      var list = TYPES.map(function (t) { return { name: t, orig: t }; });
+      var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), flash = flasher(msg);
+      var ed = listEditor(list, function (o) { return usage[o] || 0; }, { label: 'Art', addId: 'ty-add', addPlaceholder: 'Neue Art', addText: 'Art hinzufügen', max: 10, flash: flash });
+      var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Änderungen speichern' });
+      save.addEventListener('click', function () {
+        save.disabled = true;
+        Api.adminSaveTaxonomy({ types: list }).then(function (r) { applyTaxonomy(r); toast('Arten gespeichert.'); return adminTypes(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
+      });
+      var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
+        h('p', { class: 'lead', text: 'Die Arten der Veranstaltung (z. B. Workshop oder Austausch) erscheinen im Formular, als Chip auf den Kacheln und im Katalogfilter. Du kannst Arten hinzufügen (bis 10), umbenennen und löschen. Umbenennen passt bestehende Veranstaltungen an, gelöscht wird nur, was keine Veranstaltung verwendet.' }),
+        h('div', { class: 'panel' }, ed), msg, h('div', null, save)]);
       return self;
     });
   }

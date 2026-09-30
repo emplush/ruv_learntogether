@@ -77,6 +77,9 @@ namespace LearnTogether
         public string labelPrivat { get; set; }
         public List<string> topicsDienstlich { get; set; }
         public List<string> topicsPrivat { get; set; }
+        public List<string> types { get; set; }
+        public string colorDienstlich { get; set; }
+        public string colorPrivat { get; set; }
         public SettingsRec()
         {
             appTitle = "LearnTogether@AD";
@@ -94,6 +97,9 @@ namespace LearnTogether
             labelPrivat = "Privat";
             topicsDienstlich = new List<string>(new string[] { "fachlich", "vertrieblich" });
             topicsPrivat = new List<string>(new string[] { "Sport", "Freizeit", "Essen & Trinken", "Reisen", "Sonstiges" });
+            types = new List<string>(new string[] { "Workshop", "Austausch", "Best Practice" });
+            colorDienstlich = "#001957";
+            colorPrivat = "#583720";
         }
     }
 
@@ -119,7 +125,7 @@ namespace LearnTogether
         const string DefaultAdminPassword = "RuVTest1234";
         const string Version = "0.1.0";
         static readonly object Gate = new object();
-        static readonly string[] Types = new string[] { "Workshop", "Austausch", "Best Practice" };
+        const int MaxCapacity = 50;
         static readonly string[] Days = new string[] { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };
         static readonly string[] Months = new string[] { "Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember" };
         static readonly string[] AllowedTeamsHosts = new string[] { "teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft", "teams.microsoft.us" };
@@ -143,7 +149,7 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": Send(new { ok = true, server = true, version = Version, mailConfigured = MailConfigured(LoadSettings()) }); break;
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps) }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), types = ps.types }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "createEvent": CreateEvent(); break;
@@ -529,7 +535,7 @@ namespace LearnTogether
             if (host.Length < 2 || host.Length > 80) throw new ApiException("invalid", "Bitte gib deinen Namen an.");
             if (!ValidEmail(hostEmail)) throw new ApiException("invalid", "Bitte gib eine g\u00fcltige E-Mail-Adresse an.");
             if (cat != "dienstlich" && cat != "privat") throw new ApiException("invalid", "Bitte w\u00e4hle dienstlich oder privat.");
-            if (Array.IndexOf(Types, type) < 0) throw new ApiException("invalid", "Bitte w\u00e4hle eine Art der Veranstaltung.");
+            if (!LoadSettings().types.Contains(type)) throw new ApiException("invalid", "Bitte w\u00e4hle eine Art der Veranstaltung.");
             if (!(cat == "dienstlich" ? LoadSettings().topicsDienstlich : LoadSettings().topicsPrivat).Contains(topic)) throw new ApiException("invalid", "Bitte w\u00e4hle ein passendes Thema.");
             DateTime day;
             if (!DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out day)) throw new ApiException("invalid", "Bitte w\u00e4hle einen Tag.");
@@ -538,7 +544,7 @@ namespace LearnTogether
             DateTime st;
             if (!DateTime.TryParseExact(start, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out st) || st.Minute % 15 != 0) throw new ApiException("invalid", "Bitte w\u00e4hle eine Startzeit in 15-Minuten-Schritten.");
             if (!InWindow(st.Hour * 60 + st.Minute, dur)) throw new ApiException("invalid", "Veranstaltungen m\u00fcssen komplett zwischen 06:00 und 09:00 Uhr oder zwischen 17:00 und 20:00 Uhr liegen.");
-            if (cap < 1 || cap > 500) throw new ApiException("invalid", "Die maximale Teilnehmendenzahl muss zwischen 1 und 500 liegen.");
+            if (cap < 1 || cap > MaxCapacity) throw new ApiException("invalid", "Die maximale Teilnehmendenzahl muss zwischen 1 und " + MaxCapacity + " liegen.");
             if (!ValidTeams(link)) throw new ApiException("invalid", "Bitte gib einen g\u00fcltigen Link zu einem Microsoft-Teams-Meeting an (https://teams.microsoft.com/...).");
             if (PlainText(desc).Length < 10) throw new ApiException("invalid", "Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.");
             if (desc.Length > 20000) throw new ApiException("invalid", "Die Beschreibung ist zu lang.");
@@ -952,61 +958,108 @@ namespace LearnTogether
 
         static object Labels(SettingsRec s) { return new { dienstlich = s.labelDienstlich, privat = s.labelPrivat }; }
         static object Topics(SettingsRec s) { return new { dienstlich = s.topicsDienstlich, privat = s.topicsPrivat }; }
+        static object Colors(SettingsRec s) { return new { dienstlich = s.colorDienstlich, privat = s.colorPrivat }; }
 
-        // Themenbereiche: nur Bezeichnung aenderbar. Themen: hinzufuegen, umbenennen (bestehende Veranstaltungen werden angepasst), loeschen (nur wenn nicht verwendet).
+        // Relative Luminanz (WCAG) einer Farbe #rrggbb
+        static double Luminance(string hex)
+        {
+            double[] c = new double[3];
+            for (int i = 0; i < 3; i++)
+            {
+                double v = Convert.ToInt32(hex.Substring(1 + i * 2, 2), 16) / 255.0;
+                c[i] = v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
+            }
+            return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+        }
+
+        // Liest eine Namensliste [{name, orig}], prueft sie und liefert neue Liste und Umbenennungs-Zuordnung (orig -> name).
+        // Geloeschte Eintraege duerfen nicht verwendet werden (usedCount liefert die Zahl der Verwendungen).
+        static List<string> ReadNameList(IEnumerable items, string what, int max, List<string> old, Func<string, int> usedCount, Dictionary<string, string> map)
+        {
+            List<string> names = new List<string>();
+            foreach (object o in items)
+            {
+                Dictionary<string, object> it = o as Dictionary<string, object>;
+                if (it == null) continue;
+                string name = S(it, "name"), orig = S(it, "orig");
+                if (name.Length < 1 || name.Length > 40) throw new ApiException("invalid", "Ein Eintrag (" + what + ") muss zwischen 1 und 40 Zeichen lang sein.");
+                foreach (string n in names) if (string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) throw new ApiException("invalid", "\"" + name + "\" gibt es doppelt.");
+                names.Add(name);
+                if (orig.Length > 0) map[orig] = name;
+            }
+            if (names.Count < 1) throw new ApiException("invalid", "Es muss mindestens ein Eintrag (" + what + ") bleiben.");
+            if (names.Count > max) throw new ApiException("invalid", "H\u00f6chstens " + max + " Eintr\u00e4ge (" + what + ") sind m\u00f6glich.");
+            foreach (string ot in old)
+            {
+                if (map.ContainsKey(ot)) continue;
+                int used = usedCount(ot);
+                if (used > 0) throw new ApiException("invalid", "\"" + ot + "\" wird von " + used + " Veranstaltung(en) verwendet und kann nicht gel\u00f6scht werden. Bitte \u00e4ndere zuerst diese Veranstaltungen.");
+            }
+            return names;
+        }
+
+        // Themenbereiche (nur Bezeichnung und Farbe), Themen und Arten. Jeder Teil ist optional; fehlende Teile bleiben unveraendert.
+        // Umbenennen passt bestehende Veranstaltungen an, Loeschen ist nur ohne Verwendung moeglich.
         void AdminSaveTaxonomy()
         {
             Dictionary<string, object> b = Body();
-            Dictionary<string, object> lb = D(b, "labels");
-            Dictionary<string, object> tp = D(b, "topics");
-            if (lb == null || tp == null) throw new ApiException("invalid", "Ung\u00fcltige Anfrage.");
+            Dictionary<string, object> lb = D(b, "labels"), tp = D(b, "topics"), cl = D(b, "colors");
+            IEnumerable ty = b.ContainsKey("types") ? b["types"] as IEnumerable : null;
+            string[] cats = new string[] { "dienstlich", "privat" };
             lock (Gate)
             {
                 SettingsRec s = LoadSettings();
                 DataFile d = LoadData();
-                string l1 = S(lb, "dienstlich"), l2 = S(lb, "privat");
-                if (l1.Length < 2 || l1.Length > 30 || l2.Length < 2 || l2.Length > 30) throw new ApiException("invalid", "Die Bezeichnungen der Themenbereiche m\u00fcssen zwischen 2 und 30 Zeichen lang sein.");
-                if (string.Equals(l1, l2, StringComparison.OrdinalIgnoreCase)) throw new ApiException("invalid", "Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.");
-                string[] cats = new string[] { "dienstlich", "privat" };
-                Dictionary<string, List<string>> result = new Dictionary<string, List<string>>();
-                Dictionary<string, Dictionary<string, string>> maps = new Dictionary<string, Dictionary<string, string>>();
-                foreach (string cat in cats)
+                if (lb != null)
                 {
-                    IEnumerable items = tp.ContainsKey(cat) ? tp[cat] as IEnumerable : null;
-                    if (items == null) throw new ApiException("invalid", "Ung\u00fcltige Anfrage.");
-                    List<string> names = new List<string>();
+                    string l1 = S(lb, "dienstlich"), l2 = S(lb, "privat");
+                    if (l1.Length < 2 || l1.Length > 30 || l2.Length < 2 || l2.Length > 30) throw new ApiException("invalid", "Die Bezeichnungen der Themenbereiche m\u00fcssen zwischen 2 und 30 Zeichen lang sein.");
+                    if (string.Equals(l1, l2, StringComparison.OrdinalIgnoreCase)) throw new ApiException("invalid", "Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.");
+                    s.labelDienstlich = l1; s.labelPrivat = l2;
+                }
+                if (cl != null)
+                {
+                    foreach (string cat in cats)
+                    {
+                        string c = S(cl, cat).ToLowerInvariant();
+                        if (!Regex.IsMatch(c, "^#[0-9a-f]{6}$")) throw new ApiException("invalid", "Bitte gib die Farbe als Hex-Wert an, z. B. #001957.");
+                        if (Luminance(c) > 0.107) throw new ApiException("invalid", "Die Farbe f\u00fcr \"" + (cat == "dienstlich" ? s.labelDienstlich : s.labelPrivat) + "\" ist zu hell. Bitte w\u00e4hle einen dunkleren Ton, damit wei\u00dfe und orange Schrift gut lesbar bleiben.");
+                        if (cat == "dienstlich") s.colorDienstlich = c; else s.colorPrivat = c;
+                    }
+                }
+                if (tp != null)
+                {
+                    Dictionary<string, List<string>> result = new Dictionary<string, List<string>>();
+                    Dictionary<string, Dictionary<string, string>> maps = new Dictionary<string, Dictionary<string, string>>();
+                    foreach (string cat0 in cats)
+                    {
+                        string cat = cat0;
+                        IEnumerable items = tp.ContainsKey(cat) ? tp[cat] as IEnumerable : null;
+                        if (items == null) throw new ApiException("invalid", "Ung\u00fcltige Anfrage.");
+                        Dictionary<string, string> map = new Dictionary<string, string>();
+                        result[cat] = ReadNameList(items, "Thema", 30, cat == "dienstlich" ? s.topicsDienstlich : s.topicsPrivat, delegate (string ot) { int u = 0; foreach (EventRec e in d.events) if (e.category == cat && e.topic == ot) u++; return u; }, map);
+                        maps[cat] = map;
+                    }
+                    foreach (EventRec e in d.events)
+                    {
+                        string nt;
+                        if (maps.ContainsKey(e.category) && maps[e.category].TryGetValue(e.topic ?? "", out nt)) e.topic = nt;
+                    }
+                    s.topicsDienstlich = result["dienstlich"]; s.topicsPrivat = result["privat"];
+                }
+                if (ty != null)
+                {
                     Dictionary<string, string> map = new Dictionary<string, string>();
-                    foreach (object o in items)
+                    List<string> names = ReadNameList(ty, "Art", 10, s.types, delegate (string ot) { int u = 0; foreach (EventRec e in d.events) if (e.type == ot) u++; return u; }, map);
+                    foreach (EventRec e in d.events)
                     {
-                        Dictionary<string, object> it = o as Dictionary<string, object>;
-                        if (it == null) continue;
-                        string name = S(it, "name"), orig = S(it, "orig");
-                        if (name.Length < 1 || name.Length > 40) throw new ApiException("invalid", "Ein Thema muss zwischen 1 und 40 Zeichen lang sein.");
-                        foreach (string n in names) if (string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) throw new ApiException("invalid", "Das Thema \"" + name + "\" gibt es doppelt.");
-                        names.Add(name);
-                        if (orig.Length > 0) map[orig] = name;
+                        string nt;
+                        if (map.TryGetValue(e.type ?? "", out nt)) e.type = nt;
                     }
-                    if (names.Count < 1) throw new ApiException("invalid", "Jeder Themenbereich braucht mindestens ein Thema.");
-                    if (names.Count > 30) throw new ApiException("invalid", "Pro Themenbereich sind h\u00f6chstens 30 Themen m\u00f6glich.");
-                    List<string> old = cat == "dienstlich" ? s.topicsDienstlich : s.topicsPrivat;
-                    foreach (string ot in old)
-                    {
-                        if (map.ContainsKey(ot)) continue;
-                        int used = 0;
-                        foreach (EventRec e in d.events) if (e.category == cat && e.topic == ot) used++;
-                        if (used > 0) throw new ApiException("invalid", "Das Thema \"" + ot + "\" wird von " + used + " Veranstaltung(en) verwendet und kann nicht gel\u00f6scht werden. Bitte \u00e4ndere zuerst das Thema dieser Veranstaltungen.");
-                    }
-                    result[cat] = names; maps[cat] = map;
+                    s.types = names;
                 }
-                foreach (EventRec e in d.events)
-                {
-                    string nt;
-                    if (maps.ContainsKey(e.category) && maps[e.category].TryGetValue(e.topic ?? "", out nt)) e.topic = nt;
-                }
-                s.labelDienstlich = l1; s.labelPrivat = l2;
-                s.topicsDienstlich = result["dienstlich"]; s.topicsPrivat = result["privat"];
                 SaveData(d); SaveSettings(s);
-                Send(new { ok = true, labels = Labels(s), topics = Topics(s) });
+                Send(new { ok = true, labels = Labels(s), topics = Topics(s), colors = Colors(s), types = s.types });
             }
         }
 
