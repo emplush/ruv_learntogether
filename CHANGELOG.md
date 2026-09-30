@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.9.3 (30.09.2026)
+- Neu: AppData/selftest.ashx als Selbsttest (Umgebung, Anwendungspool-Benutzer, Schreibrechte, Testübersetzung von api.ashx mit Compiler-Fehlern). Hinweis im Demo-Banner bei HTTP 500.
+
 ## 0.9.2 (30.09.2026)
 - Ping-Prüfung unabhängig von Schreibrechten: Fehlen dem Anwendungspool die Rechte auf AppData\\Data, erscheint ein roter Hinweis mit Ordner und Benutzer statt Demo-Modus; Anzeige funktioniert weiter, Speichern meldet klaren Fehler.
 - Versionsnummer im Server wird beim Build gesetzt. Kapitel „Fehlersuche“ in docs/IIS-Installation.md.

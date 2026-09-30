@@ -15,6 +15,8 @@
 
 ## Fehlersuche
 
+**Selbsttest:** Öffne `https://<server>/<pfad>/AppData/selftest.ashx`. Die Seite zeigt .NET-Version, Benutzer des Anwendungspools, Schreibrechte auf `AppData\Data` und probiert `api.ashx` zu übersetzen (mit Compiler-Fehlern). Bitte nach der Fehlersuche `selftest.ashx` vom Server löschen.
+
 Zeigt die Seite oben ein gelbes Banner „Demo-Modus“, klicke auf **„Warum Demo-Modus?“**. Dort steht der Grund im Klartext. Zusätzlich gilt:
 
 1. **Ping-Test:** `https://<server>/<pfad>/AppData/api.ashx?action=ping` muss JSON liefern, z. B. `{"ok":true,"server":true,...}`. Andernfalls läuft ASP.NET für diese Anwendung nicht.

@@ -1395,7 +1395,7 @@ function probeServer() {
       var j = null; try { j = JSON.parse(t); } catch (e) { }
       if (j && j.server) { pingInfo = j; return true; }
       if (r.status === 404) diag = 'Die Datei AppData/api.ashx wurde nicht gefunden (HTTP 404). Prüfe, ob der Ordner AppData mit api.ashx auf den Server kopiert wurde und ob die Adresse zum Ordner mit index.html passt.';
-      else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Hinweise liefert die Fehlerseite des IIS bzw. AppData\\Data\\error.log.';
+      else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Öffne zur Fehlersuche AppData/selftest.ashx im Browser (zeigt Umgebung, Schreibrechte und Übersetzungsfehler) oder AppData\\Data\\error.log.';
       else if (r.status === 401 || r.status === 403) diag = 'Der Zugriff auf AppData/api.ashx wird verweigert (HTTP ' + r.status + '). Prüfe die anonyme Authentifizierung und die Ordnerberechtigungen.';
       else if (r.status >= 400) diag = 'Der Server antwortet mit HTTP ' + r.status + ' auf AppData/api.ashx.';
       else if (t.indexOf('<%@') >= 0) diag = 'Der IIS liefert api.ashx als Text aus. ASP.NET ist für diese Anwendung nicht aktiv (Windows-Feature „ASP.NET 4.x“ installieren, Anwendungspool auf .NET CLR v4 stellen).';
