@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{APP_TITLE}} Nutzerhandbuch</title>
+<style>
+{{CSS}}
+.print-only { display: none; }
+.doc-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.doc-head img { height: 40px; }
+.doc-meta { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+@media print {
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .top, .manual-toc, .no-print, .foot { display: none !important; }
+  .manual-layout { display: block; margin-top: 8mm; }
+  .print-only { display: block; }
+  .manual-body h2 { break-after: avoid; margin-top: 10mm; }
+  .manual-body h3 { break-after: avoid; }
+  .manual-body figure, .manual-body table, .manual-body .tip { break-inside: avoid; }
+  .wrap { max-width: none; padding-inline: 0; }
+  .page { padding-block: 0; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="page"><div class="wrap">
+<div class="doc-head"><img src="{{LOGO}}" alt="R+V"><h1>{{APP_TITLE}} <span class="accent">Nutzerhandbuch</span></h1></div>
+<p class="doc-meta">Version {{VERSION}} &middot; Stand {{DATE}}</p>
+<div class="no-print manual-tools"><a class="btn btn-primary" href="Nutzerhandbuch.pdf" download="LearnTogether-Nutzerhandbuch.pdf">Als PDF herunterladen</a><a class="btn btn-secondary" href="../index.html">Zur Anwendung</a></div>
+<div class="print-only"><h3>Inhalt</h3><ol>{{TOC}}</ol></div>
+<div class="manual-layout"><nav class="manual-toc" aria-label="Inhalt">{{TOCLINKS}}</nav><div class="manual-body">
+{{BODY}}
+</div></div>
+</div></div>
+</body>
+</html>

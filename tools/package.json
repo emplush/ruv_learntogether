@@ -1,0 +1,7 @@
+{
+  "name": "learntogether-tools",
+  "private": true,
+  "type": "module",
+  "description": "Hilfsskripte zum Bauen (PDF, Screenshots). Nur zur Entwicklung noetig, nicht auf dem IIS.",
+  "dependencies": { "playwright-core": "^1.49.0" }
+}
