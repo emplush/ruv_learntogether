@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.3.0 (30.09.2026)
+- Katalog: „Privat“ in brauner Farbwelt, „Dienstlich“ in Dunkelblau; Themenreihen alphabetisch; neuer Themenfilter zeigt nur die gewählte Reihe; Dauerfilter „Alle“.
+
 ## 0.2.0 (30.09.2026)
 - Admin: Titel „Administration“; Tabelle, Katalogzeilen und Kopfbereich nutzen die volle Breite.
 - R+V-Icon als Favicon.

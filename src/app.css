@@ -38,8 +38,15 @@
 .stage {
   --bg: #001957; --surface: #0b2a6e; --surface-2: #143a86; --line: #2a4585; --text: #ffffff; --muted: #c4cde3;
   --accent: #f79506; --link: #00dcdc; --focus: #00dcdc; --danger: #ff8484; --danger-bg: #4a1a2a; --ok: #8ebc27;
-  background: var(--bg); color: var(--text); color-scheme: dark;
+  background: var(--bg); color: var(--text); color-scheme: dark; transition: background-color .25s;
 }
+/* Privat: warme Braun-Toene der R+V-Sekundaerfarben statt Dunkelblau */
+.stage.priv {
+  --bg: #583720; --surface: #6d4529; --surface-2: #83583a; --line: #9a6f4d; --muted: #ecdcca;
+}
+.stage.priv .scroller { scrollbar-color: #9a6f4d transparent; }
+.stage.priv .arrow { background: rgba(58, 34, 16, .92); }
+.stage.priv .tile:hover { box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }

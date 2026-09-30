@@ -643,34 +643,42 @@ function buildEventForm(o) {
 function loading() { return h('div', { class: 'empty' }, [h('p', { text: 'Wird geladen …' })]); }
 
 /* ---- Katalog ---- */
-var filters = { cat: 'dienstlich', q: '', types: [], dur: 'all', tod: 'all' };
+var filters = { cat: 'dienstlich', q: '', types: [], topic: 'all', dur: 'all', tod: 'all' };
 function viewCatalog() {
-  var root = h('div', { class: 'stage' });
+  var root = h('div', { class: 'stage' + (filters.cat === 'privat' ? ' priv' : '') });
   var rowsHost = h('div', { class: 'rows' });
   var count = h('span', { class: 'count', 'aria-live': 'polite' });
   var search = h('input', { type: 'search', id: 'c-search', placeholder: 'Titel, Thema oder Person suchen', value: filters.q, 'aria-label': 'Suche' });
   var switchSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Dienstlich oder privat' }, ['dienstlich', 'privat'].map(function (c) {
-    return h('button', { type: 'button', text: CAT_LABEL[c], 'aria-pressed': String(filters.cat === c), onclick: function () { filters.cat = c; $$('button', switchSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(['dienstlich', 'privat'][i] === c)); }); renderRows(); } });
+    return h('button', { type: 'button', text: CAT_LABEL[c], 'aria-pressed': String(filters.cat === c), onclick: function () { filters.cat = c; filters.topic = 'all'; root.classList.toggle('priv', c === 'privat'); fillTopicSel(); $$('button', switchSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(['dienstlich', 'privat'][i] === c)); }); renderRows(); } });
   }));
   var typeChips = h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Art' })].concat(TYPES.map(function (t) {
     return h('button', { type: 'button', class: 'fchip', text: t, 'aria-pressed': String(filters.types.indexOf(t) >= 0), onclick: function (e) { var i = filters.types.indexOf(t); if (i >= 0) filters.types.splice(i, 1); else filters.types.push(t); e.currentTarget.setAttribute('aria-pressed', String(i < 0)); renderRows(); } });
   })));
-  var durSel = h('select', { id: 'c-dur', 'aria-label': 'Dauer' }, [['all', 'Alle Längen'], ['30', 'bis 30 Minuten'], ['60', 'bis 60 Minuten'], ['90', 'bis 90 Minuten'], ['120', 'bis 2 Stunden']].map(function (o) { return h('option', { value: o[0], text: o[1], selected: filters.dur === o[0] }); }));
+  var topicSel = h('select', { id: 'c-topic', 'aria-label': 'Thema' });
+  function fillTopicSel() {
+    clear(topicSel); topicSel.appendChild(h('option', { value: 'all', text: 'Alle' }));
+    TOPICS[filters.cat].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (t) { topicSel.appendChild(h('option', { value: t, text: t.charAt(0).toUpperCase() + t.slice(1), selected: filters.topic === t })); });
+  }
+  fillTopicSel();
+  topicSel.addEventListener('change', function () { filters.topic = topicSel.value; renderRows(); });
+  var durSel = h('select', { id: 'c-dur', 'aria-label': 'Dauer' }, [['all', 'Alle'], ['30', 'bis 30 Minuten'], ['60', 'bis 60 Minuten'], ['90', 'bis 90 Minuten'], ['120', 'bis 2 Stunden']].map(function (o) { return h('option', { value: o[0], text: o[1], selected: filters.dur === o[0] }); }));
   var todSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Tageszeit' }, [['all', 'Alle'], ['morgens', 'Morgens'], ['nachmittags', 'Nachmittags']].map(function (o) {
     return h('button', { type: 'button', text: o[1], 'aria-pressed': String(filters.tod === o[0]), onclick: function () { filters.tod = o[0]; $$('button', todSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(['all', 'morgens', 'nachmittags'][i] === o[0])); }); renderRows(); } });
   }));
-  var reset = h('button', { type: 'button', class: 'linkbtn', text: 'Filter zurücksetzen', hidden: true, onclick: function () { filters.q = ''; filters.types = []; filters.dur = 'all'; filters.tod = 'all'; search.value = ''; durSel.value = 'all'; $$('.fchip', typeChips).forEach(function (b) { b.setAttribute('aria-pressed', 'false'); }); $$('button', todSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(i === 0)); }); renderRows(); } });
+  var reset = h('button', { type: 'button', class: 'linkbtn', text: 'Filter zurücksetzen', hidden: true, onclick: function () { filters.q = ''; filters.types = []; filters.topic = 'all'; topicSel.value = 'all'; filters.dur = 'all'; filters.tod = 'all'; search.value = ''; durSel.value = 'all'; $$('.fchip', typeChips).forEach(function (b) { b.setAttribute('aria-pressed', 'false'); }); $$('button', todSeg).forEach(function (b, i) { b.setAttribute('aria-pressed', String(i === 0)); }); renderRows(); } });
   search.addEventListener('input', function () { filters.q = search.value; renderRows(); });
   durSel.addEventListener('change', function () { filters.dur = durSel.value; renderRows(); });
 
   root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: 'Gemeinsam lernen, wenn es passt' }), h('p', { text: 'Workshops, Austausch und Best Practices von Kolleginnen und Kollegen. Online, morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr.' })])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [switchSeg, h('div', { class: 'search', html: ico('search') }, search)]),
-    h('div', { class: 'r2' }, [typeChips, h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
+    h('div', { class: 'r2' }, [typeChips, h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Thema' }), topicSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
   root.appendChild(h('div', { class: 'wrap wide' }, rowsHost));
 
   function matches(e) {
     if (e.category !== filters.cat) return false;
+    if (filters.topic !== 'all' && e.topic !== filters.topic) return false;
     if (filters.types.length && filters.types.indexOf(e.type) < 0) return false;
     if (filters.dur !== 'all' && e.duration > Number(filters.dur)) return false;
     if (filters.tod !== 'all') { var m = toMin(e.start); if ((filters.tod === 'morgens') !== (m < 720)) return false; }
@@ -680,7 +688,7 @@ function viewCatalog() {
   }
   function renderRows() {
     clear(rowsHost);
-    var active = filters.q || filters.types.length || filters.dur !== 'all' || filters.tod !== 'all'; reset.hidden = !active;
+    var active = filters.q || filters.types.length || filters.topic !== 'all' || filters.dur !== 'all' || filters.tod !== 'all'; reset.hidden = !active;
     var list = state.events.filter(matches).sort(function (a, b) { return startDate(a) - startDate(b); });
     count.textContent = list.length + (list.length === 1 ? ' Veranstaltung' : ' Veranstaltungen');
     if (!list.length) {
@@ -689,7 +697,7 @@ function viewCatalog() {
         inCat ? null : h('p', { style: 'margin-top:16px' }, h('a', { class: 'btn btn-primary', href: '#/anbieten', text: 'Veranstaltung anbieten' }))]));
       return;
     }
-    TOPICS[filters.cat].forEach(function (topic) {
+    TOPICS[filters.cat].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (topic) {
       var items = list.filter(function (e) { return e.topic === topic; });
       if (!items.length) return;
       var sc = h('div', { class: 'scroller', role: 'list', 'aria-label': topic }, items.map(function (e) { return tile(e); }));
