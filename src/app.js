@@ -308,7 +308,7 @@ function mailHtml(m) {
       '<div style="font-size:15px;line-height:22px;color:' + grey + '">Schön, dass du dabei bist. Alle Informationen findest du hier.</div>' + gap(22) +
       tbl('', '<tr>' + chip(m.area, areaBg, areaFg) + spacer() + chip(m.type, mint, ink) + spacer() + chip(m.topic, '#e3e8f3', ink) + '</tr>') + gap(16) +
       '<div style="font-size:23px;line-height:29px;font-weight:bold;color:' + ink + '">' + esc(m.title) + '</div>' + gap(14) +
-      tbl('100%', row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host))) +
+      tbl('100%', row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Angeboten von', esc(m.host))) +
       (m.desc ? gap(14) + '<div style="font-size:15px;line-height:22px;color:' + ink + '"><b>Worum geht es?</b><br>' + esc(m.desc).replace(/\n/g, '<br>') + '</div>' : '') + gap(24) +
       /* Teams */
       tbl('100%', '<tr>' + td('#e6fbfb', 'padding:20px 22px;border-left:5px solid ' + mint, '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#0c7f89;text-transform:uppercase">Teams-Sitzung</div>' + gap(10) + btn(m.teams, 'An der Teams-Sitzung teilnehmen', mint, ink) + gap(10) + '<div style="font-size:12px;line-height:17px;color:' + grey + '">Oder Link kopieren:<br><a href="' + esc(m.teams) + '" style="color:#0c7f89;word-break:break-all">' + esc(m.teams) + '</a></div>') + '</tr>') + gap(18) +
@@ -316,7 +316,7 @@ function mailHtml(m) {
       tbl('100%', '<tr>' + td('#fff3df', 'padding:20px 22px;border-left:5px solid #eb6504', '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#a04400;text-transform:uppercase">Dein Buchungscode</div><div style="font-family:Consolas,\'Courier New\',monospace;font-size:28px;line-height:36px;font-weight:bold;letter-spacing:3px;color:' + ink + ';margin:4px 0 8px">' + esc(m.code) + '</div><div style="font-size:14px;line-height:20px;color:' + ink + '">Mit dem Code kannst du deine Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:bold">Meine Anmeldung</a></div>') + '</tr>') +
     '</td></tr>') +
     /* Fuss */
-    tbl('100%', '<tr>' + td('#f3f5f9', 'padding:18px 32px;font-size:12px;line-height:18px;color:' + grey, esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Dieser Kalendereintrag wurde automatisch erstellt. Bewahre ihn und den Buchungscode auf.') + '</tr>' +
+    tbl('100%', '<tr>' + td('#f3f5f9', 'padding:18px 32px;font-size:12px;line-height:18px;color:' + grey, esc(m.appTitle) + '<br>Dieser Kalendereintrag wurde automatisch erstellt. Bewahre ihn und den Buchungscode auf.') + '</tr>' +
       '<tr><td bgcolor="' + m.accent + '" height="6" style="height:6px;line-height:6px;font-size:1px;background:' + m.accent + '">&nbsp;</td></tr>') +
   '</td></tr>') + '</td></tr>') + '</div>');
   return o.join('');
@@ -328,8 +328,8 @@ function icsDescriptions(ev, code) {
   var ti = String(state.settings.appTitle || ''), at = ti.indexOf('@');
   var html = mailHtml({ appTitle: ti, appBase: at < 0 ? ti : ti.slice(0, at), appAt: at < 0 ? '' : ti.slice(at), area: CAT_LABEL[c], priv: c === 'privat', accent: COLORS[c], type: ev.type, topic: capFirst(ev.topic), logo: logo, title: ev.title, date: dateLong(ev.date), time: ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: code, cancel: url, desc: desc });
   var plain = ['DEINE BUCHUNG IST BESTÄTIGT', '', ev.title, CAT_LABEL[c] + ' \u00b7 ' + ev.type + ' \u00b7 ' + ev.topic, '',
-    'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Durchführung:  ' + ev.host, '',
-    'Teams-Sitzung: ' + ev.teamsLink, '', 'BUCHUNGSCODE:  ' + code, 'Buchung ansehen oder stornieren: ' + url, ''].concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Bewahre diesen Kalendereintrag und den Buchungscode auf.', state.settings.appTitle + ' \u00b7 Informelles Lernen im Außendienst']).join('\n');
+    'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Angeboten von: ' + ev.host, '',
+    'Teams-Sitzung: ' + ev.teamsLink, '', 'BUCHUNGSCODE:  ' + code, 'Buchung ansehen oder stornieren: ' + url, ''].concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Bewahre diesen Kalendereintrag und den Buchungscode auf.', state.settings.appTitle]).join('\n');
   return { html: html, plain: plain };
 }
 function buildIcs(ev, code) {
@@ -932,7 +932,10 @@ function viewCatalog() {
 /* ---- Buchungs-Popup ---- */
 function openBooking(e, onChange) {
   var body = h('div', { class: 'modal-body bk-main' });
-  var head = h('div', { class: 'bk-side' }, h('div', { class: 'bk-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]));
+  var head = h('div', { class: 'bk-side' }, [h('div', { class: 'bk-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]),
+    h('dl', { class: 'bk-facts' }, [
+      h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(e.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: e.start + ' \u2013 ' + endHm(e) + ' Uhr' })]),
+      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', { text: e.host })])])]);
   var wrapper = h('div', { class: 'bk' }, [head, body]);
   var m = openModal(wrapper, { xwide: true, label: 'Anmeldung: ' + e.title, onClose: onChange });
   function showForm() {
@@ -956,14 +959,11 @@ function openBooking(e, onChange) {
         msg.hidden = false; msg.textContent = er.message;
       });
     });
-    body.appendChild(h('h2', { text: e.title, style: 'padding-right:40px;overflow-wrap:anywhere' }));
-    body.appendChild(h('dl', { class: 'facts f3' }, [
-      h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(e.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: e.start + ' \u2013 ' + endHm(e) + ' Uhr' })]),
-      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: e.host })]),
-      h('div', null, [h('dt', { text: 'Thema' }), h('dd', { text: e.topic })]), h('div', null, [h('dt', { text: 'Freie Plätze' }), h('dd', { text: f + ' von ' + e.capacity })])]));
+    body.appendChild(h('div', null, [h('h2', { text: e.title }), h('div', { class: 'chips-inline', style: 'margin-top:8px' }, chipEl('topic', capFirst(e.topic)))]));
     body.appendChild(h('div', { class: 'rich bk-desc', tabindex: '0', html: sanitizeHtml(e.description) }));
     body.appendChild(h('h3', { text: 'Jetzt anmelden' }));
     body.appendChild(form);
+    form.lastChild.appendChild(h('span', { class: 'bk-free' + (f <= 5 ? ' few' : ''), text: 'Freie Plätze: ' + f + ' von ' + e.capacity }));
   }
   function showDone(r) {
     clear(body); rememberMine(r.eventInfo, r.code);
@@ -991,8 +991,12 @@ function forgetMine(code) { store.set('lt_mine', JSON.stringify(mineList().filte
 function myEvList() { try { return JSON.parse(store.get('lt_myev') || '[]') || []; } catch (e) { return []; } }
 function rememberMyEv(info, code) { var l = myEvList().filter(function (x) { return x.code !== code; }); l.unshift({ code: code, title: info.title, date: info.date, start: info.start }); store.set('lt_myev', JSON.stringify(l.slice(0, 20))); }
 function forgetMyEv(code) { store.set('lt_myev', JSON.stringify(myEvList().filter(function (x) { return normCode(x.code) !== normCode(code); }))); }
+function icsName(info) {
+  var t = String(info.title || '').replace(/[\\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^[-.]+|[-.]+$/g, '').slice(0, 50).replace(/-$/, '');
+  return 'LearnTogether_Buchungsbestätigung_' + (t || 'Veranstaltung') + '_' + info.date + '.ics';
+}
 function downloadIcs(info, code) {
-  var ics = buildIcs(info, code), name = 'Veranstaltung.ics';
+  var ics = buildIcs(info, code), name = icsName(info);
   if (CFG.mode === 'artifact') {
     try { navigator.clipboard.writeText(ics).then(function () { toast('Downloads sind hier gesperrt. Der Kalendereintrag wurde in die Zwischenablage kopiert.'); }, function () { toast('Download im Artefakt-Viewer nicht möglich. In der IIS-Version wird ' + name + ' heruntergeladen.', true); }); } catch (e) { toast('Download im Artefakt-Viewer nicht möglich.', true); }
     return;
@@ -1014,11 +1018,13 @@ function teamsBox(link) {
 }
 function participationCard(info, code, o) {
   var node = h('div', { class: 'pcard' + (o && o.compact ? ' compact' : '') });
-  node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]));
+  var compact = !!(o && o.compact);
+  if (!compact) node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]));
   node.appendChild(h('h2', { text: info.title, style: 'overflow-wrap:anywhere' }));
-  node.appendChild(h('dl', { class: 'facts f4' }, [
+  if (compact) node.appendChild(h('div', { class: 'chips-inline' }, chipEl('topic', capFirst(info.topic))));
+  if (!compact) node.appendChild(h('dl', { class: 'facts f4' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
-    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: info.host })])]));
+    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', { text: info.host })])]));
   node.appendChild(teamsBox(info.teamsLink));
   node.appendChild(h('div', { class: 'pc-cols' }, [
     h('div', { class: 'pc-ics' }, [h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, code); } })]),
@@ -1260,7 +1266,7 @@ function viewAdmin() {
               h('button', { class: 'btn btn-primary btn-sm', type: 'button', text: 'Teilnehmende (' + e.booked + ')', onclick: function () { showPeople(e.id); } }),
               h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Bearbeiten', onclick: function () { editEvent(e, reload); } }), del]))]));
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Durchführung', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Angeboten von', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       var peopleModal = null, peopleId = null;
       function peopleBody(e) {

@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.17.0 (30.09.2026)
+- Buchungs- und Bestätigungsfenster noch breiter (bis 1320 px), mehr Platz für die Beschreibung. Datum, Uhrzeit, Dauer und Anbieter stehen im dunkelblauen Feld unter dem Bild, das Thema als Chip unter dem Titel, die freien Plätze unten rechts.
+- „Durchführung“ heißt überall „Angeboten von“ (Popup, Kalendereintrag, Admin-Tabelle).
+- Kalenderdatei mit eindeutigem Namen: LearnTogether_Buchungsbestätigung_Titel_Datum.ics. Im Footer des Kalendereintrags entfällt „Informelles Lernen im Außendienst“.
+
 ## 0.16.0 (30.09.2026)
 - Buchungs- und Bestätigungsfenster: breiter (bis 1040 px) und deutlich niedriger, dadurch kaum noch Scrollen. Das Veranstaltungsbild steht links und wird ausschließlich quadratisch gezeigt.
 - Teams-Link in eigener, hervorgehobener Box mit Button „Link kopieren“; der Button „Zur Teams-Sitzung“ entfällt.
