@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.11.0 (30.09.2026)
+- Neu: tools/MailAbholer (MailAbholer.exe + Quelltext): holt .eml-Dateien aus einem Ordner/einer Netzfreigabe und sendet sie per SMTP von einem Rechner aus, der senden darf (für Fälle, in denen der Webserver nicht senden darf). Anleitung in docs/Mail-Abholer.md.
+
 ## 0.10.1 (30.09.2026)
 - SMTP: Option „Zertifikatsfehler des Mailservers ignorieren“ (nur während des Versands wirksam); genauere Erklärung bei Zertifikats- und TLS-Fehlern.
 

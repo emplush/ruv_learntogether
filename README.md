@@ -10,7 +10,7 @@ Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstal
 | `artifact/` | Einzeldatei-Demo (Daten im Browser, E-Mails simuliert) |
 | `docs/` | Nutzerhandbuch (HTML, PDF), IIS-Installationsanleitung |
 | `src/` | Quellen (Frontend, Handbuch, ASP.NET-Handler) |
-| `tools/` | Build-Skripte (`python3 tools/build.py`) |
+| `tools/` | Build-Skripte (`python3 tools/build.py`) und `MailAbholer` (Mailversand über einen anderen Rechner) |
 
 ## Installation auf dem IIS
 
