@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.17.1 (30.09.2026)
+- Katalog: Das Thema „Sonstiges“ steht in beiden Bereichen immer zuletzt, auch in den Themenlisten (Filter, Admin).
+- Kalendereintrag: Der Betreff beginnt immer mit dem App-Titel („LearnTogether@AD - Titel“).
+- Kacheln: Veranstaltungstitel höchstens zweizeilig, lange Titel und lange Anbieternamen werden mit „…“ gekürzt (vollständig per Tooltip).
+
 ## 0.17.0 (30.09.2026)
 - Buchungs- und Bestätigungsfenster noch breiter (bis 1320 px), mehr Platz für die Beschreibung. Datum, Uhrzeit, Dauer und Anbieter stehen im dunkelblauen Feld unter dem Bild, das Thema als Chip unter dem Titel, die freien Plätze unten rechts.
 - „Durchführung“ heißt überall „Angeboten von“ (Popup, Kalendereintrag, Admin-Tabelle).

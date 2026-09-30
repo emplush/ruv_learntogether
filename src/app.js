@@ -100,6 +100,8 @@ function applyTaxonomy(t) {
   if (t.notice) { if (t.notice.title) NOTICE.title = t.notice.title; if (t.notice.text) NOTICE.text = t.notice.text; }
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
 }
+/* alphabetisch, "Sonstiges" immer zuletzt */
+function sortTopics(l) { return l.slice().sort(function (a, b) { var sa = a.toLowerCase() === 'sonstiges', sb = b.toLowerCase() === 'sonstiges'; if (sa !== sb) return sa ? 1 : -1; return a.localeCompare(b, 'de'); }); }
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 function hexRgb(x) { return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }); }
 function lum(x) { var c = hexRgb(x).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
@@ -340,7 +342,7 @@ function buildIcs(ev, code) {
     'BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:STANDARD', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET', 'END:STANDARD',
     'BEGIN:DAYLIGHT', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST', 'END:DAYLIGHT', 'END:VTIMEZONE',
     'BEGIN:VEVENT', 'UID:' + code.replace(/[^A-Z0-9]/g, '') + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
-    'SUMMARY:' + icsEsc(ev.title), 'DESCRIPTION:' + icsEsc(d.plain), 'X-ALT-DESC;FMTTYPE=text/html:' + icsEsc(d.html), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
+    'SUMMARY:' + icsEsc(state.settings.appTitle + ' - ' + ev.title), 'DESCRIPTION:' + icsEsc(d.plain), 'X-ALT-DESC;FMTTYPE=text/html:' + icsEsc(d.html), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
     'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:Erinnerung', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return L.map(fold).join('\r\n') + '\r\n';
 }
@@ -860,7 +862,7 @@ function viewCatalog() {
   var topicSel = h('select', { id: 'c-topic', 'aria-label': 'Thema' });
   function fillTopicSel() {
     clear(topicSel); topicSel.appendChild(h('option', { value: 'all', text: 'Alle' }));
-    TOPICS[filters.cat].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (t) { topicSel.appendChild(h('option', { value: t, text: capFirst(t), selected: filters.topic === t })); });
+    sortTopics(TOPICS[filters.cat]).forEach(function (t) { topicSel.appendChild(h('option', { value: t, text: capFirst(t), selected: filters.topic === t })); });
   }
   fillTopicSel();
   topicSel.addEventListener('change', function () { filters.topic = topicSel.value; renderRows(); });
@@ -902,7 +904,7 @@ function viewCatalog() {
         inCat ? null : h('p', { style: 'margin-top:16px' }, h('a', { class: 'btn btn-primary', href: '#/anbieten', text: 'Veranstaltung anbieten' }))]));
       return;
     }
-    TOPICS[filters.cat].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (topic) {
+    sortTopics(TOPICS[filters.cat]).forEach(function (topic) {
       var items = list.filter(function (e) { return e.topic === topic; });
       if (!items.length) return;
       var sc = h('div', { class: 'scroller', role: 'list', 'aria-label': topic }, items.map(function (e) { return tile(e); }));
@@ -917,7 +919,7 @@ function viewCatalog() {
     var f = freeOf(e), full = f <= 0, st = statusChip(e);
     var t = h('article', { class: 'tile', role: 'listitem', tabindex: '0', 'aria-disabled': full ? 'true' : null, 'aria-label': e.title + ', ' + dateFull(e.date) + ', ' + e.start + ' Uhr' + (full ? ', ausgebucht' : '') }, [
       h('div', { class: 'tile-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type)]), st ? h('div', { class: 'chips-b' }, st) : null]),
-      h('div', { class: 'tile-body' }, [h('h3', { text: e.title, title: e.title }), h('div', { class: 'tile-meta' }, [h('span', null, [h('b', { text: dateShort(e.date) }), ' ' + e.start + '\u2013' + endHm(e) + ' Uhr']), h('span', { text: e.duration + ' Minuten \u00b7 ' + e.host })])])]);
+      h('div', { class: 'tile-body' }, [h('h3', { text: e.title, title: e.title }), h('div', { class: 'tile-meta' }, [h('span', null, [h('b', { text: dateShort(e.date) }), ' ' + e.start + '\u2013' + endHm(e) + ' Uhr']), h('span', { class: 'tile-host' }, [e.duration + '\u00a0Minuten\u00a0\u00b7\u00a0', h('span', { class: 'tile-host-n', text: e.host, title: e.host })])])])]);
     function open() { if (!full) openBooking(e, function () { refresh(); }); else toast('Diese Veranstaltung ist ausgebucht.', true); }
     t.addEventListener('click', open); t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
     return t;
@@ -1220,7 +1222,7 @@ function viewAdmin() {
         ['dienstlich', 'privat'].forEach(function (c) {
           if (F.cat && F.cat !== c) return;
           var g = h('optgroup', { label: CAT_LABEL[c] });
-          TOPICS[c].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (t) { g.appendChild(h('option', { value: c + '|' + t, text: capFirst(t) })); });
+          sortTopics(TOPICS[c]).forEach(function (t) { g.appendChild(h('option', { value: c + '|' + t, text: capFirst(t) })); });
           topicSel.appendChild(g);
         });
         topicSel.value = F.topic;

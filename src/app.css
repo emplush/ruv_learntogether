@@ -243,7 +243,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .chip.full { background: #ff4c4c; color: #001957; }
 .chips-b { position: absolute; left: 10px; bottom: 10px; z-index: 2; display: flex; gap: 6px; }
 .tile-body { padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.tile-body h3 { font-size: 1.02rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; min-height: 2.4em; }
+.tile-body h3 { font-size: 1.02rem; line-height: 1.2; max-height: 2.4em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; min-height: 2.4em; }
 .tile-meta { font-size: .875rem; color: var(--muted); display: flex; flex-direction: column; gap: 1px; }
 .tile-meta b { color: var(--text); font-weight: 700; }
 .empty { padding: 48px 0; text-align: center; color: var(--muted); }
@@ -415,3 +415,6 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .bk-free { margin-left: auto; font-weight: 700; color: var(--text); background: var(--surface); border-radius: 999px; padding: 8px 16px; }
 .bk-free.few { background: #f79506; color: #001957; }
 @media (max-width: 860px) { .bk-facts { background: #001957; margin-top: 10px; } .bk-side { background: none; } .bk-facts { border-radius: 14px; margin: 12px 18px 0; } }
+
+.tile-host { display: flex; min-width: 0; white-space: nowrap; }
+.tile-host-n { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
