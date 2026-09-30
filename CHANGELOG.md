@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.12.0 (30.09.2026)
+- **Kein E-Mail-Versand mehr, kein Protokoll.** SMTP, Versandarten, Mailvorlage, E-Mail-Protokoll, MailAbholer und zugehörige Admin-Seiten entfernt.
+- Nach der Anmeldung zeigt das Fenster alle Angaben: Termin, Teams-Link, Kalendereintrag (.ics zum Download) und Stornierungscode.
+- Neue Seite „Meine Anmeldung“ (ersetzt „Stornieren“): Anmeldung mit Code und E-Mail anzeigen, Teams-Link und Kalender abrufen, stornieren. Anmeldungen werden zusätzlich nur im Browser des Teilnehmenden gemerkt.
+- Server: neue Aktion `lookup`; `book` liefert die Teilnahme-Angaben (inkl. Teams-Link) zurück.
+- Handbuch, Dokumentation und Tests angepasst.
+
 ## 0.11.0 (30.09.2026)
 - Neu: tools/MailAbholer (MailAbholer.exe + Quelltext): holt .eml-Dateien aus einem Ordner/einer Netzfreigabe und sendet sie per SMTP von einem Rechner aus, der senden darf (für Fälle, in denen der Webserver nicht senden darf). Anleitung in docs/Mail-Abholer.md.
 

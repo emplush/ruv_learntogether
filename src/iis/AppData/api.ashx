@@ -9,8 +9,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
-using System.Net.Mail;
-using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -62,14 +60,6 @@ namespace LearnTogether
     public class SettingsRec
     {
         public string appTitle { get; set; }
-        public string baseUrl { get; set; }
-        public string smtpHost { get; set; }
-        public int smtpPort { get; set; }
-        public bool smtpSsl { get; set; }
-        public string smtpUser { get; set; }
-        public string smtpPassword { get; set; }
-        public string mailFrom { get; set; }
-        public string mailFromName { get; set; }
         public string passwordHash { get; set; }
         public string tokenSecret { get; set; }
         public string labelDienstlich { get; set; }
@@ -79,10 +69,6 @@ namespace LearnTogether
         public List<string> types { get; set; }
         public string colorDienstlich { get; set; }
         public string colorPrivat { get; set; }
-        public string smtpMethod { get; set; }
-        public bool smtpWinAuth { get; set; }
-        public bool smtpTrustCert { get; set; }
-        public string mailFolder { get; set; }
         public string headColorDienstlich { get; set; }
         public string headColorPrivat { get; set; }
         public string textColorDienstlich { get; set; }
@@ -92,14 +78,6 @@ namespace LearnTogether
         public SettingsRec()
         {
             appTitle = "LearnTogether@AD";
-            baseUrl = "";
-            smtpHost = "";
-            smtpPort = 25;
-            smtpSsl = false;
-            smtpUser = "";
-            smtpPassword = "";
-            mailFrom = "";
-            mailFromName = "LearnTogether";
             passwordHash = "";
             tokenSecret = "";
             labelDienstlich = "Dienstlich";
@@ -109,9 +87,6 @@ namespace LearnTogether
             types = new List<string>(new string[] { "Workshop", "Austausch", "Best Practice" });
             colorDienstlich = "#001957";
             colorPrivat = "#583720";
-            smtpMethod = "smtp";
-            smtpWinAuth = false;
-            mailFolder = "";
             headColorDienstlich = "#f79506";
             headColorPrivat = "#f79506";
             textColorDienstlich = "#ffffff";
@@ -119,18 +94,6 @@ namespace LearnTogether
             heroTitle = "Voneinander lernen. Miteinander wachsen.";
             heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du wei\u00dft. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
         }
-    }
-
-    public class MailLogRec
-    {
-        public string id { get; set; }
-        public string bookingId { get; set; }
-        public bool hasEml { get; set; }
-        public string time { get; set; }
-        public string to { get; set; }
-        public string subject { get; set; }
-        public string status { get; set; }
-        public string error { get; set; }
     }
 
     public class ApiException : Exception
@@ -169,13 +132,14 @@ namespace LearnTogether
             {
                 switch (action)
                 {
-                    case "ping": { bool w, mc = false; string we; CheckWritable(out w, out we); try { mc = MailConfigured(LoadSettings()); } catch (Exception) { } Send(new { ok = true, server = true, version = Version, writable = w, storageError = we, mailConfigured = mc }); break; }
+                    case "ping": { bool w; string we; CheckWritable(out w, out we); Send(new { ok = true, server = true, version = Version, writable = w, storageError = we }); break; }
                     case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "createEvent": CreateEvent(); break;
                     case "book": Book(); break;
                     case "cancel": Cancel(); break;
+                    case "lookup": Lookup(); break;
                     case "login": Login(); break;
                     default:
                         RequireAdmin();
@@ -217,12 +181,6 @@ namespace LearnTogether
                 case "adminSaveTaxonomy": AdminSaveTaxonomy(); break;
                 case "adminChangePassword": AdminChangePassword(); break;
                 case "adminTestData": AdminTestData(); break;
-                case "adminDeleteMailLog": { string mid = S(Body(), "id"); lock (Gate) { List<MailLogRec> ml = LoadMailLog(); ml.RemoveAll(delegate (MailLogRec x) { return x.id == mid; }); WriteJson("maillog.json", ml); DeleteEml(mid); } Send(new { ok = true }); break; }
-                case "adminClearMailLog": lock (Gate) { foreach (MailLogRec x in LoadMailLog()) DeleteEml(x.id); WriteJson("maillog.json", new List<MailLogRec>()); } Send(new { ok = true }); break;
-                case "adminMailEml": AdminMailEml(); break;
-                case "adminResendMail": AdminResendMail(); break;
-                case "adminMailLog": Send(new { ok = true, log = LoadMailLog() }); break;
-                case "adminTestMail": AdminTestMail(); break;
                 default: throw new ApiException("unknown", "Unbekannte Aktion.", 404);
             }
         }
@@ -355,56 +313,6 @@ namespace LearnTogether
 
         void SaveSettings(SettingsRec s) { lock (Gate) { WriteJson("settings.json", s); } }
 
-        List<MailLogRec> LoadMailLog()
-        {
-            lock (Gate)
-            {
-                string p = Path.Combine(DataDir(), "maillog.json");
-                if (!File.Exists(p)) return new List<MailLogRec>();
-                List<MailLogRec> list = json.Deserialize<List<MailLogRec>>(File.ReadAllText(p, Encoding.UTF8));
-                foreach (MailLogRec m in list) if (string.IsNullOrEmpty(m.id)) m.id = RandomToken(6);
-                return list;
-            }
-        }
-
-        string AddMailLog(string to, string subject, string status, string error, string bookingId, bool hasEml, string id)
-        {
-            lock (Gate)
-            {
-                List<MailLogRec> l = LoadMailLog();
-                MailLogRec r = new MailLogRec();
-                r.id = string.IsNullOrEmpty(id) ? RandomToken(6) : id;
-                r.bookingId = bookingId ?? ""; r.hasEml = hasEml;
-                r.time = NowBerlin().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-                r.to = to; r.subject = subject; r.status = status; r.error = error ?? "";
-                l.Insert(0, r);
-                if (l.Count > 1000)
-                {
-                    for (int i = 1000; i < l.Count; i++) DeleteEml(l[i].id);
-                    l.RemoveRange(1000, l.Count - 1000);
-                }
-                WriteJson("maillog.json", l);
-                return r.id;
-            }
-        }
-
-        string MailDir()
-        {
-            string dir = Path.Combine(DataDir(), "mail");
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            return dir;
-        }
-
-        void DeleteEml(string id)
-        {
-            try
-            {
-                string f = Path.Combine(MailDir(), Regex.Replace(id ?? "", "[^a-zA-Z0-9_-]", "") + ".eml");
-                if (File.Exists(f)) File.Delete(f);
-            }
-            catch (Exception) { }
-        }
-
         void LogError(Exception ex)
         {
             try
@@ -432,11 +340,6 @@ namespace LearnTogether
         }
 
         static string Hm(DateTime d) { return d.ToString("HH:mm", CultureInfo.InvariantCulture); }
-
-        static string LongDate(DateTime d)
-        {
-            return Days[(int)d.DayOfWeek] + ", " + d.Day.ToString("00") + ". " + Months[d.Month - 1] + " " + d.Year;
-        }
 
         // ---------------------------------------------------------------- Sicherheit
         static string RandomToken(int bytes)
@@ -762,10 +665,35 @@ namespace LearnTogether
                 d.bookings.Add(bk);
                 SaveData(d);
             }
-            bool sent = false; string mailMsg = "";
-            try { sent = SendConfirmation(ev, bk, out mailMsg); }
-            catch (Exception ex) { LogError(ex); mailMsg = "Die E-Mail konnte nicht versendet werden."; }
-            Send(new { ok = true, code = bk.code, mailSent = sent, mailMessage = mailMsg });
+            Send(new { ok = true, code = bk.code, name = bk.name, email = bk.email, eventInfo = EventDetail(ev) });
+        }
+
+        // Alle Angaben zur Veranstaltung fuer die Teilnahme (inkl. Teams-Link); nur nach gueltiger Anmeldung bzw. mit Code und E-Mail abrufbar
+        Dictionary<string, object> EventDetail(EventRec e)
+        {
+            Dictionary<string, object> d = PublicEvent(e, 0);
+            d.Remove("booked"); d.Remove("isTest");
+            d["teamsLink"] = e.teamsLink;
+            return d;
+        }
+
+        void Lookup()
+        {
+            Dictionary<string, object> b = Body();
+            string code = NormCode(S(b, "code")), email = S(b, "email").ToLowerInvariant();
+            BookingRec bk; EventRec ev;
+            lock (Gate)
+            {
+                DataFile d = LoadData();
+                bk = code.Length == 0 ? null : d.bookings.Find(delegate (BookingRec x) { return NormCode(x.code) == code && x.email == email; });
+                ev = bk == null ? null : d.events.Find(delegate (EventRec x) { return x.id == bk.eventId; });
+            }
+            if (bk == null || ev == null)
+            {
+                Thread.Sleep(300);
+                throw new ApiException("notfound", "Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte pr\u00fcfe Code und E-Mail-Adresse.");
+            }
+            Send(new { ok = true, code = bk.code, name = bk.name, email = bk.email, eventInfo = EventDetail(ev), canCancel = StartOfSafe(ev.date, ev.start) > NowBerlin() });
         }
 
         static string NewCode()
@@ -794,335 +722,6 @@ namespace LearnTogether
                 d.bookings.Remove(bk);
                 SaveData(d);
                 Send(new { ok = true, title = ev != null ? ev.title : "", date = ev != null ? ev.date : "", start = ev != null ? ev.start : "" });
-            }
-        }
-
-        // ---------------------------------------------------------------- Mail
-        static bool MailConfigured(SettingsRec s)
-        {
-            if (string.IsNullOrEmpty(s.mailFrom)) return false;
-            if (s.smtpMethod == "iis" || s.smtpMethod == "folder") return true;
-            return !string.IsNullOrEmpty(s.smtpHost);
-        }
-
-        string BaseUrl(SettingsRec s)
-        {
-            if (!string.IsNullOrEmpty(s.baseUrl)) return s.baseUrl.TrimEnd('/') + "/index.html";
-            string path = ctx.Request.Url.GetLeftPart(UriPartial.Path);
-            int i = path.LastIndexOf("/AppData/", StringComparison.OrdinalIgnoreCase);
-            if (i >= 0) return path.Substring(0, i + 1) + "index.html";
-            return path;
-        }
-
-        static string H(string s) { return WebUtility.HtmlEncode(s ?? ""); }
-
-        // Daten fuer die Bestaetigungs-E-Mail (Design: siehe BuildMailHtml)
-        public class MailData
-        {
-            public string AppTitle, AreaLabel, Type, Topic, Bg, Head, Text, LogoSrc, Name, Title, Date, Time, Host, TeamsLink, Code, CancelUrl;
-            public int Duration;
-        }
-
-        static string BodyHead(string bg) { return Contrast(bg, "#ffffff") >= 4.5 ? bg : "#001957"; }
-
-        static string Pill(string t, string bg, string fg)
-        {
-            return "<span style=\"display:inline-block;background:" + bg + ";color:" + fg + ";font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0\">" + H(t) + "</span>";
-        }
-
-        // Moderne, tabellenbasierte HTML-Mail im R+V-Design; Farben richten sich nach dem Bereich (Hintergrund, Ueberschrift, Text).
-        public static string BuildMailHtml(MailData m)
-        {
-            const string font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;";
-            string ink = "#001957", grey = "#707070", hd = BodyHead(m.Bg), soft = Mix(m.Bg, m.Text, 0.78), tint = Mix(m.Bg, "#ffffff", 0.9);
-            StringBuilder h = new StringBuilder();
-            h.Append("<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light\"></head>");
-            h.Append("<body style=\"margin:0;padding:0;background:#f5f5f5;" + font + "\">");
-            h.Append("<div style=\"display:none;max-height:0;overflow:hidden;opacity:0\">Deine Anmeldung für " + H(m.Title) + " ist bestätigt.</div>");
-            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f5f5f5\"><tr><td align=\"center\" style=\"padding:24px 12px\">");
-            h.Append("<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden\">");
-            // Kopf im Farbton des Bereichs
-            h.Append("<tr><td style=\"background:" + m.Bg + ";padding:28px 32px 30px\">");
-            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
-            h.Append("<td style=\"vertical-align:middle\">" + (string.IsNullOrEmpty(m.LogoSrc) ? "<span style=\"" + font + "font-size:24px;font-weight:800;color:" + m.Text + "\">R+V</span>" : "<img src=\"" + m.LogoSrc + "\" width=\"88\" alt=\"R+V\" style=\"display:block;border:0\">") + "</td>");
-            h.Append("<td align=\"right\" style=\"vertical-align:middle;" + font + "font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:" + soft + "\">" + H(m.AppTitle) + "</td></tr></table>");
-            h.Append("<div style=\"" + font + "font-size:28px;line-height:1.25;font-weight:800;color:" + m.Head + ";margin:26px 0 0\">Deine Anmeldung ist bestätigt</div>");
-            h.Append("<div style=\"" + font + "font-size:15px;line-height:1.5;color:" + m.Text + ";margin:8px 0 0\">Schön, dass du dabei bist, " + H(m.Name) + ".</div>");
-            h.Append("</td></tr>");
-            // Inhalt
-            h.Append("<tr><td style=\"padding:30px 32px 8px;" + font + "color:" + ink + "\">");
-            h.Append("<div>" + Pill(m.AreaLabel, tint, hd) + Pill(m.Type, "#f5f5f5", ink) + Pill(m.Topic, "#f5f5f5", ink) + "</div>");
-            h.Append("<div style=\"font-size:22px;line-height:1.3;font-weight:800;color:" + hd + ";margin:6px 0 20px\">" + H(m.Title) + "</div>");
-            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:15px;line-height:1.45\">");
-            h.Append(DetailRow("Datum", H(m.Date), grey, ink));
-            h.Append(DetailRow("Uhrzeit", H(m.Time), grey, ink));
-            h.Append(DetailRow("Dauer", m.Duration + " Minuten", grey, ink));
-            h.Append(DetailRow("Durchführung", H(m.Host), grey, ink));
-            h.Append("</table>");
-            h.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:26px 0 8px\"><tr><td style=\"background:#00dcdc;border-radius:24px\"><a href=\"" + H(m.TeamsLink) + "\" style=\"display:inline-block;padding:14px 30px;" + font + "font-size:16px;font-weight:700;color:#001957;text-decoration:none\">Zur Teams-Sitzung</a></td></tr></table>");
-            h.Append("<div style=\"font-size:12px;color:" + grey + ";word-break:break-all\">" + H(m.TeamsLink) + "</div>");
-            h.Append("<div style=\"font-size:14px;color:" + grey + ";margin:14px 0 0\">Der Kalendereintrag (.ics) ist dieser E-Mail angehängt. Er enthält den Teams-Link und eine Erinnerung 15 Minuten vor Beginn.</div>");
-            h.Append("</td></tr>");
-            // Stornierung
-            h.Append("<tr><td style=\"padding:20px 32px 32px\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504\"><tr><td style=\"padding:18px 20px;" + font + "color:" + ink + "\">");
-            h.Append("<div style=\"font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400\">Dein Stornierungscode</div>");
-            h.Append("<div style=\"font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:" + ink + "\">" + H(m.Code) + "</div>");
-            h.Append("<div style=\"font-size:14px;line-height:1.5\">Kannst du nicht teilnehmen? Gib deinen Platz bitte frei: <a href=\"" + H(m.CancelUrl) + "\" style=\"color:#0c7f89;font-weight:700\">Anmeldung stornieren</a></div>");
-            h.Append("</td></tr></table></td></tr>");
-            // Fuss
-            h.Append("<tr><td style=\"background:#f5f5f5;padding:18px 32px;" + font + "font-size:12px;line-height:1.5;color:" + grey + "\">" + H(m.AppTitle) + " &middot; Informelles Lernen im Außendienst<br>Diese E-Mail wurde automatisch versendet. Bitte antworte nicht darauf.</td></tr>");
-            h.Append("<tr><td style=\"background:" + m.Bg + ";height:6px;line-height:6px;font-size:0\">&nbsp;</td></tr>");
-            h.Append("</table></td></tr></table></body></html>");
-            return h.ToString();
-        }
-
-        static string DetailRow(string k, string v, string grey, string ink)
-        {
-            return "<tr><td style=\"width:120px;padding:9px 0;border-top:1px solid #ececec;color:" + grey + ";vertical-align:top\">" + k + "</td><td style=\"padding:9px 0;border-top:1px solid #ececec;color:" + ink + ";font-weight:600;vertical-align:top\">" + v + "</td></tr>";
-        }
-
-        bool SendConfirmation(EventRec ev, BookingRec bk, out string message)
-        {
-            SettingsRec s = LoadSettings();
-            DateTime st = StartOf(ev), en = st.AddMinutes(ev.duration);
-            string cancelUrl = BaseUrl(s) + "#/stornieren?code=" + Uri.EscapeDataString(bk.code) + "&email=" + Uri.EscapeDataString(bk.email);
-            string subject = "Bestätigung: " + ev.title + " am " + st.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
-            bool biz = ev.category == "dienstlich";
-            MailData md = new MailData();
-            md.AppTitle = s.appTitle; md.AreaLabel = biz ? s.labelDienstlich : s.labelPrivat; md.Type = ev.type; md.Topic = ev.topic;
-            md.Bg = biz ? s.colorDienstlich : s.colorPrivat; md.Head = biz ? s.headColorDienstlich : s.headColorPrivat; md.Text = biz ? s.textColorDienstlich : s.textColorPrivat;
-            md.Name = bk.name; md.Title = ev.title; md.Date = LongDate(st); md.Time = Hm(st) + " – " + Hm(en) + " Uhr"; md.Duration = ev.duration; md.Host = ev.host;
-            md.TeamsLink = ev.teamsLink; md.Code = bk.code; md.CancelUrl = cancelUrl;
-            // Logo als eingebettetes Bild (CID); helles Logo auf dunklem, dunkles Logo auf hellem Hintergrund
-            string logoFile = Luminance(md.Bg) > 0.35 ? "ruv-logo-dunkelblau.png" : "ruv-logo-weiss.png";
-            string logoPath = Path.Combine(Path.Combine(Path.GetDirectoryName(ctx.Request.PhysicalPath), "assets"), logoFile);
-            if (File.Exists(logoPath)) md.LogoSrc = "cid:ruvlogo";
-            else logoPath = null;
-            string html = BuildMailHtml(md);
-
-            StringBuilder t = new StringBuilder();
-            t.AppendLine("Hallo " + bk.name + ",");
-            t.AppendLine("deine Anmeldung ist bestätigt.");
-            t.AppendLine();
-            t.AppendLine("Veranstaltung: " + ev.title);
-            t.AppendLine("Datum: " + LongDate(st));
-            t.AppendLine("Uhrzeit: " + Hm(st) + " - " + Hm(en) + " Uhr");
-            t.AppendLine("Dauer: " + ev.duration + " Minuten");
-            t.AppendLine("Durchführung: " + ev.host);
-            t.AppendLine("Teams: " + ev.teamsLink);
-            t.AppendLine();
-            t.AppendLine("Stornierungscode: " + bk.code);
-            t.AppendLine("Stornierung: " + cancelUrl);
-
-            string ics = BuildIcs(ev, bk, st, en);
-            return SendMail(s, bk.email, subject, html, t.ToString(), ics, logoPath, bk.id, out message);
-        }
-
-        static string IcsEsc(string t)
-        {
-            return (t ?? "").Replace("\\", "\\\\").Replace(";", "\\;").Replace(",", "\\,").Replace("\r", "").Replace("\n", "\\n");
-        }
-
-        static string Fold(string line)
-        {
-            StringBuilder sb = new StringBuilder();
-            int n = 0;
-            foreach (char c in line)
-            {
-                if (n >= 70) { sb.Append("\r\n "); n = 1; }
-                sb.Append(c); n++;
-            }
-            return sb.ToString();
-        }
-
-        string BuildIcs(EventRec ev, BookingRec bk, DateTime st, DateTime en)
-        {
-            string f = "yyyyMMdd'T'HHmmss";
-            string desc = PlainText(ev.description);
-            if (desc.Length > 800) desc = desc.Substring(0, 800) + "...";
-            desc = "Durchf\u00fchrung: " + ev.host + "\n\nTeams-Sitzung: " + ev.teamsLink + "\n\n" + desc;
-            List<string> l = new List<string>();
-            l.Add("BEGIN:VCALENDAR"); l.Add("VERSION:2.0"); l.Add("PRODID:-//R+V//LearnTogether//DE"); l.Add("CALSCALE:GREGORIAN"); l.Add("METHOD:PUBLISH");
-            l.Add("BEGIN:VTIMEZONE"); l.Add("TZID:Europe/Berlin");
-            l.Add("BEGIN:STANDARD"); l.Add("DTSTART:19701025T030000"); l.Add("RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"); l.Add("TZOFFSETFROM:+0200"); l.Add("TZOFFSETTO:+0100"); l.Add("TZNAME:CET"); l.Add("END:STANDARD");
-            l.Add("BEGIN:DAYLIGHT"); l.Add("DTSTART:19700329T020000"); l.Add("RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"); l.Add("TZOFFSETFROM:+0100"); l.Add("TZOFFSETTO:+0200"); l.Add("TZNAME:CEST"); l.Add("END:DAYLIGHT");
-            l.Add("END:VTIMEZONE");
-            l.Add("BEGIN:VEVENT");
-            l.Add("UID:" + bk.id + "@learntogether");
-            l.Add("DTSTAMP:" + DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture));
-            l.Add("DTSTART;TZID=Europe/Berlin:" + st.ToString(f, CultureInfo.InvariantCulture));
-            l.Add("DTEND;TZID=Europe/Berlin:" + en.ToString(f, CultureInfo.InvariantCulture));
-            l.Add("SUMMARY:" + IcsEsc(ev.title));
-            l.Add("DESCRIPTION:" + IcsEsc(desc));
-            l.Add("LOCATION:Microsoft Teams");
-            l.Add("URL:" + ev.teamsLink);
-            l.Add("STATUS:CONFIRMED");
-            l.Add("BEGIN:VALARM"); l.Add("TRIGGER:-PT15M"); l.Add("ACTION:DISPLAY"); l.Add("DESCRIPTION:Erinnerung"); l.Add("END:VALARM");
-            l.Add("END:VEVENT"); l.Add("END:VCALENDAR");
-            StringBuilder sb = new StringBuilder();
-            foreach (string x in l) sb.Append(Fold(x)).Append("\r\n");
-            return sb.ToString();
-        }
-
-        static readonly object SendGate = new object();
-        string lastMailError = "";
-
-        // Verstaendliche Erklaerung zu einem Versandfehler plus technische Meldung (nur fuer Administration und Protokoll)
-        static string ExplainMailError(Exception ex)
-        {
-            StringBuilder tech = new StringBuilder();
-            Exception e = ex;
-            while (e != null)
-            {
-                if (tech.Length > 0) tech.Append(" -> ");
-                tech.Append(e.GetType().Name + ": " + e.Message);
-                SmtpException se = e as SmtpException;
-                if (se != null) tech.Append(" [SMTP-Status: " + se.StatusCode + "]");
-                e = e.InnerException;
-            }
-            string all = tech.ToString().ToLowerInvariant(), hint = "";
-            if (all.Contains("name or service not known") || all.Contains("no such host") || all.Contains("host not found") || all.Contains("could not resolve"))
-                hint = "Der Servername wird nicht aufgel\u00f6st (DNS). Pr\u00fcfe die Schreibweise oder verwende die IP-Adresse.";
-            else if (all.Contains("timed out") || all.Contains("timeout") || all.Contains("zeit\u00fcberschreitung"))
-                hint = "Zeit\u00fcberschreitung: Der Server antwortet nicht. Pr\u00fcfe Adresse, Port und Firewall zwischen Webserver und Mailserver.";
-            else if (all.Contains("no connection could be made") || all.Contains("actively refused") || all.Contains("connection refused") || all.Contains("unable to connect"))
-                hint = "Keine Verbindung zum Mailserver. Pr\u00fcfe Servername/IP, Port und ob eine Firewall die Verbindung vom Webserver blockiert.";
-            else if (all.Contains("5.7.57") || all.Contains("client was not authenticated") || all.Contains("authentication required") || all.Contains("starttls") || all.Contains("secure connection"))
-                hint = "Der Server verlangt eine Anmeldung und/oder verschl\u00fcsselte Verbindung. Aktiviere \"SSL/TLS verwenden\" (Port 587, STARTTLS) und trage Benutzername und Passwort ein.";
-            else if (all.Contains("535") || all.Contains("authentication unsuccessful") || all.Contains("invalid credentials") || all.Contains("not accepted") || all.Contains("5.7.3") || all.Contains("5.7.8"))
-                hint = "Benutzername oder Passwort wurden abgelehnt. Bei Microsoft 365 ist die einfache Anmeldung (Basic Auth) f\u00fcr SMTP oft abgeschaltet; dann ein Relay-Konnektor oder eine andere Versandart nutzen.";
-            else if (all.Contains("relay") || all.Contains("5.7.1") || all.Contains("not permitted") || all.Contains("access denied"))
-                hint = "Der Server nimmt die Mail nicht an (Relay nicht erlaubt). Die IP des Webservers muss am SMTP-Relay freigegeben sein, und die Absenderadresse muss zum Server passen.";
-            else if (all.Contains("mailbox unavailable") || all.Contains("550") || all.Contains("553") || all.Contains("recipient"))
-                hint = "Der Server lehnt Absender oder Empf\u00e4nger ab. Pr\u00fcfe Absender- und Empf\u00e4ngeradresse.";
-            else if (all.Contains("remote certificate is invalid") || all.Contains("certificate") && (all.Contains("untrusted") || all.Contains("not trusted") || all.Contains("chain") || all.Contains("name mismatch") || all.Contains("expired")))
-                hint = "Das Zertifikat des Mailservers wird nicht als vertrauensw\u00fcrdig akzeptiert. M\u00f6gliche Ursachen: Es wurde von einer internen Zertifizierungsstelle oder selbst ausgestellt, ist abgelaufen oder gilt f\u00fcr einen anderen Servernamen (z. B. bei Verwendung der IP-Adresse). L\u00f6sungen: (1) Den Servernamen eintragen, der im Zertifikat steht. (2) Das Zertifizierungsstellen-Zertifikat auf dem Webserver in \"Vertrauensw\u00fcrdige Stammzertifizierungsstellen\" importieren (empfohlen). (3) Notfalls unter \"Versand\" die Option \"Zertifikatsfehler ignorieren\" aktivieren.";
-            else if (all.Contains("ssl") || all.Contains("tls") || all.Contains("handshake") || all.Contains("certificate") || all.Contains("transport stream") || all.Contains("authentication failed"))
-                hint = "Fehler bei der Verschl\u00fcsselung (TLS). Port 465 (implizites SSL) wird nicht unterst\u00fctzt: nutze Port 587 mit STARTTLS oder Port 25 ohne SSL, sofern der Server das erlaubt.";
-            else if (all.Contains("access to the path") || all.Contains("unauthorizedaccess") || all.Contains("pickup"))
-                hint = "Der Ordner f\u00fcr die Ausgabe ist nicht beschreibbar oder existiert nicht. Pr\u00fcfe Pfad und Schreibrechte des Anwendungspools.";
-            return (hint.Length > 0 ? hint + " " : "") + "Technische Meldung: " + tech;
-        }
-
-        MailMessage BuildMessage(SettingsRec s, string to, string subject, string html, string text, string ics, string logoPath)
-        {
-            MailMessage m = new MailMessage();
-            m.From = new MailAddress(s.mailFrom, s.mailFromName, Encoding.UTF8);
-            m.To.Add(new MailAddress(to));
-            m.Subject = subject; m.SubjectEncoding = Encoding.UTF8;
-            m.BodyEncoding = Encoding.UTF8;
-            m.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(text, Encoding.UTF8, "text/plain"));
-            AlternateView hv = AlternateView.CreateAlternateViewFromString(html, Encoding.UTF8, "text/html");
-            if (!string.IsNullOrEmpty(logoPath)) { LinkedResource lr = new LinkedResource(logoPath, "image/png"); lr.ContentId = "ruvlogo"; lr.TransferEncoding = TransferEncoding.Base64; hv.LinkedResources.Add(lr); }
-            m.AlternateViews.Add(hv);
-            if (!string.IsNullOrEmpty(ics))
-            {
-                MemoryStream ms = new MemoryStream(new UTF8Encoding(false).GetBytes(ics));
-                Attachment a = new Attachment(ms, new ContentType("text/calendar; method=PUBLISH; charset=UTF-8"));
-                a.Name = "Veranstaltung.ics";
-                m.Attachments.Add(a);
-            }
-            return m;
-        }
-
-        // Speichert eine Mail als .eml in einem Ordner (Pickup-Verzeichnis); gibt den Dateipfad zurueck
-        string DropEml(MailMessage m, string dir)
-        {
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            string before = DateTime.UtcNow.AddSeconds(-1).ToString("o");
-            using (SmtpClient c = new SmtpClient())
-            {
-                c.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
-                c.PickupDirectoryLocation = dir;
-                c.Send(m);
-            }
-            string newest = null; DateTime nt = DateTime.MinValue;
-            foreach (string f in Directory.GetFiles(dir, "*.eml"))
-            {
-                DateTime t = File.GetLastWriteTimeUtc(f);
-                if (t >= nt) { nt = t; newest = f; }
-            }
-            return newest;
-        }
-
-        bool SendMail(SettingsRec s, string to, string subject, string html, string text, string ics, string logoPath, string bookingId, out string message)
-        {
-            lastMailError = "";
-            if (!MailConfigured(s))
-            {
-                string why = "Der E-Mail-Versand ist nicht eingerichtet (Versandart, Server bzw. Absenderadresse fehlen).";
-                lastMailError = why;
-                AddMailLog(to, subject, "nicht versendet", why, bookingId, false, null);
-                message = "Die Best\u00e4tigungs-E-Mail konnte nicht versendet werden, weil der E-Mail-Versand noch nicht eingerichtet ist. Bitte notiere dir den Stornierungscode.";
-                return false;
-            }
-            try
-            {
-                try { System.Net.ServicePointManager.SecurityProtocol |= System.Net.SecurityProtocolType.Tls12; } catch (Exception) { }
-                string note = "";
-                using (MailMessage m = BuildMessage(s, to, subject, html, text, ics, logoPath))
-                {
-                    if (s.smtpMethod == "folder")
-                    {
-                        string dir = string.IsNullOrEmpty(s.mailFolder) ? Path.Combine(DataDir(), "mail-out") : s.mailFolder;
-                        string f = DropEml(m, dir);
-                        note = "als .eml gespeichert: " + f;
-                    }
-                    else if (s.smtpMethod == "iis")
-                    {
-                        using (SmtpClient c = new SmtpClient())
-                        {
-                            c.DeliveryMethod = SmtpDeliveryMethod.PickupDirectoryFromIis;
-                            c.Send(m);
-                        }
-                        note = "an den lokalen IIS-SMTP-Dienst \u00fcbergeben";
-                    }
-                    else
-                    {
-                        lock (SendGate)
-                        {
-                            System.Net.Security.RemoteCertificateValidationCallback oldCb = System.Net.ServicePointManager.ServerCertificateValidationCallback;
-                            try
-                            {
-                                // Nur waehrend dieses Versands: Zertifikatsfehler des Mailservers ignorieren, wenn so eingestellt
-                                if (s.smtpTrustCert) System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
-                                using (SmtpClient c = new SmtpClient(s.smtpHost, s.smtpPort > 0 ? s.smtpPort : 25))
-                                {
-                                    c.EnableSsl = s.smtpSsl;
-                                    c.Timeout = 15000;
-                                    if (s.smtpWinAuth) c.UseDefaultCredentials = true;
-                                    else if (!string.IsNullOrEmpty(s.smtpUser)) c.Credentials = new NetworkCredential(s.smtpUser, s.smtpPassword);
-                                    c.Send(m);
-                                }
-                            }
-                            finally { System.Net.ServicePointManager.ServerCertificateValidationCallback = oldCb; }
-                        }
-                    }
-                }
-                AddMailLog(to, subject, s.smtpMethod == "folder" ? "gespeichert" : "versendet", note, bookingId, false, null);
-                message = "";
-                return true;
-            }
-            catch (Exception ex)
-            {
-                string detail = ExplainMailError(ex);
-                lastMailError = detail;
-                string id = RandomToken(6); bool saved = false;
-                try
-                {
-                    // Fehlgeschlagene Mail als .eml sichern, damit sie manuell (z. B. in Outlook) versendet werden kann
-                    string tmp = Path.Combine(MailDir(), "tmp-" + id);
-                    using (MailMessage m2 = BuildMessage(s, to, subject, html, text, ics, logoPath))
-                    {
-                        string f = DropEml(m2, tmp);
-                        if (f != null) { File.Move(f, Path.Combine(MailDir(), id + ".eml")); saved = true; }
-                    }
-                    try { Directory.Delete(tmp, true); } catch (Exception) { }
-                }
-                catch (Exception) { }
-                AddMailLog(to, subject, "Fehler", detail, bookingId, saved, id);
-                message = "Die Best\u00e4tigungs-E-Mail konnte nicht versendet werden. Bitte notiere dir den Stornierungscode.";
-                return false;
             }
         }
 
@@ -1202,24 +801,7 @@ namespace LearnTogether
         void AdminSettings()
         {
             SettingsRec s = LoadSettings();
-            Send(new
-            {
-                ok = true,
-                appTitle = s.appTitle,
-                baseUrl = s.baseUrl,
-                smtpHost = s.smtpHost,
-                smtpPort = s.smtpPort,
-                smtpSsl = s.smtpSsl,
-                smtpUser = s.smtpUser,
-                smtpMethod = s.smtpMethod,
-                smtpWinAuth = s.smtpWinAuth,
-                smtpTrustCert = s.smtpTrustCert,
-                mailFolder = s.mailFolder,
-                smtpPasswordSet = !string.IsNullOrEmpty(s.smtpPassword),
-                mailFrom = s.mailFrom,
-                mailFromName = s.mailFromName,
-                mailConfigured = MailConfigured(s)
-            });
+            Send(new { ok = true, appTitle = s.appTitle });
         }
 
         static object Labels(SettingsRec s) { return new { dienstlich = s.labelDienstlich, privat = s.labelPrivat }; }
@@ -1245,17 +827,6 @@ namespace LearnTogether
             double la = Luminance(a), lb = Luminance(b);
             double hi = Math.Max(la, lb), lo = Math.Min(la, lb);
             return (hi + 0.05) / (lo + 0.05);
-        }
-
-        static string Mix(string a, string b, double t)
-        {
-            StringBuilder sb = new StringBuilder("#");
-            for (int i = 0; i < 3; i++)
-            {
-                int x = Convert.ToInt32(a.Substring(1 + i * 2, 2), 16), y = Convert.ToInt32(b.Substring(1 + i * 2, 2), 16);
-                sb.Append(((int)Math.Round(x + (y - x) * t)).ToString("x2"));
-            }
-            return sb.ToString();
         }
 
         static string HexOf(string v)
@@ -1375,32 +946,12 @@ namespace LearnTogether
                     if (title.Length < 2 || title.Length > 60) throw new ApiException("invalid", "Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.");
                     s.appTitle = title;
                 }
-                if (b.ContainsKey("baseUrl")) s.baseUrl = S(b, "baseUrl");
                 if (b.ContainsKey("heroTitle") || b.ContainsKey("heroText"))
                 {
                     string ht = S(b, "heroTitle"), hx = S(b, "heroText");
                     if (ht.Length < 3 || ht.Length > 80) throw new ApiException("invalid", "Die \u00dcberschrift muss zwischen 3 und 80 Zeichen lang sein.");
                     if (hx.Length < 10 || hx.Length > 500) throw new ApiException("invalid", "Der Hinweistext muss zwischen 10 und 500 Zeichen lang sein.");
                     s.heroTitle = ht; s.heroText = hx;
-                }
-                if (b.ContainsKey("smtpHost"))
-                {
-                    string method = S(b, "smtpMethod");
-                    if (method.Length == 0) method = "smtp";
-                    if (method != "smtp" && method != "iis" && method != "folder") throw new ApiException("invalid", "Unbekannte Versandart.");
-                    s.smtpMethod = method;
-                    s.smtpWinAuth = B(b, "smtpWinAuth");
-                    s.smtpTrustCert = B(b, "smtpTrustCert");
-                    s.mailFolder = S(b, "mailFolder");
-                    s.smtpHost = S(b, "smtpHost");
-                    int port = I(b, "smtpPort"); s.smtpPort = port > 0 ? port : 25;
-                    s.smtpSsl = B(b, "smtpSsl");
-                    s.smtpUser = S(b, "smtpUser");
-                    if (b.ContainsKey("smtpPassword") && S(b, "smtpPassword").Length > 0) s.smtpPassword = S(b, "smtpPassword");
-                    if (B(b, "clearSmtpPassword")) s.smtpPassword = "";
-                    s.mailFrom = S(b, "mailFrom");
-                    s.mailFromName = S(b, "mailFromName");
-                    if (s.mailFrom.Length > 0 && !ValidEmail(s.mailFrom)) throw new ApiException("invalid", "Die Absenderadresse ist ung\u00fcltig.");
                 }
                 SaveSettings(s);
             }
@@ -1472,45 +1023,5 @@ namespace LearnTogether
             }
         }
 
-        // Liefert die gesicherte .eml einer fehlgeschlagenen Mail (oeffnet z. B. in Outlook und laesst sich manuell versenden)
-        void AdminMailEml()
-        {
-            string id = Regex.Replace(ctx.Request.QueryString["id"] ?? "", "[^a-zA-Z0-9_-]", "");
-            string f = Path.Combine(MailDir(), id + ".eml");
-            if (id.Length == 0 || !File.Exists(f)) throw new ApiException("notfound", "F\u00fcr diesen Eintrag gibt es keine gespeicherte Mail.");
-            ctx.Response.Clear();
-            ctx.Response.ContentType = "message/rfc822";
-            ctx.Response.AddHeader("Content-Disposition", "attachment; filename=\"Mail-" + id + ".eml\"");
-            ctx.Response.WriteFile(f);
-        }
-
-        // Sendet die Bestaetigungsmail zu einer Anmeldung erneut (z. B. nach korrigierten SMTP-Einstellungen)
-        void AdminResendMail()
-        {
-            string id = S(Body(), "id");
-            MailLogRec entry = LoadMailLog().Find(delegate (MailLogRec x) { return x.id == id; });
-            if (entry == null || string.IsNullOrEmpty(entry.bookingId)) throw new ApiException("invalid", "Dieser Eintrag kann nicht erneut gesendet werden.");
-            EventRec ev; BookingRec bk;
-            lock (Gate)
-            {
-                DataFile d = LoadData();
-                bk = d.bookings.Find(delegate (BookingRec x) { return x.id == entry.bookingId; });
-                ev = bk == null ? null : d.events.Find(delegate (EventRec x) { return x.id == bk.eventId; });
-            }
-            if (bk == null || ev == null) throw new ApiException("notfound", "Die Anmeldung oder Veranstaltung existiert nicht mehr.");
-            string msg;
-            bool ok = SendConfirmation(ev, bk, out msg);
-            Send(new { ok = ok, message = ok ? "Die E-Mail wurde erneut gesendet." : (lastMailError.Length > 0 ? lastMailError : msg) });
-        }
-
-        void AdminTestMail()
-        {
-            string to = S(Body(), "to").ToLowerInvariant();
-            if (!ValidEmail(to)) throw new ApiException("invalid", "Bitte gib eine g\u00fcltige E-Mail-Adresse an.");
-            SettingsRec s = LoadSettings();
-            string msg;
-            bool ok = SendMail(s, to, "Testnachricht von " + s.appTitle, "<p>Der E-Mail-Versand funktioniert.</p>", "Der E-Mail-Versand funktioniert.", null, null, null, out msg);
-            Send(new { ok = ok, message = ok ? (s.smtpMethod == "folder" ? "Testnachricht wurde als .eml-Datei gespeichert." : "Testnachricht wurde versendet.") : (lastMailError.Length > 0 ? lastMailError : "Versand fehlgeschlagen.") });
-        }
     }
 }

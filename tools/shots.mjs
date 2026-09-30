@@ -17,9 +17,11 @@ await shot('katalog', { clip: { x: 0, y: 0, width: 1280, height: 860 } });
 await p.setViewportSize({ width: 1280, height: 1150 }); await p.locator('.tile', { hasText: 'Kundenempfehlungen' }).click(); await p.waitForSelector('.modal #b-name');
 await p.fill('#b-name', 'Erika Mustermann'); await p.fill('#b-mail', 'erika.mustermann@example.org');
 await p.locator('.modal').screenshot({ path: path.join(out, 'buchung.jpg'), type: 'jpeg', quality: 80 });
+await p.click('.modal button[type=submit]'); await p.waitForSelector('.modal .code'); await p.waitForTimeout(200);
+await p.locator('.modal').screenshot({ path: path.join(out, 'angemeldet.jpg'), type: 'jpeg', quality: 80 });
 await p.keyboard.press('Escape'); await p.setViewportSize({ width: 1280, height: 860 });
-await go('#/stornieren?code=K7M2-QX9P&email=erika.mustermann%40example.org'); await p.waitForSelector('#x-code');
-await shot('stornieren', { clip: { x: 0, y: 0, width: 1280, height: 640 } });
+await go('#/anmeldung'); await p.waitForSelector('#x-code'); await p.fill('#x-code', 'K7M2-QX9P'); await p.fill('#x-mail', 'erika.mustermann@example.org');
+await shot('stornieren', { clip: { x: 0, y: 0, width: 1280, height: 860 } });
 await go('#/anbieten'); await p.waitForSelector('#f-title');
 await p.fill('#f-title', 'Erfolgreich im Erstgespräch'); await p.fill('#f-host', 'Anna Berger');
 await p.fill('#f-hostmail', 'anna.berger@example.org'); { const d = new Date(); d.setDate(d.getDate() + 4); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); await p.fill('#f-date', d.toISOString().slice(0, 10)); }

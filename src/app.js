@@ -1,5 +1,5 @@
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
-   Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage, E-Mails simuliert). */
+   Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
 (function () {
 'use strict';
 var CFG = window.__LT__ || {};
@@ -259,10 +259,10 @@ function buildTestData() {
   return { events: events, bookings: bookings };
 }
 
-/* ====================================================== Mail (Demo) */
+/* ====================================================== Kalender (ICS) */
 function icsEsc(t) { return String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
 function fold(l) { var o = '', n = 0; for (var i = 0; i < l.length; i++) { if (n >= 70) { o += '\r\n '; n = 1; } o += l[i]; n++; } return o; }
-function buildIcs(ev, bk) {
+function buildIcs(ev, uid) {
   var s = startDate(ev), e = new Date(s.getTime() + ev.duration * 60000);
   function f(d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00'; }
   var u = new Date(); var stamp = u.getUTCFullYear() + pad(u.getUTCMonth() + 1) + pad(u.getUTCDate()) + 'T' + pad(u.getUTCHours()) + pad(u.getUTCMinutes()) + pad(u.getUTCSeconds()) + 'Z';
@@ -270,47 +270,10 @@ function buildIcs(ev, bk) {
   var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//R+V//LearnTogether//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:STANDARD', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET', 'END:STANDARD',
     'BEGIN:DAYLIGHT', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST', 'END:DAYLIGHT', 'END:VTIMEZONE',
-    'BEGIN:VEVENT', 'UID:' + bk.id + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
+    'BEGIN:VEVENT', 'UID:' + uid + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
     'SUMMARY:' + icsEsc(ev.title), 'DESCRIPTION:' + icsEsc(desc), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
     'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:Erinnerung', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return L.map(fold).join('\r\n') + '\r\n';
-}
-function cancelUrl(bk) { var base = location.href.split('#')[0]; return base + '#/stornieren?code=' + encodeURIComponent(bk.code) + '&email=' + encodeURIComponent(bk.email); }
-/* Bestaetigungs-E-Mail (Demo-Vorschau). Spiegelt BuildMailHtml in AppData/api.ashx: R+V-Design im Farbton des Bereichs. */
-function mailHtml(m) {
-  var font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;", ink = '#001957', grey = '#707070';
-  var hd = contrast(m.bg, '#ffffff') >= 4.5 ? m.bg : ink, soft = mixHex(m.bg, m.text, .78), tint = mixHex(m.bg, '#ffffff', .9);
-  function pill(t, bg, fg) { return '<span style="display:inline-block;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0">' + esc(t) + '</span>'; }
-  function row(k, v) { return '<tr><td style="width:120px;padding:9px 0;border-top:1px solid #ececec;color:' + grey + ';vertical-align:top">' + k + '</td><td style="padding:9px 0;border-top:1px solid #ececec;color:' + ink + ';font-weight:600;vertical-align:top">' + v + '</td></tr>'; }
-  var h_ = [];
-  h_.push('<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f5f5f5;' + font + '">');
-  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td align="center" style="padding:24px 12px">');
-  h_.push('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">');
-  h_.push('<tr><td style="background:' + m.bg + ';padding:28px 32px 30px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>');
-  h_.push('<td style="vertical-align:middle">' + (m.logo ? '<img src="' + m.logo + '" width="88" alt="R+V" style="display:block;border:0">' : '<span style="' + font + 'font-size:24px;font-weight:800;color:' + m.text + '">R+V</span>') + '</td>');
-  h_.push('<td align="right" style="vertical-align:middle;' + font + 'font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:' + soft + '">' + esc(m.appTitle) + '</td></tr></table>');
-  h_.push('<div style="' + font + 'font-size:28px;line-height:1.25;font-weight:800;color:' + m.head + ';margin:26px 0 0">Deine Anmeldung ist bestätigt</div>');
-  h_.push('<div style="' + font + 'font-size:15px;line-height:1.5;color:' + m.text + ';margin:8px 0 0">Schön, dass du dabei bist, ' + esc(m.name) + '.</div></td></tr>');
-  h_.push('<tr><td style="padding:30px 32px 8px;' + font + 'color:' + ink + '"><div>' + pill(m.area, tint, hd) + pill(m.type, '#f5f5f5', ink) + pill(m.topic, '#f5f5f5', ink) + '</div>');
-  h_.push('<div style="font-size:22px;line-height:1.3;font-weight:800;color:' + hd + ';margin:6px 0 20px">' + esc(m.title) + '</div>');
-  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45">' + row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host)) + '</table>');
-  h_.push('<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 8px"><tr><td style="background:#00dcdc;border-radius:24px"><a href="' + esc(m.teams) + '" style="display:inline-block;padding:14px 30px;' + font + 'font-size:16px;font-weight:700;color:#001957;text-decoration:none">Zur Teams-Sitzung</a></td></tr></table>');
-  h_.push('<div style="font-size:12px;color:' + grey + ';word-break:break-all">' + esc(m.teams) + '</div>');
-  h_.push('<div style="font-size:14px;color:' + grey + ';margin:14px 0 0">Der Kalendereintrag (.ics) ist dieser E-Mail angehängt. Er enthält den Teams-Link und eine Erinnerung 15 Minuten vor Beginn.</div></td></tr>');
-  h_.push('<tr><td style="padding:20px 32px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504"><tr><td style="padding:18px 20px;' + font + 'color:' + ink + '">');
-  h_.push('<div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400">Dein Stornierungscode</div>');
-  h_.push('<div style="font-family:Consolas,\'Courier New\',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:' + ink + '">' + esc(m.code) + '</div>');
-  h_.push('<div style="font-size:14px;line-height:1.5">Kannst du nicht teilnehmen? Gib deinen Platz bitte frei: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:700">Anmeldung stornieren</a></div></td></tr></table></td></tr>');
-  h_.push('<tr><td style="background:#f5f5f5;padding:18px 32px;' + font + 'font-size:12px;line-height:1.5;color:' + grey + '">' + esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Diese E-Mail wurde automatisch versendet. Bitte antworte nicht darauf.</td></tr>');
-  h_.push('<tr><td style="background:' + m.bg + ';height:6px;line-height:6px;font-size:0">&nbsp;</td></tr></table></td></tr></table></body></html>');
-  return h_.join('');
-}
-function buildMail(ev, bk, title) {
-  var url = cancelUrl(bk), c = ev.category, d = parseYmd(ev.date);
-  var light = lum(COLORS[c].toLowerCase()) > .35;
-  var logo = light ? (CFG.logoDark || rel('AppData/assets/ruv-logo-dunkelblau.png')) : (CFG.logoWhite || rel('AppData/assets/ruv-logo-weiss.png'));
-  var html = mailHtml({ appTitle: title, area: CAT_LABEL[c], type: ev.type, topic: ev.topic, bg: COLORS[c], head: HEADINGS[c], text: TEXTS[c], logo: logo, name: bk.name, title: ev.title, date: dateLong(ev.date), time: ev.start + ' – ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: bk.code, cancel: url });
-  return { time: new Date().toISOString(), to: bk.email, subject: 'Bestätigung: ' + ev.title + ' am ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(), html: html, ics: buildIcs(ev, bk), status: 'simuliert' };
 }
 
 /* ====================================================== Datenzugriff */
@@ -325,7 +288,7 @@ var Server = {
     if (admin && adminToken) o.headers['X-Admin-Token'] = adminToken;
     return fetch(API + '?action=' + action, o).then(function (r) {
       return r.json().catch(function () { throw ApiErr('server', 'Der Server hat unerwartet geantwortet.', r.status); }).then(function (j) {
-        if (!j.ok && !(action === 'adminTestMail')) { var st = j.error === 'auth' ? 401 : r.status; if (st === 401 && admin) { adminToken = ''; sess.del('lt_admin'); } throw ApiErr(j.error, j.message, st); }
+        if (!j.ok) { var st = j.error === 'auth' ? 401 : r.status; if (st === 401 && admin) { adminToken = ''; sess.del('lt_admin'); } throw ApiErr(j.error, j.message, st); }
         return j;
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
@@ -336,6 +299,7 @@ var Server = {
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
   book: function (id, name, email) { return this.call('book', { eventId: id, name: name, email: email }); },
   cancel: function (code, email) { return this.call('cancel', { code: code, email: email }); },
+  lookup: function (code, email) { return this.call('lookup', { code: code, email: email }); },
   login: function (pw) { return this.call('login', { password: pw }).then(function (j) { adminToken = j.token; sess.set('lt_admin', j.token); }); },
   adminEvents: function () { return this.call('adminEvents', null, true).then(function (j) { return j.events; }); },
   adminSaveEvent: function (ev) { return this.call('adminSaveEvent', { event: ev }, true); },
@@ -344,22 +308,15 @@ var Server = {
   adminSettings: function () { return this.call('adminSettings', null, true); },
   adminSaveSettings: function (s) { return this.call('adminSaveSettings', s, true); },
   adminChangePassword: function (c, n) { return this.call('adminChangePassword', { current: c, newPassword: n }, true).then(function (j) { adminToken = j.token; sess.set('lt_admin', j.token); }); },
-  adminTestData: function (m) { var p = { mode: m }; if (m === 'load') { var t = buildTestData(); p.events = t.events; p.bookings = t.bookings; } return this.call('adminTestData', p, true); },
-  adminDeleteMailLog: function (id) { return this.call('adminDeleteMailLog', { id: id }, true); },
-  adminClearMailLog: function () { return this.call('adminClearMailLog', {}, true); },
-  adminMailLog: function () { return this.call('adminMailLog', null, true).then(function (j) { return j.log; }); },
-  adminResendMail: function (id) { return this.call('adminResendMail', { id: id }, true); },
-  adminMailEml: function (id) { return fetch(API + '?action=adminMailEml&id=' + encodeURIComponent(id), { headers: { 'X-Admin-Token': adminToken }, cache: 'no-store' }).then(function (r) { if (!r.ok && r.status !== 200) throw ApiErr('server', 'Die Datei konnte nicht geladen werden.'); var ct = r.headers.get('Content-Type') || ''; if (ct.indexOf('json') >= 0) return r.json().then(function (j) { throw ApiErr(j.error, j.message); }); return r.blob(); }); },
-  adminTestMail: function (to) { return this.call('adminTestMail', { to: to }, true); }
+  adminTestData: function (m) { var p = { mode: m }; if (m === 'load') { var t = buildTestData(); p.events = t.events; p.bookings = t.bookings; } return this.call('adminTestData', p, true); }
 };
 
 var Local = (function () {
-  var data = null, cfg = null, mail = null;
+  var data = null, cfg = null;
   function load() {
     if (data) return;
     try { data = JSON.parse(store.get('lt_data') || 'null'); } catch (e) { data = null; }
     try { cfg = JSON.parse(store.get('lt_cfg') || 'null'); } catch (e) { cfg = null; }
-    try { mail = JSON.parse(store.get('lt_mail') || 'null'); } catch (e) { mail = null; }
     if (!data) { data = { events: [], bookings: [] }; }
     if (!cfg) cfg = { appTitle: DEFAULT_TITLE, pw: 'RuVTest1234' };
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
@@ -370,11 +327,9 @@ var Local = (function () {
     if (!cfg.texts) cfg.texts = JSON.parse(JSON.stringify(DEFAULT_TAX.texts));
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     applyTaxonomy(cfg);
-    if (!mail) mail = [];
-    mail.forEach(function (m) { if (!m.id) m.id = rid(8); });
     if (!store.get('lt_seeded')) { store.set('lt_seeded', '1'); insertTest(); save(); }
   }
-  function save() { store.set('lt_data', JSON.stringify(data)); store.set('lt_cfg', JSON.stringify(cfg)); store.set('lt_mail', JSON.stringify(mail.slice(0, 50))); }
+  function save() { store.set('lt_data', JSON.stringify(data)); store.set('lt_cfg', JSON.stringify(cfg));  }
   function insertTest() {
     data.events = data.events.filter(function (e) { return !e.isTest; });
     data.bookings = data.bookings.filter(function (b) { return !b.isTest; });
@@ -383,6 +338,7 @@ var Local = (function () {
     t.bookings.forEach(function (b) { data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + b.eventId, name: b.name, email: b.email, code: newCode(), created: new Date().toISOString(), isTest: true }); });
     return t;
   }
+  function detail(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'imageData' && k !== 'hostEmail' && k !== 'isTest' && k !== 'created') o[k] = e[k]; }); o.image = e.imageData || null; return o; }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }
   function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData' && k !== 'hostEmail') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
   function fail(code, msg) { return Promise.reject(ApiErr(code, msg)); }
@@ -453,8 +409,8 @@ var Local = (function () {
         if (booked(id) >= ev.capacity) throw ApiErr('full', 'Leider sind inzwischen alle Plätze vergeben. Die Anmeldung war nicht möglich.');
         var bk = { id: rid(8), eventId: id, name: name, email: email, code: newCode(), created: new Date().toISOString(), isTest: false };
         data.bookings.push(bk);
-        var m = buildMail(ev, bk, cfg.appTitle); m.id = rid(8); mail.unshift(m); save();
-        return { code: bk.code, mailSent: true, simulated: true, mail: m };
+        save();
+        return { code: bk.code, name: bk.name, email: bk.email, eventInfo: detail(ev) };
       });
     },
     cancel: function (code, email) {
@@ -466,6 +422,15 @@ var Local = (function () {
         if (ev && startDate(ev) <= new Date()) throw ApiErr('past', 'Die Veranstaltung hat bereits begonnen. Eine Stornierung ist nicht mehr möglich.');
         data.bookings = data.bookings.filter(function (b) { return b !== bk; }); save();
         return { title: ev ? ev.title : '', date: ev ? ev.date : '', start: ev ? ev.start : '' };
+      });
+    },
+    lookup: function (code, email) {
+      return wrap(function () {
+        code = normCode(code); email = email.trim().toLowerCase();
+        var bk = data.bookings.filter(function (b) { return normCode(b.code) === code && b.email === email; })[0];
+        var ev = bk ? data.events.filter(function (e) { return e.id === bk.eventId; })[0] : null;
+        if (!bk || !ev || !code) throw ApiErr('notfound', 'Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte prüfe Code und E-Mail-Adresse.');
+        return { code: bk.code, name: bk.name, email: bk.email, eventInfo: detail(ev), canCancel: startDate(ev) > new Date() };
       });
     },
     login: function (pw) { return wrap(function () { if (pw !== cfg.pw) throw ApiErr('password', 'Das Passwort ist nicht korrekt.'); adminToken = 'local'; sess.set('lt_admin', 'local'); }); },
@@ -480,7 +445,7 @@ var Local = (function () {
     },
     adminDeleteEvent: function (id) { return wrap(function () { data.events = data.events.filter(function (e) { return e.id !== id; }); data.bookings = data.bookings.filter(function (b) { return b.eventId !== id; }); save(); return {}; }); },
     adminDeleteBooking: function (id) { return wrap(function () { data.bookings = data.bookings.filter(function (b) { return b.id !== id; }); save(); return {}; }); },
-    adminSettings: function () { return wrap(function () { return { appTitle: cfg.appTitle, baseUrl: '', smtpHost: '', smtpPort: 25, smtpSsl: false, smtpUser: '', smtpPasswordSet: false, mailFrom: '', mailFromName: '', mailConfigured: false, local: true }; }); },
+    adminSettings: function () { return wrap(function () { return { appTitle: cfg.appTitle, local: true }; }); },
     adminSaveSettings: function (s) {
       return wrap(function () {
         if ('appTitle' in s) { var t = (s.appTitle || '').trim(); if (t.length < 2 || t.length > 60) throw ApiErr('invalid', 'Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.'); cfg.appTitle = t; }
@@ -495,11 +460,7 @@ var Local = (function () {
     },
     adminChangePassword: function (c, n) { return wrap(function () { if (c !== cfg.pw) throw ApiErr('password', 'Das aktuelle Passwort ist nicht korrekt.'); if (n.length < 8) throw ApiErr('invalid', 'Das neue Passwort muss mindestens 8 Zeichen lang sein.'); cfg.pw = n; save(); }); },
     adminTestData: function (m) { return wrap(function () { data.events = data.events.filter(function (e) { return !e.isTest; }); data.bookings = data.bookings.filter(function (b) { return !b.isTest; }); var r = { events: 0, bookings: 0 }; if (m === 'load') { var t = insertTest(); r.events = t.events.length; r.bookings = t.bookings.length; } save(); return r; }); },
-    adminMailLog: function () { return wrap(function () { return mail; }); },
-    adminDeleteMailLog: function (id) { return wrap(function () { mail = mail.filter(function (m) { return m.id !== id; }); save(); return {}; }); },
-    adminClearMailLog: function () { return wrap(function () { mail = []; save(); return {}; }); },
-    adminTestMail: function () { return fail('local', 'Im Demo-Modus werden keine E-Mails versendet.'); },
-    reset: function () { ['lt_data', 'lt_cfg', 'lt_mail', 'lt_seeded'].forEach(store.del); data = cfg = mail = null; }
+    reset: function () { ['lt_data', 'lt_cfg', 'lt_mail', 'lt_seeded', 'lt_mine'].forEach(store.del); data = cfg = null; }
   };
 })();
 var Api = Local;
@@ -690,7 +651,7 @@ function buildEventForm(o) {
   f.capacity = field('Maximale Teilnehmendenzahl', cap, { id: 'f-cap', req: true, hint: 'Höchstens ' + MAX_CAP + ' Personen.' });
   var rte = makeRte(v.description); f.description = field('Beschreibung', rte.node, { req: true, legend: true, hint: 'Diese Beschreibung wird auch im Katalog angezeigt, sobald Interessierte auf die Kachel der Veranstaltung klicken.' });
   var link = h('input', { type: 'url', id: 'f-link', value: v.teamsLink, placeholder: 'https://teams.microsoft.com/l/meetup-join/…', autocomplete: 'off' });
-  f.teamsLink = field('Link zum Microsoft-Teams-Meeting', link, { id: 'f-link', req: true, hint: 'Der Link wird nur in der Bestätigungs-E-Mail an angemeldete Personen verschickt.' });
+  f.teamsLink = field('Link zum Microsoft-Teams-Meeting', link, { id: 'f-link', req: true, hint: 'Der Link wird nur Personen angezeigt, die sich angemeldet haben. Er steht nicht im Katalog.' });
 
   var prev = h('div', { class: 'imgprev' });
   var file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'sr', id: 'f-img', tabindex: '-1' });
@@ -890,7 +851,7 @@ function openBooking(e, onChange) {
     clear(body);
     var f = freeOf(e);
     var name = h('input', { type: 'text', id: 'b-name', autocomplete: 'name', maxlength: '80' }), mail = h('input', { type: 'email', id: 'b-mail', autocomplete: 'email', maxlength: '200' });
-    var fn = field('Name', name, { id: 'b-name', req: true }), fm = field('E-Mail-Adresse', mail, { id: 'b-mail', req: true, hint: 'An diese Adresse senden wir Bestätigung, Teams-Link, Kalendereintrag und Stornierungscode.' });
+    var fn = field('Name', name, { id: 'b-name', req: true }), fm = field('E-Mail-Adresse', mail, { id: 'b-mail', req: true, hint: 'Wird zusammen mit dem Stornierungscode zum Anzeigen und Stornieren deiner Anmeldung gebraucht. Es wird keine E-Mail verschickt.' });
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
     var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmelden' });
     var form = h('form', { novalidate: true, style: 'display:flex;flex-direction:column;gap:16px' }, [h('div', { class: 'grid2' }, [fn, fm]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: m.close })])]);
@@ -901,7 +862,7 @@ function openBooking(e, onChange) {
       if (!validEmail(mail.value.trim())) { fm.setErr('Bitte gib eine gültige E-Mail-Adresse an.'); ok = false; }
       if (!ok) { (fn.classList.contains('invalid') ? name : mail).focus(); return; }
       go.disabled = true; go.textContent = 'Wird geprüft …';
-      Api.book(e.id, name.value, mail.value).then(function (r) { showDone(r, name.value.trim(), mail.value.trim()); }, function (er) {
+      Api.book(e.id, name.value, mail.value).then(function (r) { showDone(r); }, function (er) {
         go.disabled = false; go.textContent = 'Anmelden';
         if (er.code === 'full' || er.code === 'past' || er.code === 'notfound') { showFail(er); return; }
         msg.hidden = false; msg.textContent = er.message;
@@ -916,17 +877,12 @@ function openBooking(e, onChange) {
     body.appendChild(h('h3', { text: 'Jetzt anmelden' }));
     body.appendChild(form);
   }
-  function showDone(r, name, email) {
-    clear(body);
+  function showDone(r) {
+    clear(body); rememberMine(r.eventInfo, r.code, r.email);
     body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Die Anmeldung war erfolgreich. Dein Platz ist reserviert.' }));
-    body.appendChild(h('h2', { text: e.title, style: 'overflow-wrap:anywhere' }));
-    body.appendChild(h('p', { text: dateLong(e.date) + ', ' + e.start + ' \u2013 ' + endHm(e) + ' Uhr (' + e.duration + ' Minuten)' }));
-    body.appendChild(h('div', null, [h('p', { class: 'hint', text: 'Dein Stornierungscode' }), h('span', { class: 'code', text: r.code })]));
-    if (r.mailSent) body.appendChild(h('p', null, mode === 'local' ? 'Im Demo-Modus wird keine echte E-Mail verschickt. Die Bestätigung an ' + email + ' wird simuliert.' : 'Wir haben eine Bestätigung mit Teams-Link, Kalendereintrag (.ics) und Stornierungscode an ' + email + ' gesendet.'));
-    else body.appendChild(h('div', { class: 'notice bad', text: r.mailMessage || 'Die Bestätigungs-E-Mail konnte nicht versendet werden. Bitte notiere dir den Stornierungscode.' }));
-    var acts = h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close })]);
-    if (r.mail) acts.appendChild(h('button', { class: 'btn btn-secondary', type: 'button', text: 'Simulierte E-Mail ansehen', onclick: function () { showMail(r.mail); } }));
-    body.appendChild(acts);
+    body.appendChild(participationCard(r.eventInfo, r.code));
+    body.appendChild(h('p', { class: 'hint', text: 'Es wird keine E-Mail verschickt. Notiere dir den Stornierungscode. Deine Anmeldung findest du jederzeit unter „Meine Anmeldung“ wieder, auf diesem Gerät ist sie dort bereits gespeichert.' }));
+    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/anmeldung?code=' + encodeURIComponent(r.code) + '&email=' + encodeURIComponent(r.email), text: 'Meine Anmeldung öffnen' })]));
   }
   function showFail(er) {
     clear(body);
@@ -935,12 +891,37 @@ function openBooking(e, onChange) {
   }
   showForm();
 }
-function mailBody(html) { var d = new DOMParser().parseFromString(html, 'text/html'); return d.body ? d.body.innerHTML : html; }
-function showMail(mail) {
-  var c = h('div', { class: 'modal-body' }, [h('h2', { text: 'Simulierte E-Mail', style: 'padding-right:40px' }),
-    h('dl', { class: 'facts' }, [h('div', null, [h('dt', { text: 'An' }), h('dd', { text: mail.to })]), h('div', null, [h('dt', { text: 'Betreff' }), h('dd', { text: mail.subject })])]),
-    h('div', { class: 'mailprev', html: mailBody(mail.html) }), h('h3', { text: 'Anhang: Veranstaltung.ics' }), h('pre', { class: 'ics', text: mail.ics || '' })]);
-  openModal(c, { wide: true, label: 'Simulierte E-Mail' });
+/* Meine Anmeldungen auf diesem Geraet (nur im Browser gespeichert) */
+function mineList() { try { return JSON.parse(store.get('lt_mine') || '[]') || []; } catch (e) { return []; } }
+function rememberMine(info, code, email) {
+  var l = mineList().filter(function (x) { return x.code !== code; });
+  l.unshift({ code: code, email: email, title: info.title, date: info.date, start: info.start });
+  store.set('lt_mine', JSON.stringify(l.slice(0, 20)));
+}
+function forgetMine(code) { store.set('lt_mine', JSON.stringify(mineList().filter(function (x) { return normCode(x.code) !== normCode(code); }))); }
+function downloadIcs(info, code) {
+  var ics = buildIcs(info, code), name = 'Veranstaltung.ics';
+  if (CFG.mode === 'artifact') {
+    try { navigator.clipboard.writeText(ics).then(function () { toast('Downloads sind hier gesperrt. Der Kalendereintrag wurde in die Zwischenablage kopiert.'); }, function () { toast('Download im Artefakt-Viewer nicht möglich. In der IIS-Version wird ' + name + ' heruntergeladen.', true); }); } catch (e) { toast('Download im Artefakt-Viewer nicht möglich.', true); }
+    return;
+  }
+  var url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+  var a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+}
+/* Alle Angaben zur Teilnahme: Termin, Teams-Link, Kalendereintrag und Stornierungscode */
+function participationCard(info, code) {
+  var node = h('div', { style: 'display:flex;flex-direction:column;gap:16px' });
+  node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]));
+  node.appendChild(h('h2', { text: info.title, style: 'overflow-wrap:anywhere' }));
+  node.appendChild(h('dl', { class: 'facts' }, [
+    h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
+    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: info.host })])]));
+  node.appendChild(h('div', { style: 'display:flex;flex-direction:column;gap:8px;align-items:flex-start' }, [
+    h('a', { class: 'btn btn-primary', href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Zur Teams-Sitzung' }),
+    h('div', { class: 'hint', style: 'overflow-wrap:anywhere', text: info.teamsLink })]));
+  node.appendChild(h('div', null, h('button', { class: 'btn btn-secondary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics)', onclick: function () { downloadIcs(info, code); } })));
+  node.appendChild(h('div', null, [h('p', { class: 'hint', text: 'Dein Stornierungscode' }), h('span', { class: 'code', text: code })]));
+  return node;
 }
 
 /* ---- Veranstaltung anbieten ---- */
@@ -964,25 +945,59 @@ function viewCreate() {
   return root;
 }
 
-/* ---- Stornierung ---- */
-function viewCancel(q) {
+/* ---- Meine Anmeldung: anzeigen, Kalendereintrag laden, stornieren ---- */
+function viewMine(q) {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' })), wrap = root.firstChild;
   var code = h('input', { type: 'text', id: 'x-code', autocomplete: 'off', placeholder: 'XXXX-XXXX', value: q.code || '', style: 'text-transform:uppercase;letter-spacing:.1em' });
   var mail = h('input', { type: 'email', id: 'x-mail', autocomplete: 'email', value: q.email || '' });
-  var fc = field('Stornierungscode', code, { id: 'x-code', req: true, hint: 'Den Code findest du in deiner Bestätigungs-E-Mail.' }), fm = field('E-Mail-Adresse', mail, { id: 'x-mail', req: true, hint: 'Die Adresse, mit der du dich angemeldet hast.' });
+  var fc = field('Stornierungscode', code, { id: 'x-code', req: true, hint: 'Den Code hast du nach der Anmeldung im Fenster gesehen.' }), fm = field('E-Mail-Adresse', mail, { id: 'x-mail', req: true, hint: 'Die Adresse, mit der du dich angemeldet hast.' });
   var msg = h('div', { class: 'notice', hidden: true });
-  var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmeldung stornieren' });
+  var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmeldung anzeigen' });
   var form = h('form', { class: 'form', novalidate: true, style: 'margin-top:24px;max-width:520px' }, [fc, fm, msg, h('div', null, go)]);
+  var result = h('div', { style: 'margin-top:32px' }), mineBox = h('div', { style: 'margin-top:40px' });
+  function show(r) {
+    clear(result); form.hidden = true; mineBox.hidden = true; window.scrollTo({ top: 0 }); rememberMine(r.eventInfo, r.code, r.email);
+    result.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:20px' }, [h('p', { text: 'Angemeldet: ' + r.name + ' (' + r.email + ')' }), participationCard(r.eventInfo, r.code)]));
+    var acts = h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:20px' });
+    var done = h('div', { style: 'margin-top:16px' });
+    if (r.canCancel) {
+      var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: 'Anmeldung stornieren' });
+      cancel.addEventListener('click', function () {
+        if (!cancel._c) { cancel._c = true; cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.textContent = 'Anmeldung stornieren'; }, 4000); return; }
+        cancel.disabled = true;
+        Api.cancel(r.code, r.email).then(function () { forgetMine(r.code); clear(result); clear(acts); result.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Anmeldung zu „' + r.eventInfo.title + '“ wurde storniert. Der Platz ist wieder frei.' })); result.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
+          function (er) { cancel.disabled = false; clear(done); done.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message })); });
+      });
+      acts.appendChild(cancel);
+    } else acts.appendChild(h('span', { class: 'hint', text: 'Die Veranstaltung hat begonnen oder ist vorbei. Eine Stornierung ist nicht mehr möglich.' }));
+    acts.appendChild(h('button', { class: 'btn btn-secondary', type: 'button', text: 'Andere Anmeldung suchen', onclick: function () { location.hash = '#/anmeldung'; route(); } }));
+    result.appendChild(acts); result.appendChild(done);
+  }
+  function lookup(c, e) {
+    msg.hidden = true; go.disabled = true; go.textContent = 'Wird gesucht …';
+    Api.lookup(c, e).then(show, function (er) { go.disabled = false; go.textContent = 'Anmeldung anzeigen'; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+  }
   form.addEventListener('submit', function (e) {
     e.preventDefault(); msg.hidden = true; fc.setErr(''); fm.setErr('');
-    var ok = true; if (normCode(code.value).length < 8) { fc.setErr('Bitte gib den Code aus der E-Mail an (z. B. K7M2-QX9P).'); ok = false; } if (!validEmail(mail.value.trim())) { fm.setErr('Bitte gib eine gültige E-Mail-Adresse an.'); ok = false; } if (!ok) return;
-    go.disabled = true; go.textContent = 'Wird storniert …';
-    Api.cancel(code.value, mail.value).then(function (r) { form.hidden = true; wrap.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Anmeldung' + (r.title ? ' zu „' + r.title + '“' : '') + ' wurde storniert. Der Platz ist wieder frei.' })); wrap.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
-      function (er) { go.disabled = false; go.textContent = 'Anmeldung stornieren'; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+    var ok = true; if (normCode(code.value).length < 8) { fc.setErr('Bitte gib den Code ein (z. B. K7M2-QX9P).'); ok = false; } if (!validEmail(mail.value.trim())) { fm.setErr('Bitte gib eine gültige E-Mail-Adresse an.'); ok = false; } if (!ok) return;
+    lookup(code.value, mail.value);
   });
-  wrap.appendChild(h('h1', { html: 'Anmeldung <span class="accent">stornieren</span>' }));
-  wrap.appendChild(h('p', { class: 'lead', text: 'Du kannst nicht teilnehmen? Gib den Platz frei, damit andere nachrücken können. Trage dazu den Stornierungscode aus der Bestätigungs-E-Mail und deine E-Mail-Adresse ein.' }));
-  wrap.appendChild(form);
+  // gemerkte Anmeldungen dieses Geraets
+  var mine = mineList();
+  if (mine.length) {
+    mineBox.appendChild(h('h2', { text: 'Auf diesem Gerät gespeichert', style: 'font-size:1.25rem;margin-bottom:12px' }));
+    var ul = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
+    mine.forEach(function (m) {
+      ul.appendChild(h('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px' }, [h('div', { style: 'flex:1 1 240px;min-width:0' }, [h('b', { text: m.title, style: 'overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(m.date) + ', ' + m.start + ' Uhr · Code ' + m.code })]),
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Öffnen', onclick: function () { lookup(m.code, m.email); } }),
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Vergessen', onclick: function () { forgetMine(m.code); location.hash = '#/anmeldung'; route(); } })]));
+    });
+    mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
+  }
+  wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Anmeldung</span>' }));
+  wrap.appendChild(h('p', { class: 'lead', text: 'Hier findest du den Teams-Link zu deiner Veranstaltung, kannst sie in deinen Kalender übernehmen oder die Anmeldung stornieren, wenn du nicht teilnehmen kannst. Gib dazu Stornierungscode und E-Mail-Adresse ein.' }));
+  wrap.appendChild(form); wrap.appendChild(result); wrap.appendChild(mineBox);
+  if (q.code && q.email) lookup(q.code, q.email);
   return root;
 }
 
@@ -1018,7 +1033,6 @@ function viewAdmin() {
   var SECTIONS = [
     ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung']]],
-    ['E-Mail', [['mailsetup', 'Versand', 'E-Mail-Versand'], ['maillog', 'Protokoll', 'E-Mail-Protokoll']]],
     ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten']]]
   ];
   var section = sess.get('lt_admin_sec') || 'events';
@@ -1037,7 +1051,7 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, mailsetup: adminMailSetup, maillog: adminMail, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
+      var fn = { events: adminEvents, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
@@ -1239,46 +1253,16 @@ function viewAdmin() {
   function adminGeneral() {
     return Api.adminSettings().then(function (s) {
       var isLocal = !!s.local;
-      var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' }), base = inp('s-base', s.baseUrl, 'url', { placeholder: 'https://server.example.de/learntogether' });
+      var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' });
       var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Speichern' });
       var form = h('form', { class: 'form panel', style: 'gap:20px;max-width:900px', novalidate: true }, [
-        h('div', { class: 'grid2' }, [field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }), isLocal ? null : field('Basis-Adresse der Anwendung', base, { id: 's-base', hint: 'Optional. Wird für den Stornierungslink in E-Mails verwendet. Leer lassen, um sie automatisch zu ermitteln.' })]), msg, h('div', null, go)]);
+        field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }), msg, h('div', null, go)]);
       form.addEventListener('submit', function (e) {
         e.preventDefault(); msg.hidden = true; go.disabled = true;
-        var p = { appTitle: title.value }; if (!isLocal) p.baseUrl = base.value;
+        var p = { appTitle: title.value };
         Api.adminSaveSettings(p).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
       });
       return form;
-    });
-  }
-  function adminMailSetup() {
-    return Api.adminSettings().then(function (s) {
-      if (s.local) return h('div', { class: 'notice info', style: 'max-width:900px', text: 'Der E-Mail-Versand wird in der IIS-Version konfiguriert. Im Demo-Modus werden E-Mails nur simuliert; das Ergebnis siehst du unter „Protokoll“.' });
-      var method = h('select', { id: 's-method' }, [['smtp', 'SMTP-Server (Netzwerk)'], ['iis', 'Lokaler IIS-SMTP-Dienst (Pickup)'], ['folder', 'Nur als .eml-Dateien in einen Ordner speichern']].map(function (o) { return h('option', { value: o[0], text: o[1], selected: (s.smtpMethod || 'smtp') === o[0] }); }));
-      var host = inp('s-host', s.smtpHost), port = inp('s-port', s.smtpPort, 'number'), user = inp('s-user', s.smtpUser), pass = inp('s-pass', '', 'password', { autocomplete: 'new-password', placeholder: s.smtpPasswordSet ? '(gespeichert, leer lassen zum Beibehalten)' : '' });
-      var ssl = h('input', { type: 'checkbox', id: 's-ssl', checked: !!s.smtpSsl }), win = h('input', { type: 'checkbox', id: 's-win', checked: !!s.smtpWinAuth }), trust = h('input', { type: 'checkbox', id: 's-trust', checked: !!s.smtpTrustCert }), from = inp('s-from', s.mailFrom, 'email'), fromName = inp('s-fromname', s.mailFromName);
-      var folder = inp('s-folder', s.mailFolder, 'text', { placeholder: 'leer = AppData\\Data\\mail-out' });
-      var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Versand speichern' });
-      var smtpBox = h('div', { style: 'display:flex;flex-direction:column;gap:20px' }, [
-        h('div', { class: 'grid3' }, [field('SMTP-Server', host, { id: 's-host', hint: 'Name oder IP-Adresse.' }), field('Port', port, { id: 's-port', hint: '25 (ohne Verschlüsselung) oder 587 (STARTTLS). Port 465 wird nicht unterstützt.' }), h('div', { class: 'field' }, [h('label', { for: 's-ssl', text: 'Verschlüsselung' }), h('label', { style: 'display:flex;gap:8px;align-items:center;min-height:46px;font-weight:400' }, [ssl, 'SSL/TLS (STARTTLS) verwenden'])])]),
-        h('div', { class: 'grid2' }, [field('Benutzername', user, { id: 's-user' }), field('Passwort', pass, { id: 's-pass' })]),
-        h('label', { style: 'display:flex;gap:8px;align-items:center;font-weight:400' }, [win, 'Stattdessen Windows-Anmeldung des Anwendungspools verwenden (für interne Exchange-Server)']),
-        h('div', null, [h('label', { style: 'display:flex;gap:8px;align-items:center;font-weight:400' }, [trust, 'Zertifikatsfehler des Mailservers ignorieren']), h('div', { class: 'hint', text: 'Nur für interne Server mit selbst ausgestelltem oder nicht vertrauten Zertifikat. Die Verbindung bleibt verschlüsselt, der Server wird aber nicht mehr geprüft. Besser: das Zertifikat der Zertifizierungsstelle auf dem Webserver als vertrauenswürdig importieren.' })])]);
-      var folderBox = field('Ordner für .eml-Dateien', folder, { id: 's-folder', hint: 'Jede Mail wird als Datei abgelegt. Diese lassen sich in Outlook öffnen und versenden, oder das Programm „MailAbholer“ (tools/MailAbholer) sendet sie von einem Rechner aus, der Mails versenden darf. Der Anwendungspool braucht Schreibrechte; ein Netzwerkpfad (\\\\server\\freigabe) ist möglich.' });
-      var iisNote = h('div', { class: 'notice info', text: 'Die Mails werden dem lokal installierten SMTP-Dienst des IIS übergeben (Pickup-Verzeichnis). Der Dienst muss auf diesem Server eingerichtet sein und die Mails weiterleiten.' });
-      function upd() { var m = method.value; smtpBox.hidden = m !== 'smtp'; folderBox.hidden = m !== 'folder'; iisNote.hidden = m !== 'iis'; }
-      method.addEventListener('change', upd); upd();
-      var form = h('form', { class: 'form panel', style: 'gap:20px', novalidate: true }, [
-        field('Versandart', method, { id: 's-method', hint: 'Wenn der Versand per SMTP nicht klappt, kannst du Mails als Dateien ablegen lassen oder den lokalen IIS-SMTP-Dienst nutzen.' }), smtpBox, iisNote, folderBox,
-        h('div', { class: 'grid2' }, [field('Absenderadresse', from, { id: 's-from', hint: 'Muss bei den meisten Servern zu einem erlaubten Absender passen. Ohne Absenderadresse wird nicht versendet.' }), field('Absendername', fromName, { id: 's-fromname' })]), msg, h('div', null, go)]);
-      form.addEventListener('submit', function (e) {
-        e.preventDefault(); msg.hidden = true; go.disabled = true;
-        Api.adminSaveSettings({ smtpMethod: method.value, smtpHost: host.value, smtpPort: Number(port.value) || 25, smtpSsl: ssl.checked, smtpWinAuth: win.checked, smtpTrustCert: trust.checked, smtpUser: user.value, smtpPassword: pass.value, mailFolder: folder.value, mailFrom: from.value, mailFromName: fromName.value }).then(function () { go.disabled = false; pass.value = ''; toast('E-Mail-Versand gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
-      });
-      var to = inp('t-to', '', 'email', { placeholder: 'empfaenger@beispiel.de' }), tm = boxMsg();
-      tm.style.whiteSpace = 'pre-wrap';
-      var tbtn = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Testnachricht senden', onclick: function () { say(tm, 'info', 'Wird gesendet …'); Api.adminTestMail(to.value).then(function (r) { say(tm, r.ok ? 'ok' : 'bad', r.message); }, function (er) { say(tm, 'bad', er.message); }); } });
-      return h('div', { style: 'display:flex;flex-direction:column;gap:32px;max-width:900px' }, [form, h('div', null, [h('h3', { text: 'Versand testen', style: 'margin-bottom:8px' }), h('p', { class: 'hint', style: 'margin-bottom:12px', text: 'Speichere zuerst die Einstellungen. Bei einem Fehler erscheint hier die Ursache mit Hinweis zur Behebung; jeder Versuch steht außerdem im Protokoll.' }), h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end' }, [field('Empfänger', to, { id: 't-to' }), tbtn]), tm])]);
     });
   }
   function adminPassword() {
@@ -1314,53 +1298,12 @@ function viewAdmin() {
       return self;
     });
   }
-  function csvCell(v) { v = String(v == null ? '' : v); return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
-  function exportMailLog(log) {
-    var lines = [['Zeit', 'Empfänger', 'Betreff', 'Status', 'Fehler'].join(';')].concat(log.map(function (m) { return [(m.time || '').replace('T', ' ').slice(0, 19), m.to, m.subject, m.status, m.error || ''].map(csvCell).join(';'); }));
-    var csv = '﻿' + lines.join('\r\n') + '\r\n';
-    var name = 'E-Mail-Protokoll-' + ymd(new Date()) + '.csv';
-    if (CFG.mode === 'artifact') { // Downloads sind im Artefakt-Viewer gesperrt: CSV stattdessen in die Zwischenablage
-      try { navigator.clipboard.writeText(csv).then(function () { toast('Downloads sind hier gesperrt. Das CSV wurde in die Zwischenablage kopiert.'); }, function () { toast('Export im Artefakt-Viewer nicht möglich. In der IIS-Version wird ' + name + ' heruntergeladen.', true); }); } catch (e) { toast('Export im Artefakt-Viewer nicht möglich.', true); }
-      return;
-    }
-    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    var a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-    toast(log.length + ' Einträge exportiert.');
-  }
-  function adminMail() {
-    return Api.adminMailLog().then(function (log) {
-      var host = h('div');
-      function reload() { return Api.adminMailLog().then(function (l) { log = l; render(); }); }
-      function confirmBtn(label, sure, cls, fn) {
-        var b = h('button', { class: 'btn ' + cls + ' btn-sm', type: 'button', text: label });
-        b.addEventListener('click', function () { if (b._c) { fn(); return; } b._c = true; b.textContent = sure; setTimeout(function () { b._c = false; b.textContent = label; }, 4000); });
-        return b;
-      }
-      function render() {
-        clear(host);
-        if (!log.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Noch keine E-Mails' }), h('p', { text: 'Sobald sich jemand anmeldet, erscheint hier der Versandstatus.' })])); return; }
-        var tools = h('div', { class: 'toolrow' }, [h('span', { class: 'hint', text: log.length + (log.length === 1 ? ' Eintrag' : ' Einträge') }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Als CSV exportieren', onclick: function () { exportMailLog(log); } }),
-          confirmBtn('Protokoll leeren', 'Wirklich alle löschen?', 'btn-danger', function () { Api.adminClearMailLog().then(function () { toast('Protokoll geleert.'); return reload(); }, function (er) { toast(er.message, true); }); })]);
-        var rows = log.map(function (m) {
-          var st = m.status;
-          return h('tr', null, [h('td', { text: (m.time || '').replace('T', ' ').slice(0, 19) }), h('td', { text: m.to }), h('td', { text: m.subject }), h('td', null, [h('span', { class: 'tag' + (st === 'versendet' || st === 'gespeichert' ? ' test' : ''), text: st }), m.error ? h('div', { class: 'hint', style: 'max-width:520px;overflow-wrap:anywhere;white-space:pre-wrap', text: m.error }) : null]),
-            h('td', null, h('div', { class: 'acts' }, [m.html ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Ansehen', onclick: function () { showMail(m); } }) : null,
-              m.bookingId && st !== 'versendet' && st !== 'gespeichert' ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Erneut senden', onclick: function () { Api.adminResendMail(m.id).then(function (r) { toast(r.ok ? 'Die E-Mail wurde erneut gesendet.' : 'Senden weiterhin fehlgeschlagen. Ursache steht im Protokoll.', !r.ok); return reload(); }, function (er) { toast(er.message, true); }); } }) : null,
-              m.hasEml ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: '.eml laden', onclick: function () { Api.adminMailEml(m.id).then(function (blob) { var u = URL.createObjectURL(blob); var a = h('a', { href: u, download: 'Mail-' + m.id + '.eml' }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 2000); }, function (er) { toast(er.message, true); }); } }) : null,
-              confirmBtn('Löschen', 'Wirklich löschen?', 'btn-danger', function () { Api.adminDeleteMailLog(m.id).then(function () { toast('Eintrag gelöscht.'); return reload(); }, function (er) { toast(er.message, true); }); })]))]);
-        });
-        host.appendChild(tools);
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Zeit', 'Empfänger', 'Betreff', 'Status', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), h('tbody', null, rows)])));
-      }
-      render(); return host;
-    });
-  }
   if (adminToken) panel(); else login();
   return root;
 }
 
 /* ====================================================== Rahmen, Routing */
-var NAV = [['/', 'Katalog'], ['/anbieten', 'Veranstaltung anbieten'], ['/stornieren', 'Stornieren'], ['/handbuch', 'Handbuch'], ['/admin', 'Admin']];
+var NAV = [['/', 'Katalog'], ['/anbieten', 'Veranstaltung anbieten'], ['/anmeldung', 'Meine Anmeldung'], ['/handbuch', 'Handbuch'], ['/admin', 'Admin']];
 function applyTitle() {
   var t = state.settings.appTitle || DEFAULT_TITLE;
   document.title = t; var n = $('.brand .name'); if (n) n.innerHTML = appTitleHtml(t);
@@ -1376,7 +1319,7 @@ function shell() {
   if (mode === 'local') {
     var why = CFG.mode === 'artifact' ? null : (diag || 'Der Server wurde nicht erreicht.');
     var det = why ? h('details', { class: 'demo-why' }, [h('summary', { text: 'Warum Demo-Modus?' }), h('p', { text: why }), h('p', { class: 'hint', text: 'Geprüfte Adresse: ' + location.origin + API + '?action=ping' }), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Erneut prüfen', onclick: function () { location.reload(); } })]) : null;
-    document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser, E-Mails werden simuliert. Das Admin-Passwort für den Test lautet RuVTest1234.' }), det])));
+    document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser. Das Admin-Passwort für den Test lautet RuVTest1234.' }), det])));
   }
   if (mode === 'server' && pingInfo && pingInfo.writable === false) document.body.appendChild(h('div', { class: 'notice bad', role: 'alert', style: 'border-radius:0;padding:12px 16px' }, [h('b', { text: 'Server erreicht, aber Speichern nicht möglich. ' }), pingInfo.storageError || 'Dem Anwendungspool fehlen Schreibrechte auf AppData\\Data.']));
   appEl = h('main', { id: 'main', tabindex: '-1' }); document.body.appendChild(appEl);
@@ -1393,7 +1336,7 @@ function route() {
   while (modalStack.length) modalStack[modalStack.length - 1].close();
   switch (r.path) {
     case '/anbieten': node = viewCreate(); break;
-    case '/stornieren': node = viewCancel(r.q); break;
+    case '/anmeldung': case '/stornieren': node = viewMine(r.q); break;
     case '/handbuch': node = viewManual(); break;
     case '/admin': node = viewAdmin(); break;
     default: r.path = '/'; node = viewCatalog();

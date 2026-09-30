@@ -340,3 +340,7 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .demo-why { flex: 1 1 100%; margin-top: 2px; }
 .demo-why summary { cursor: pointer; font-weight: 700; color: var(--link); }
 .demo-why p { margin: 6px 0; max-width: 90ch; }
+
+.chips-inline { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips-inline .chip.type { background: #001957; color: #fff; }
+.chips-inline .chip.biz { background: #fff; color: #001957; border: 1.5px solid #001957; }

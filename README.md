@@ -1,16 +1,16 @@
 # LearnTogether@AD
 
-Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Anmeldung mit Bestätigungs-E-Mail (inkl. ICS), Stornierung und passwortgeschützten Admin-Bereich.
+Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Anmeldung mit Teams-Link und Kalenderdatei direkt im Programm („Meine Anmeldung“), Stornierung und passwortgeschützten Admin-Bereich.
 
 ## Ordner
 
 | Ordner | Inhalt |
 |---|---|
 | `IIS/` | **Fertiges Paket zum Kopieren auf den IIS** (`index.html`, `web.config`, `AppData/` mit `api.ashx`, Handbuch als HTML und PDF) |
-| `artifact/` | Einzeldatei-Demo (Daten im Browser, E-Mails simuliert) |
+| `artifact/` | Einzeldatei-Demo (Daten im Browser) |
 | `docs/` | Nutzerhandbuch (HTML, PDF), IIS-Installationsanleitung |
 | `src/` | Quellen (Frontend, Handbuch, ASP.NET-Handler) |
-| `tools/` | Build-Skripte (`python3 tools/build.py`) und `MailAbholer` (Mailversand über einen anderen Rechner) |
+| `tools/` | Build-Skripte (`python3 tools/build.py`) |
 
 ## Installation auf dem IIS
 
@@ -19,3 +19,5 @@ Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `II
 ## Bauen
 
 `cd tools && npm install` (nur für PDF/Screenshots), dann `python3 tools/build.py`. Bei jeder Änderung wird `IIS/`, `artifact/` und das Handbuch (HTML + PDF) neu erzeugt. Version in `VERSION`.
+
+**Hinweis:** Die Anwendung verschickt keine E-Mails.
