@@ -81,6 +81,8 @@ def main():
     if os.path.isdir(IIS):
         shutil.rmtree(IIS)
     shutil.copytree(os.path.join(SRC, 'iis'), IIS)
+    api = os.path.join(IIS, 'AppData', 'api.ashx')
+    wr(api, re.sub(r'const string Version = "[^"]*";', 'const string Version = "%s";' % VERSION, rd(api)))
     os.makedirs(os.path.join(IIS, 'AppData', 'assets'), exist_ok=True)
     shutil.copy(logo_d, os.path.join(IIS, 'AppData', 'assets'))
     shutil.copy(logo_w, os.path.join(IIS, 'AppData', 'assets'))

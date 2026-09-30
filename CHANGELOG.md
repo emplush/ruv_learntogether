@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.9.2 (30.09.2026)
+- Ping-Prüfung unabhängig von Schreibrechten: Fehlen dem Anwendungspool die Rechte auf AppData\\Data, erscheint ein roter Hinweis mit Ordner und Benutzer statt Demo-Modus; Anzeige funktioniert weiter, Speichern meldet klaren Fehler.
+- Versionsnummer im Server wird beim Build gesetzt. Kapitel „Fehlersuche“ in docs/IIS-Installation.md.
+
 ## 0.9.1 (30.09.2026)
 - Demo-Banner erklärt jetzt, warum der Server nicht genutzt wird (HTTP 404/500/403, ASP.NET nicht aktiv, file://, kein JSON) und zeigt die geprüfte Adresse mit „Erneut prüfen“.
 - Pfade werden aus der Seitenadresse abgeleitet (funktioniert auch in Unterordnern und ohne abschließenden Schrägstrich).

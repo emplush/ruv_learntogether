@@ -12,3 +12,12 @@
 - Für Updates alle Dateien außer `AppData\Data` überschreiben.
 - Stornierungslinks nutzen die automatisch ermittelte Adresse; hinter Reverse-Proxy die Basis-Adresse in den Einstellungen setzen.
 - Die R+V-Schrift wird später über `@font-face` in `src/app.css` ergänzt (Variable `--font`).
+
+## Fehlersuche
+
+Zeigt die Seite oben ein gelbes Banner „Demo-Modus“, klicke auf **„Warum Demo-Modus?“**. Dort steht der Grund im Klartext. Zusätzlich gilt:
+
+1. **Ping-Test:** `https://<server>/<pfad>/AppData/api.ashx?action=ping` muss JSON liefern, z. B. `{"ok":true,"server":true,...}`. Andernfalls läuft ASP.NET für diese Anwendung nicht.
+2. **Voraussetzungen:** Windows-Feature „ASP.NET 4.x“ (Internetinformationsdienste › Webserver › Anwendungsentwicklung), Anwendungspool mit „.NET CLR Version v4.0“ im integrierten Modus, Ordner `AppData` samt `api.ashx` und `web.config` vollständig kopiert.
+3. **Schreibrechte:** Erscheint stattdessen ein roter Hinweis „Server erreicht, aber Speichern nicht möglich“, fehlen dem Benutzer des Anwendungspools (im Hinweis genannt, z. B. `IIS AppPool\<Pool>`) die „Ändern“-Rechte auf `AppData\Data`.
+4. **Nach einem Update** den Browser-Cache mit Strg+F5 umgehen. Fehler des Servers landen in `AppData\Data\error.log`.

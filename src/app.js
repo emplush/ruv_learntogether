@@ -7,7 +7,7 @@ var CFG = window.__LT__ || {};
 var BASE = (function () { var p = location.pathname, last = p.split('/').pop(); if (p.slice(-1) !== '/' && last.indexOf('.') < 0) p += '/'; return p.replace(/[^\/]*$/, ''); })();
 var API = BASE + 'AppData/api.ashx';
 function rel(u) { return /^(data:|https?:|blob:|\/)/i.test(u) ? u : BASE + u; }
-var diag = null; // Grund, warum der Server nicht genutzt wird (Demo-Modus)
+var diag = null, pingInfo = null; // Grund, warum der Server nicht genutzt wird (Demo-Modus)
 
 /* ====================================================== Hilfsfunktionen */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -1363,6 +1363,7 @@ function shell() {
     var det = why ? h('details', { class: 'demo-why' }, [h('summary', { text: 'Warum Demo-Modus?' }), h('p', { text: why }), h('p', { class: 'hint', text: 'Geprüfte Adresse: ' + location.origin + API + '?action=ping' }), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Erneut prüfen', onclick: function () { location.reload(); } })]) : null;
     document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser, E-Mails werden simuliert. Das Admin-Passwort für den Test lautet RuVTest1234.' }), det])));
   }
+  if (mode === 'server' && pingInfo && pingInfo.writable === false) document.body.appendChild(h('div', { class: 'notice bad', role: 'alert', style: 'border-radius:0;padding:12px 16px' }, [h('b', { text: 'Server erreicht, aber Speichern nicht möglich. ' }), pingInfo.storageError || 'Dem Anwendungspool fehlen Schreibrechte auf AppData\\Data.']));
   appEl = h('main', { id: 'main', tabindex: '-1' }); document.body.appendChild(appEl);
   document.body.appendChild(h('footer', { class: 'foot' }, h('div', { class: 'wrap' }, [h('img', { src: logoW, alt: 'R+V' }), h('span', null, [h('b', { class: 'ftitle' }), ' \u00b7 Informelles Lernen im Außendienst']), h('span', { class: 'sp', text: 'Version ' + (CFG.version || '') })])));
   applyTitle();
@@ -1392,7 +1393,7 @@ function probeServer() {
   return fetch(API + '?action=ping', { cache: 'no-store' }).then(function (r) {
     return r.text().then(function (t) {
       var j = null; try { j = JSON.parse(t); } catch (e) { }
-      if (j && j.server) return true;
+      if (j && j.server) { pingInfo = j; return true; }
       if (r.status === 404) diag = 'Die Datei AppData/api.ashx wurde nicht gefunden (HTTP 404). Prüfe, ob der Ordner AppData mit api.ashx auf den Server kopiert wurde und ob die Adresse zum Ordner mit index.html passt.';
       else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Hinweise liefert die Fehlerseite des IIS bzw. AppData\\Data\\error.log.';
       else if (r.status === 401 || r.status === 403) diag = 'Der Zugriff auf AppData/api.ashx wird verweigert (HTTP ' + r.status + '). Prüfe die anonyme Authentifizierung und die Ordnerberechtigungen.';

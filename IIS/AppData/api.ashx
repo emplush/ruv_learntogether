@@ -136,7 +136,7 @@ namespace LearnTogether
     public class Api : IHttpHandler
     {
         const string DefaultAdminPassword = "RuVTest1234";
-        const string Version = "0.1.0";
+        const string Version = "0.9.2";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         static readonly string[] Days = new string[] { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };
@@ -161,7 +161,7 @@ namespace LearnTogether
             {
                 switch (action)
                 {
-                    case "ping": Send(new { ok = true, server = true, version = Version, mailConfigured = MailConfigured(LoadSettings()) }); break;
+                    case "ping": { bool w, mc = false; string we; CheckWritable(out w, out we); try { mc = MailConfigured(LoadSettings()); } catch (Exception) { } Send(new { ok = true, server = true, version = Version, writable = w, storageError = we, mailConfigured = mc }); break; }
                     case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
@@ -180,6 +180,12 @@ namespace LearnTogether
                 context.Response.TrySkipIisCustomErrors = true;
                 context.Response.StatusCode = ex.Http;
                 Send(new { ok = false, error = ex.Code, message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LogError(ex);
+                context.Response.TrySkipIisCustomErrors = true;
+                Send(new { ok = false, error = "storage", message = "Die Daten k\u00f6nnen nicht gespeichert werden: Dem Anwendungspool fehlen Schreibrechte auf den Ordner AppData\\Data." });
             }
             catch (Exception ex)
             {
@@ -294,17 +300,45 @@ namespace LearnTogether
         DataFile LoadData() { return ReadJson<DataFile>("data.json"); }
         void SaveData(DataFile d) { WriteJson("data.json", d); }
 
+        static SettingsRec fallbackSettings; // Einstellungen im Arbeitsspeicher, falls AppData\Data nicht beschreibbar ist
+
+        // Prueft, ob der Datenordner beschreibbar ist (haeufigster Einrichtungsfehler: fehlende Rechte fuer den Anwendungspool)
+        void CheckWritable(out bool writable, out string error)
+        {
+            writable = true; error = "";
+            string dir = Path.Combine(Path.GetDirectoryName(ctx.Request.PhysicalPath), "Data");
+            try
+            {
+                dir = DataDir();
+                string t = Path.Combine(dir, ".write-test");
+                File.WriteAllText(t, "ok");
+                File.Delete(t);
+            }
+            catch (Exception ex)
+            {
+                writable = false;
+                string who = "";
+                try { who = System.Security.Principal.WindowsIdentity.GetCurrent().Name; } catch { }
+                error = "Kein Schreibzugriff auf \"" + dir + "\" (" + ex.GetType().Name + "). Dem Benutzer des Anwendungspools" + (who.Length > 0 ? " (" + who + ")" : "") + " fehlen \u00c4ndern-Rechte auf diesen Ordner.";
+            }
+        }
+
         SettingsRec LoadSettings()
         {
             lock (Gate)
             {
                 string p = Path.Combine(DataDir(), "settings.json");
+                if (!File.Exists(p) && fallbackSettings != null) return fallbackSettings;
                 SettingsRec s = ReadJson<SettingsRec>("settings.json");
                 bool changed = !File.Exists(p);
                 if (string.IsNullOrEmpty(s.passwordHash)) { s.passwordHash = HashPassword(DefaultAdminPassword); changed = true; }
                 if (string.IsNullOrEmpty(s.tokenSecret)) { s.tokenSecret = RandomToken(32); changed = true; }
                 if (string.IsNullOrEmpty(s.appTitle)) { s.appTitle = "LearnTogether@AD"; changed = true; }
-                if (changed) WriteJson("settings.json", s);
+                if (changed)
+                {
+                    try { WriteJson("settings.json", s); fallbackSettings = null; }
+                    catch (Exception) { fallbackSettings = s; } // Anzeige funktioniert weiter, Speichern nicht
+                }
                 return s;
             }
         }
