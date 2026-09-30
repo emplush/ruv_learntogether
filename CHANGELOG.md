@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.13.0 (30.09.2026)
+- „Stornierungscode“ heißt jetzt **Buchungscode**. Er genügt allein zum Anzeigen, Stornieren und für die Kalenderdatei (keine E-Mail-Adresse mehr nötig); Fehlversuche werden gebremst.
+- Bestätigungsfenster: deutlicher Hinweis, den Buchungscode zu speichern und den Termin über die Kalenderdatei einzutragen; Teams-Link, Kalenderdatei und Code mit Kopier-Button.
+- Kalenderdatei (.ics): Beschreibung im Inhalt und Design der früheren Bestätigungsmail (HTML-Fassung im Farbton des Bereichs plus Text), mit Teams-Link, Buchungscode und Link zu „Meine Anmeldung“.
+- Neu: **Veranstaltungscode** nach dem Anlegen einer Veranstaltung; neue Seite „Meine Veranstaltung“ zeigt damit die aktuelle Teilnehmerliste (nur Namen). Die Administration sieht die Codes aller Veranstaltungen.
+
 ## 0.12.0 (30.09.2026)
 - **Kein E-Mail-Versand mehr, kein Protokoll.** SMTP, Versandarten, Mailvorlage, E-Mail-Protokoll, MailAbholer und zugehörige Admin-Seiten entfernt.
 - Nach der Anmeldung zeigt das Fenster alle Angaben: Termin, Teams-Link, Kalendereintrag (.ics zum Download) und Stornierungscode.

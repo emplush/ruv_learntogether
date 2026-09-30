@@ -344,3 +344,6 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .chips-inline { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips-inline .chip.type { background: #001957; color: #fff; }
 .chips-inline .chip.biz { background: #fff; color: #001957; border: 1.5px solid #001957; }
+
+.notice.warn { background: var(--sand); border-left: 5px solid #eb6504; color: var(--text); display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+.notice.warn b { color: var(--text); font-size: 1.05rem; }

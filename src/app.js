@@ -146,7 +146,7 @@ function validTeams(link) {
 }
 function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) && e.length <= 200; }
 function rid(n) { var a = 'abcdefghijklmnopqrstuvwxyz0123456789', s = ''; var r = new Uint8Array(n); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(r) : r.forEach(function (_, i) { r[i] = Math.random() * 256; }); for (var i = 0; i < n; i++) s += a[r[i] % a.length]; return s; }
-function newCode() { var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; var r = new Uint8Array(8); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(r) : r.forEach(function (_, i) { r[i] = Math.random() * 256; }); for (var i = 0; i < 8; i++) { if (i === 4) s += '-'; s += a[r[i] % a.length]; } return s; }
+function newCode(len) { len = len || 8; var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = ''; var r = new Uint8Array(len); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(r) : r.forEach(function (_, i) { r[i] = Math.random() * 256; }); for (var i = 0; i < len; i++) { if (i === Math.floor(len / 2)) s += '-'; s += a[r[i] % a.length]; } return s; }
 function normCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 
 /* HTML-Bereinigung (Positivliste) */
@@ -170,6 +170,12 @@ function sanitizeHtml(html) {
     });
   })(doc.body, out);
   return out.innerHTML;
+}
+/* Beschreibung als lesbarer Text mit Zeilenumbruechen (fuer die Kalenderdatei) */
+function htmlToText(html) {
+  var t = sanitizeHtml(html || '').replace(/<li>/gi, '\u2022 ').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|li|h3|h4|div|blockquote|ul|ol)>/gi, '\n').replace(/<[^>]+>/g, '');
+  var d = document.createElement('textarea'); d.innerHTML = t;
+  return d.value.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 function plainText(html) { var d = document.createElement('div'); d.innerHTML = sanitizeHtml(html); return (d.textContent || '').trim(); }
 
@@ -260,18 +266,67 @@ function buildTestData() {
 }
 
 /* ====================================================== Kalender (ICS) */
-function icsEsc(t) { return String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
-function fold(l) { var o = '', n = 0; for (var i = 0; i < l.length; i++) { if (n >= 70) { o += '\r\n '; n = 1; } o += l[i]; n++; } return o; }
-function buildIcs(ev, uid) {
-  var s = startDate(ev), e = new Date(s.getTime() + ev.duration * 60000);
-  function f(d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00'; }
+function icsEsc(t) { return String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+/* Zeilenumbruch nach RFC 5545: hoechstens 75 Bytes je Zeile, Mehrbyte-Zeichen werden nicht getrennt */
+function fold(l) {
+  var o = '', n = 0;
+  for (var i = 0; i < l.length; i++) {
+    var ch = l[i], cp = l.codePointAt(i); if (cp > 0xffff) { ch = l.substr(i, 2); i++; }
+    var w = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+    if (n + w > 74) { o += '\r\n '; n = 1; }
+    o += ch; n += w;
+  }
+  return o;
+}
+function manageUrl(code) { return location.href.split('#')[0] + '#/anmeldung?code=' + encodeURIComponent(code); }
+function mailHtml(m) {
+  var font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;", ink = '#001957', grey = '#707070';
+  var hd = contrast(m.bg, '#ffffff') >= 4.5 ? m.bg : ink, soft = mixHex(m.bg, m.text, .78), tint = mixHex(m.bg, '#ffffff', .9);
+  function pill(t, bg, fg) { return '<span style="display:inline-block;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0">' + esc(t) + '</span>'; }
+  function row(k, v) { return '<tr><td style="width:120px;padding:9px 0;border-top:1px solid #ececec;color:' + grey + ';vertical-align:top">' + k + '</td><td style="padding:9px 0;border-top:1px solid #ececec;color:' + ink + ';font-weight:600;vertical-align:top">' + v + '</td></tr>'; }
+  var h_ = [];
+  h_.push('<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f5f5f5;' + font + '">');
+  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td align="center" style="padding:24px 12px">');
+  h_.push('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">');
+  h_.push('<tr><td style="background:' + m.bg + ';padding:28px 32px 30px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>');
+  h_.push('<td style="vertical-align:middle">' + (m.logo ? '<img src="' + m.logo + '" width="88" alt="R+V" style="display:block;border:0">' : '<span style="' + font + 'font-size:24px;font-weight:800;color:' + m.text + '">R+V</span>') + '</td>');
+  h_.push('<td align="right" style="vertical-align:middle;' + font + 'font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:' + soft + '">' + esc(m.appTitle) + '</td></tr></table>');
+  h_.push('<div style="' + font + 'font-size:28px;line-height:1.25;font-weight:800;color:' + m.head + ';margin:26px 0 0">Deine Buchung ist bestätigt</div>');
+  h_.push('<div style="' + font + 'font-size:15px;line-height:1.5;color:' + m.text + ';margin:8px 0 0">Schön, dass du dabei bist.</div></td></tr>');
+  h_.push('<tr><td style="padding:30px 32px 8px;' + font + 'color:' + ink + '"><div>' + pill(m.area, tint, hd) + pill(m.type, '#f5f5f5', ink) + pill(m.topic, '#f5f5f5', ink) + '</div>');
+  h_.push('<div style="font-size:22px;line-height:1.3;font-weight:800;color:' + hd + ';margin:6px 0 20px">' + esc(m.title) + '</div>');
+  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45">' + row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host)) + '</table>');
+  if (m.desc) h_.push('<div style="font-size:14px;line-height:1.5;color:' + ink + ';margin:18px 0 0"><b>Worum geht es?</b><br>' + esc(m.desc).replace(/\n/g, '<br>') + '</div>');
+  h_.push('<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 8px"><tr><td style="background:#00dcdc;border-radius:24px"><a href="' + esc(m.teams) + '" style="display:inline-block;padding:14px 30px;' + font + 'font-size:16px;font-weight:700;color:#001957;text-decoration:none">Zur Teams-Sitzung</a></td></tr></table>');
+  h_.push('<div style="font-size:12px;color:' + grey + ';word-break:break-all">' + esc(m.teams) + '</div>');
+  h_.push('<div style="font-size:14px;color:' + grey + ';margin:14px 0 0">Bewahre diesen Kalendereintrag und den Buchungscode auf. Unter „Meine Anmeldung“ findest du Teams-Link und Kalendereintrag jederzeit wieder.</div></td></tr>');
+  h_.push('<tr><td style="padding:20px 32px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504"><tr><td style="padding:18px 20px;' + font + 'color:' + ink + '">');
+  h_.push('<div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400">Dein Buchungscode</div>');
+  h_.push('<div style="font-family:Consolas,\'Courier New\',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:' + ink + '">' + esc(m.code) + '</div>');
+  h_.push('<div style="font-size:14px;line-height:1.5">Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:700">Meine Anmeldung</a> (Eingabe des Buchungscodes genügt)</div></td></tr></table></td></tr>');
+  h_.push('<tr><td style="background:#f5f5f5;padding:18px 32px;' + font + 'font-size:12px;line-height:1.5;color:' + grey + '">' + esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Dieser Kalendereintrag wurde automatisch erstellt.</td></tr>');
+  h_.push('<tr><td style="background:' + m.bg + ';height:6px;line-height:6px;font-size:0">&nbsp;</td></tr></table></td></tr></table></body></html>');
+  return h_.join('');
+}
+/* Beschreibung des Kalendereintrags: Inhalt und Aufbau wie die frueher versendete Bestaetigung, inkl. Buchungscode */
+function icsDescriptions(ev, code) {
+  var c = ev.category, light = lum(COLORS[c].toLowerCase()) > .35, url = manageUrl(code), desc = htmlToText(ev.description).slice(0, 700);
+  var html = mailHtml({ appTitle: state.settings.appTitle, area: CAT_LABEL[c], type: ev.type, topic: ev.topic, bg: COLORS[c], head: HEADINGS[c], text: TEXTS[c], logo: '', name: '', title: ev.title, date: dateLong(ev.date), time: ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: code, cancel: url, desc: desc });
+  html = html.replace(/<!doctype html>.*?<body[^>]*>/i, '').replace(/<\/body><\/html>/i, ''); html = '<div style="background:#f5f5f5">' + html + '</div>';
+  var plain = ['DEINE BUCHUNG IST BESTÄTIGT', '', ev.title, CAT_LABEL[c] + ' \u00b7 ' + ev.type + ' \u00b7 ' + ev.topic, '',
+    'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Durchführung:  ' + ev.host, '',
+    'Teams-Sitzung: ' + ev.teamsLink, '', 'BUCHUNGSCODE:  ' + code, 'Buchung ansehen oder stornieren: ' + url, ''].concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Bewahre diesen Kalendereintrag und den Buchungscode auf.', state.settings.appTitle + ' \u00b7 Informelles Lernen im Außendienst']).join('\n');
+  return { html: html, plain: plain };
+}
+function buildIcs(ev, code) {
+  var s = startDate(ev), e = new Date(s.getTime() + ev.duration * 60000), d = icsDescriptions(ev, code);
+  function f(x) { return x.getFullYear() + pad(x.getMonth() + 1) + pad(x.getDate()) + 'T' + pad(x.getHours()) + pad(x.getMinutes()) + '00'; }
   var u = new Date(); var stamp = u.getUTCFullYear() + pad(u.getUTCMonth() + 1) + pad(u.getUTCDate()) + 'T' + pad(u.getUTCHours()) + pad(u.getUTCMinutes()) + pad(u.getUTCSeconds()) + 'Z';
-  var desc = 'Durchführung: ' + ev.host + '\n\nTeams-Sitzung: ' + ev.teamsLink + '\n\n' + plainText(ev.description).slice(0, 800);
   var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//R+V//LearnTogether//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:STANDARD', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET', 'END:STANDARD',
     'BEGIN:DAYLIGHT', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST', 'END:DAYLIGHT', 'END:VTIMEZONE',
-    'BEGIN:VEVENT', 'UID:' + uid + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
-    'SUMMARY:' + icsEsc(ev.title), 'DESCRIPTION:' + icsEsc(desc), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
+    'BEGIN:VEVENT', 'UID:' + code.replace(/[^A-Z0-9]/g, '') + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
+    'SUMMARY:' + icsEsc(ev.title), 'DESCRIPTION:' + icsEsc(d.plain), 'X-ALT-DESC;FMTTYPE=text/html:' + icsEsc(d.html), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
     'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:Erinnerung', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return L.map(fold).join('\r\n') + '\r\n';
 }
@@ -298,8 +353,9 @@ var Server = {
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
   book: function (id, name, email) { return this.call('book', { eventId: id, name: name, email: email }); },
-  cancel: function (code, email) { return this.call('cancel', { code: code, email: email }); },
-  lookup: function (code, email) { return this.call('lookup', { code: code, email: email }); },
+  cancel: function (code) { return this.call('cancel', { code: code }); },
+  lookup: function (code) { return this.call('lookup', { code: code }); },
+  eventLookup: function (code) { return this.call('eventLookup', { code: code }); },
   login: function (pw) { return this.call('login', { password: pw }).then(function (j) { adminToken = j.token; sess.set('lt_admin', j.token); }); },
   adminEvents: function () { return this.call('adminEvents', null, true).then(function (j) { return j.events; }); },
   adminSaveEvent: function (ev) { return this.call('adminSaveEvent', { event: ev }, true); },
@@ -318,6 +374,7 @@ var Local = (function () {
     try { data = JSON.parse(store.get('lt_data') || 'null'); } catch (e) { data = null; }
     try { cfg = JSON.parse(store.get('lt_cfg') || 'null'); } catch (e) { cfg = null; }
     if (!data) { data = { events: [], bookings: [] }; }
+    data.events.forEach(function (e) { if (!e.code) e.code = newCode(10); });
     if (!cfg) cfg = { appTitle: DEFAULT_TITLE, pw: 'RuVTest1234' };
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
@@ -334,13 +391,13 @@ var Local = (function () {
     data.events = data.events.filter(function (e) { return !e.isTest; });
     data.bookings = data.bookings.filter(function (b) { return !b.isTest; });
     var t = buildTestData();
-    t.events.forEach(function (e) { e.id = 't-' + e.id; e.created = new Date().toISOString(); data.events.push(e); });
+    t.events.forEach(function (e) { e.id = 't-' + e.id; e.code = newCode(10); e.created = new Date().toISOString(); data.events.push(e); });
     t.bookings.forEach(function (b) { data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + b.eventId, name: b.name, email: b.email, code: newCode(), created: new Date().toISOString(), isTest: true }); });
     return t;
   }
-  function detail(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'imageData' && k !== 'hostEmail' && k !== 'isTest' && k !== 'created') o[k] = e[k]; }); o.image = e.imageData || null; return o; }
+  function detail(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'imageData' && k !== 'hostEmail' && k !== 'isTest' && k !== 'created' && k !== 'code') o[k] = e[k]; }); o.image = e.imageData || null; return o; }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }
-  function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData' && k !== 'hostEmail') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
+  function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData' && k !== 'hostEmail' && k !== 'code') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
   function fail(code, msg) { return Promise.reject(ApiErr(code, msg)); }
   function readEvent(v, target, admin) {
     var er = validateEvent(v, admin); var k = Object.keys(er);
@@ -396,7 +453,7 @@ var Local = (function () {
       });
     },
     events: function () { return wrap(function () { var now = new Date(); return data.events.filter(function (e) { return startDate(e) > now; }).map(pub); }); },
-    createEvent: function (v) { return wrap(function () { var e = readEvent(v, { id: rid(8), created: new Date().toISOString(), isTest: false }, false); data.events.push(e); save(); return { id: e.id }; }); },
+    createEvent: function (v) { return wrap(function () { var e = readEvent(v, { id: rid(8), code: newCode(10), created: new Date().toISOString(), isTest: false }, false); data.events.push(e); save(); return { id: e.id, code: e.code }; }); },
     book: function (id, name, email) {
       return wrap(function () {
         email = email.trim().toLowerCase(); name = name.trim();
@@ -413,31 +470,41 @@ var Local = (function () {
         return { code: bk.code, name: bk.name, email: bk.email, eventInfo: detail(ev) };
       });
     },
-    cancel: function (code, email) {
+    cancel: function (code) {
       return wrap(function () {
-        code = normCode(code); email = email.trim().toLowerCase();
-        var bk = data.bookings.filter(function (b) { return normCode(b.code) === code && b.email === email; })[0];
-        if (!bk || !code) throw ApiErr('notfound', 'Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte prüfe Code und E-Mail-Adresse.');
+        code = normCode(code);
+        var bk = code.length < 8 ? null : data.bookings.filter(function (b) { return normCode(b.code) === code; })[0];
+        if (!bk) throw ApiErr('notfound', 'Zu diesem Buchungscode wurde keine Anmeldung gefunden. Bitte prüfe die Eingabe.');
         var ev = data.events.filter(function (e) { return e.id === bk.eventId; })[0];
         if (ev && startDate(ev) <= new Date()) throw ApiErr('past', 'Die Veranstaltung hat bereits begonnen. Eine Stornierung ist nicht mehr möglich.');
         data.bookings = data.bookings.filter(function (b) { return b !== bk; }); save();
         return { title: ev ? ev.title : '', date: ev ? ev.date : '', start: ev ? ev.start : '' };
       });
     },
-    lookup: function (code, email) {
+    lookup: function (code) {
       return wrap(function () {
-        code = normCode(code); email = email.trim().toLowerCase();
-        var bk = data.bookings.filter(function (b) { return normCode(b.code) === code && b.email === email; })[0];
+        code = normCode(code);
+        var bk = code.length < 8 ? null : data.bookings.filter(function (b) { return normCode(b.code) === code; })[0];
         var ev = bk ? data.events.filter(function (e) { return e.id === bk.eventId; })[0] : null;
-        if (!bk || !ev || !code) throw ApiErr('notfound', 'Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte prüfe Code und E-Mail-Adresse.');
+        if (!bk || !ev) throw ApiErr('notfound', 'Zu diesem Buchungscode wurde keine Anmeldung gefunden. Bitte prüfe die Eingabe.');
         return { code: bk.code, name: bk.name, email: bk.email, eventInfo: detail(ev), canCancel: startDate(ev) > new Date() };
       });
     },
+    eventLookup: function (code) {
+      return wrap(function () {
+        code = normCode(code);
+        var ev = code.length < 10 ? null : data.events.filter(function (e) { return normCode(e.code) === code; })[0];
+        if (!ev) throw ApiErr('notfound', 'Zu diesem Veranstaltungscode wurde keine Veranstaltung gefunden. Bitte prüfe die Eingabe.');
+        var people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { return { name: b.name, created: b.created }; });
+        var info = detail(ev); info.booked = people.length;
+        return { code: ev.code, eventInfo: info, capacity: ev.capacity, participants: people, isPast: startDate(ev) <= new Date() };
+      });
+    },
     login: function (pw) { return wrap(function () { if (pw !== cfg.pw) throw ApiErr('password', 'Das Passwort ist nicht korrekt.'); adminToken = 'local'; sess.set('lt_admin', 'local'); }); },
-    adminEvents: function () { return wrap(function () { return data.events.map(function (e) { var o = pub(e); o.teamsLink = e.teamsLink; o.hostEmail = e.hostEmail || ''; o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }); return o; }); }); },
+    adminEvents: function () { return wrap(function () { return data.events.map(function (e) { var o = pub(e); o.teamsLink = e.teamsLink; o.hostEmail = e.hostEmail || ''; o.code = e.code || ''; o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }); return o; }); }); },
     adminSaveEvent: function (v) {
       return wrap(function () {
-        var e = data.events.filter(function (x) { return x.id === v.id; })[0], isNew = !e; if (isNew) e = { id: rid(8), created: new Date().toISOString(), isTest: false };
+        var e = data.events.filter(function (x) { return x.id === v.id; })[0], isNew = !e; if (isNew) e = { id: rid(8), code: newCode(10), created: new Date().toISOString(), isTest: false };
         readEvent(v, e, true);
         if (e.capacity < booked(e.id)) throw ApiErr('invalid', 'Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (' + booked(e.id) + ') liegen.');
         if (isNew) data.events.push(e); save(); return { id: e.id };
@@ -851,7 +918,7 @@ function openBooking(e, onChange) {
     clear(body);
     var f = freeOf(e);
     var name = h('input', { type: 'text', id: 'b-name', autocomplete: 'name', maxlength: '80' }), mail = h('input', { type: 'email', id: 'b-mail', autocomplete: 'email', maxlength: '200' });
-    var fn = field('Name', name, { id: 'b-name', req: true }), fm = field('E-Mail-Adresse', mail, { id: 'b-mail', req: true, hint: 'Wird zusammen mit dem Stornierungscode zum Anzeigen und Stornieren deiner Anmeldung gebraucht. Es wird keine E-Mail verschickt.' });
+    var fn = field('Name', name, { id: 'b-name', req: true }), fm = field('E-Mail-Adresse', mail, { id: 'b-mail', req: true, hint: 'Es wird keine E-Mail verschickt. Die Adresse dient nur der Verwaltung durch die Administration.' });
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
     var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmelden' });
     var form = h('form', { novalidate: true, style: 'display:flex;flex-direction:column;gap:16px' }, [h('div', { class: 'grid2' }, [fn, fm]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: m.close })])]);
@@ -878,11 +945,12 @@ function openBooking(e, onChange) {
     body.appendChild(form);
   }
   function showDone(r) {
-    clear(body); rememberMine(r.eventInfo, r.code, r.email);
-    body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Die Anmeldung war erfolgreich. Dein Platz ist reserviert.' }));
+    clear(body); rememberMine(r.eventInfo, r.code);
+    body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Die Buchung war erfolgreich. Dein Platz ist reserviert.' }));
+    body.appendChild(codeWarning('Wichtig: Speichere deinen Buchungscode!', 'Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt über die Kalenderdatei (.ics) in deinen Kalender ein: Sie enthält alle Informationen, den Teams-Link und den Buchungscode.'));
     body.appendChild(participationCard(r.eventInfo, r.code));
-    body.appendChild(h('p', { class: 'hint', text: 'Es wird keine E-Mail verschickt. Notiere dir den Stornierungscode. Deine Anmeldung findest du jederzeit unter „Meine Anmeldung“ wieder, auf diesem Gerät ist sie dort bereits gespeichert.' }));
-    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/anmeldung?code=' + encodeURIComponent(r.code) + '&email=' + encodeURIComponent(r.email), text: 'Meine Anmeldung öffnen' })]));
+    body.appendChild(h('p', { class: 'hint', text: 'Den Teams-Link, die Kalenderdatei und die Stornierung findest du jederzeit unter „Meine Anmeldung“ wieder, wenn du den Buchungscode eingibst. Auf diesem Gerät ist die Buchung dort bereits gespeichert.' }));
+    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/anmeldung?code=' + encodeURIComponent(r.code), text: 'Meine Anmeldung öffnen' })]));
   }
   function showFail(er) {
     clear(body);
@@ -893,12 +961,16 @@ function openBooking(e, onChange) {
 }
 /* Meine Anmeldungen auf diesem Geraet (nur im Browser gespeichert) */
 function mineList() { try { return JSON.parse(store.get('lt_mine') || '[]') || []; } catch (e) { return []; } }
-function rememberMine(info, code, email) {
+function rememberMine(info, code) {
   var l = mineList().filter(function (x) { return x.code !== code; });
-  l.unshift({ code: code, email: email, title: info.title, date: info.date, start: info.start });
+  l.unshift({ code: code, title: info.title, date: info.date, start: info.start });
   store.set('lt_mine', JSON.stringify(l.slice(0, 20)));
 }
 function forgetMine(code) { store.set('lt_mine', JSON.stringify(mineList().filter(function (x) { return normCode(x.code) !== normCode(code); }))); }
+/* Meine Veranstaltungen (Veranstaltungscodes) auf diesem Geraet */
+function myEvList() { try { return JSON.parse(store.get('lt_myev') || '[]') || []; } catch (e) { return []; } }
+function rememberMyEv(info, code) { var l = myEvList().filter(function (x) { return x.code !== code; }); l.unshift({ code: code, title: info.title, date: info.date, start: info.start }); store.set('lt_myev', JSON.stringify(l.slice(0, 20))); }
+function forgetMyEv(code) { store.set('lt_myev', JSON.stringify(myEvList().filter(function (x) { return normCode(x.code) !== normCode(code); }))); }
 function downloadIcs(info, code) {
   var ics = buildIcs(info, code), name = 'Veranstaltung.ics';
   if (CFG.mode === 'artifact') {
@@ -908,7 +980,13 @@ function downloadIcs(info, code) {
   var url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
   var a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
 }
-/* Alle Angaben zur Teilnahme: Termin, Teams-Link, Kalendereintrag und Stornierungscode */
+function copyText(text, okMsg) {
+  try { navigator.clipboard.writeText(text).then(function () { toast(okMsg || 'In die Zwischenablage kopiert.'); }, function () { toast('Kopieren nicht möglich. Bitte markiere den Text und kopiere ihn von Hand.', true); }); } catch (e) { toast('Kopieren nicht möglich.', true); }
+}
+function codeBox(label, code) {
+  return h('div', null, [h('p', { class: 'hint', text: label }), h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('span', { class: 'code', id: 'code-out', text: code }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Code kopieren', onclick: function () { copyText(code, 'Code kopiert.'); } })])]);
+}
+/* Alle Angaben zur Teilnahme: Termin, Teams-Link, Kalendereintrag und Buchungscode */
 function participationCard(info, code) {
   var node = h('div', { style: 'display:flex;flex-direction:column;gap:16px' });
   node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]));
@@ -916,13 +994,14 @@ function participationCard(info, code) {
   node.appendChild(h('dl', { class: 'facts' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
     h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: info.host })])]));
-  node.appendChild(h('div', { style: 'display:flex;flex-direction:column;gap:8px;align-items:flex-start' }, [
-    h('a', { class: 'btn btn-primary', href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Zur Teams-Sitzung' }),
+  node.appendChild(h('div', { style: 'display:flex;flex-direction:column;gap:6px;align-items:flex-start' }, [
+    h('a', { class: 'btn btn-secondary', href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Zur Teams-Sitzung' }),
     h('div', { class: 'hint', style: 'overflow-wrap:anywhere', text: info.teamsLink })]));
-  node.appendChild(h('div', null, h('button', { class: 'btn btn-secondary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics)', onclick: function () { downloadIcs(info, code); } })));
-  node.appendChild(h('div', null, [h('p', { class: 'hint', text: 'Dein Stornierungscode' }), h('span', { class: 'code', text: code })]));
+  node.appendChild(h('div', null, h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, code); } })));
+  node.appendChild(codeBox('Dein Buchungscode', code));
   return node;
 }
+function codeWarning(title, text) { return h('div', { class: 'notice warn', role: 'alert' }, [h('b', { text: title }), h('div', { text: text })]); }
 
 /* ---- Veranstaltung anbieten ---- */
 function viewCreate() {
@@ -932,72 +1011,112 @@ function viewCreate() {
     clear(wrap);
     wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
     wrap.appendChild(h('p', { class: 'lead', text: 'Teile dein Wissen oder lade zum Austausch ein, dienstlich oder privat. Jede und jeder kann einen Termin anlegen. Inhalte müssen legal, respektvoll und jugendfrei sein.' }));
-    wrap.appendChild(buildEventForm({ onSubmit: function (p) { return Api.createEvent(p).then(function () { done(p); }); } }));
+    wrap.appendChild(buildEventForm({ onSubmit: function (p) { return Api.createEvent(p).then(function (r) { done(p, r.code); }); } }));
   }
-  function done(p) {
-    clear(wrap); window.scrollTo({ top: 0 });
+  function done(p, code) {
+    clear(wrap); window.scrollTo({ top: 0 }); rememberMyEv(p, code);
     wrap.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Danke! Deine Veranstaltung ist jetzt im Katalog sichtbar.' }));
     wrap.appendChild(h('h1', { text: p.title, style: 'margin-top:24px;overflow-wrap:anywhere' }));
     wrap.appendChild(h('p', { class: 'lead', text: dateLong(p.date) + ', ' + p.start + ' \u2013 ' + minToHm(toMin(p.start) + p.duration) + ' Uhr' }));
-    wrap.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:24px' }, [h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Weitere Veranstaltung anlegen', onclick: show })]));
+    wrap.appendChild(h('div', { style: 'margin-top:24px;display:flex;flex-direction:column;gap:16px' }, [
+      codeWarning('Wichtig: Speichere deinen Veranstaltungscode!', 'Nur mit diesem Code siehst du später die aktuelle Teilnehmerliste deiner Veranstaltung. Er wird nicht per E-Mail verschickt und lässt sich nicht erneut anzeigen. Gib ihn bei Bedarf unter „Meine Veranstaltung“ ein.'),
+      h('div', { class: 'panel' }, codeBox('Dein Veranstaltungscode', code))]));
+    wrap.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:24px' }, [h('a', { class: 'btn btn-primary', href: '#/veranstaltung?code=' + encodeURIComponent(code), text: 'Meine Veranstaltung öffnen' }), h('a', { class: 'btn btn-secondary', href: '#/', text: 'Zum Katalog' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Weitere Veranstaltung anlegen', onclick: show })]));
   }
   show();
   return root;
 }
 
-/* ---- Meine Anmeldung: anzeigen, Kalendereintrag laden, stornieren ---- */
+/* ---- Meine Anmeldung: mit dem Buchungscode anzeigen, Kalendereintrag laden, stornieren ---- */
+function codeForm(o) {
+  var code = h('input', { type: 'text', id: o.id, autocomplete: 'off', placeholder: o.placeholder, value: o.value || '', style: 'text-transform:uppercase;letter-spacing:.1em', 'aria-label': o.label });
+  var f = field(o.label, code, { id: o.id, req: true, hint: o.hint });
+  var msg = h('div', { class: 'notice', hidden: true, role: 'alert' });
+  var go = h('button', { type: 'submit', class: 'btn btn-primary', text: o.button });
+  var form = h('form', { class: 'form', novalidate: true, style: 'margin-top:24px;max-width:520px' }, [f, msg, h('div', null, go)]);
+  form.addEventListener('submit', function (e) {
+    e.preventDefault(); msg.hidden = true; f.setErr('');
+    if (normCode(code.value).length < o.len) { f.setErr('Bitte gib den vollständigen Code ein (' + o.example + ').'); return; }
+    o.run(code.value);
+  });
+  return { form: form, code: code, fail: function (er) { go.disabled = false; go.textContent = o.button; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; }, busy: function (t) { msg.hidden = true; go.disabled = true; go.textContent = t; }, reset: function () { go.disabled = false; go.textContent = o.button; } };
+}
 function viewMine(q) {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' })), wrap = root.firstChild;
-  var code = h('input', { type: 'text', id: 'x-code', autocomplete: 'off', placeholder: 'XXXX-XXXX', value: q.code || '', style: 'text-transform:uppercase;letter-spacing:.1em' });
-  var mail = h('input', { type: 'email', id: 'x-mail', autocomplete: 'email', value: q.email || '' });
-  var fc = field('Stornierungscode', code, { id: 'x-code', req: true, hint: 'Den Code hast du nach der Anmeldung im Fenster gesehen.' }), fm = field('E-Mail-Adresse', mail, { id: 'x-mail', req: true, hint: 'Die Adresse, mit der du dich angemeldet hast.' });
-  var msg = h('div', { class: 'notice', hidden: true });
-  var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmeldung anzeigen' });
-  var form = h('form', { class: 'form', novalidate: true, style: 'margin-top:24px;max-width:520px' }, [fc, fm, msg, h('div', null, go)]);
   var result = h('div', { style: 'margin-top:32px' }), mineBox = h('div', { style: 'margin-top:40px' });
+  var cf = codeForm({ id: 'x-code', label: 'Buchungscode', placeholder: 'XXXX-XXXX', value: q.code || '', example: 'z. B. K7M2-QX9P', len: 8, button: 'Anmeldung anzeigen', hint: 'Den Buchungscode hast du nach der Buchung im Fenster gesehen.', run: lookup });
   function show(r) {
-    clear(result); form.hidden = true; mineBox.hidden = true; window.scrollTo({ top: 0 }); rememberMine(r.eventInfo, r.code, r.email);
-    result.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:20px' }, [h('p', { text: 'Angemeldet: ' + r.name + ' (' + r.email + ')' }), participationCard(r.eventInfo, r.code)]));
+    clear(result); cf.form.hidden = true; mineBox.hidden = true; window.scrollTo({ top: 0 }); rememberMine(r.eventInfo, r.code);
+    result.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:20px' }, [h('p', { text: 'Gebucht von: ' + r.name }), participationCard(r.eventInfo, r.code)]));
     var acts = h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:20px' });
     var done = h('div', { style: 'margin-top:16px' });
     if (r.canCancel) {
-      var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: 'Anmeldung stornieren' });
+      var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: 'Teilnahme stornieren' });
       cancel.addEventListener('click', function () {
-        if (!cancel._c) { cancel._c = true; cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.textContent = 'Anmeldung stornieren'; }, 4000); return; }
+        if (!cancel._c) { cancel._c = true; cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.textContent = 'Teilnahme stornieren'; }, 4000); return; }
         cancel.disabled = true;
-        Api.cancel(r.code, r.email).then(function () { forgetMine(r.code); clear(result); clear(acts); result.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Anmeldung zu „' + r.eventInfo.title + '“ wurde storniert. Der Platz ist wieder frei.' })); result.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
+        Api.cancel(r.code).then(function () { forgetMine(r.code); clear(result); clear(acts); result.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Teilnahme an „' + r.eventInfo.title + '“ wurde storniert. Der Platz ist wieder frei.' })); result.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
           function (er) { cancel.disabled = false; clear(done); done.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message })); });
       });
       acts.appendChild(cancel);
     } else acts.appendChild(h('span', { class: 'hint', text: 'Die Veranstaltung hat begonnen oder ist vorbei. Eine Stornierung ist nicht mehr möglich.' }));
-    acts.appendChild(h('button', { class: 'btn btn-secondary', type: 'button', text: 'Andere Anmeldung suchen', onclick: function () { location.hash = '#/anmeldung'; route(); } }));
+    acts.appendChild(h('button', { class: 'btn btn-secondary', type: 'button', text: 'Anderen Code eingeben', onclick: function () { location.hash = '#/anmeldung'; route(); } }));
     result.appendChild(acts); result.appendChild(done);
   }
-  function lookup(c, e) {
-    msg.hidden = true; go.disabled = true; go.textContent = 'Wird gesucht …';
-    Api.lookup(c, e).then(show, function (er) { go.disabled = false; go.textContent = 'Anmeldung anzeigen'; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
-  }
-  form.addEventListener('submit', function (e) {
-    e.preventDefault(); msg.hidden = true; fc.setErr(''); fm.setErr('');
-    var ok = true; if (normCode(code.value).length < 8) { fc.setErr('Bitte gib den Code ein (z. B. K7M2-QX9P).'); ok = false; } if (!validEmail(mail.value.trim())) { fm.setErr('Bitte gib eine gültige E-Mail-Adresse an.'); ok = false; } if (!ok) return;
-    lookup(code.value, mail.value);
-  });
-  // gemerkte Anmeldungen dieses Geraets
+  function lookup(c) { cf.busy('Wird gesucht …'); Api.lookup(c).then(show, cf.fail); }
   var mine = mineList();
   if (mine.length) {
     mineBox.appendChild(h('h2', { text: 'Auf diesem Gerät gespeichert', style: 'font-size:1.25rem;margin-bottom:12px' }));
     var ul = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
     mine.forEach(function (m) {
       ul.appendChild(h('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px' }, [h('div', { style: 'flex:1 1 240px;min-width:0' }, [h('b', { text: m.title, style: 'overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(m.date) + ', ' + m.start + ' Uhr · Code ' + m.code })]),
-        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Öffnen', onclick: function () { lookup(m.code, m.email); } }),
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Öffnen', onclick: function () { lookup(m.code); } }),
         h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Vergessen', onclick: function () { forgetMine(m.code); location.hash = '#/anmeldung'; route(); } })]));
     });
     mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
   }
   wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Anmeldung</span>' }));
-  wrap.appendChild(h('p', { class: 'lead', text: 'Hier findest du den Teams-Link zu deiner Veranstaltung, kannst sie in deinen Kalender übernehmen oder die Anmeldung stornieren, wenn du nicht teilnehmen kannst. Gib dazu Stornierungscode und E-Mail-Adresse ein.' }));
-  wrap.appendChild(form); wrap.appendChild(result); wrap.appendChild(mineBox);
-  if (q.code && q.email) lookup(q.code, q.email);
+  wrap.appendChild(h('p', { class: 'lead', text: 'Gib deinen Buchungscode ein. Du siehst dann den Teams-Link zu deiner Veranstaltung, kannst die Kalenderdatei (.ics) herunterladen oder deine Teilnahme stornieren, wenn du nicht dabei sein kannst.' }));
+  wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
+  if (q.code) lookup(q.code);
+  return root;
+}
+
+/* ---- Meine Veranstaltung: mit dem Veranstaltungscode die Teilnehmerliste sehen ---- */
+function viewMyEvent(q) {
+  var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' })), wrap = root.firstChild;
+  var result = h('div', { style: 'margin-top:32px' }), mineBox = h('div', { style: 'margin-top:40px' });
+  var cf = codeForm({ id: 'v-code', label: 'Veranstaltungscode', placeholder: 'XXXXX-XXXXX', value: q.code || '', example: 'z. B. K7M2Q-X9PWR', len: 10, button: 'Teilnehmerliste anzeigen', hint: 'Den Veranstaltungscode hast du nach dem Anlegen deiner Veranstaltung gesehen.', run: lookup });
+  function show(r) {
+    clear(result); cf.form.hidden = true; mineBox.hidden = true; window.scrollTo({ top: 0 }); rememberMyEv(r.eventInfo, r.code);
+    var info = r.eventInfo, list = r.participants;
+    var table = list.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, ['Nr.', 'Name', 'Angemeldet am'].map(function (t) { return h('th', { text: t }); }))),
+      h('tbody', null, list.map(function (p, i) { var d = p.created ? new Date(p.created) : null; return h('tr', null, [h('td', { text: String(i + 1) }), h('td', { text: p.name }), h('td', { text: d && !isNaN(d) ? pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' Uhr' : '' })]); }))])) : h('p', { class: 'hint', text: 'Noch niemand hat sich angemeldet.' });
+    result.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:18px' }, [
+      h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]),
+      h('h2', { text: info.title, style: 'overflow-wrap:anywhere' }),
+      h('dl', { class: 'facts' }, [h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]), h('div', null, [h('dt', { text: 'Angemeldet' }), h('dd', { text: list.length + ' von ' + r.capacity + ' Plätzen' })]), h('div', null, [h('dt', { text: 'Teams-Sitzung' }), h('dd', null, h('a', { href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Link öffnen' }))])]),
+      h('h3', { text: 'Teilnehmerliste' }), table,
+      h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Aktualisieren', onclick: function () { lookup(r.code); } }), list.length ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Liste kopieren', onclick: function () { copyText(info.title + '\n' + list.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('\n'), 'Teilnehmerliste kopiert.'); } }) : null]),
+      r.isPast ? h('p', { class: 'hint', text: 'Die Veranstaltung hat begonnen oder ist vorbei.' }) : null]));
+    result.appendChild(h('div', { style: 'margin-top:20px;display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-secondary', type: 'button', text: 'Anderen Code eingeben', onclick: function () { location.hash = '#/veranstaltung'; route(); } })]));
+  }
+  function lookup(c) { cf.busy('Wird gesucht …'); Api.eventLookup(c).then(show, function (er) { cf.fail(er); cf.form.hidden = false; }); }
+  var mine = myEvList();
+  if (mine.length) {
+    mineBox.appendChild(h('h2', { text: 'Auf diesem Gerät gespeichert', style: 'font-size:1.25rem;margin-bottom:12px' }));
+    var ul = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
+    mine.forEach(function (m) {
+      ul.appendChild(h('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px' }, [h('div', { style: 'flex:1 1 240px;min-width:0' }, [h('b', { text: m.title, style: 'overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(m.date) + ', ' + m.start + ' Uhr · Code ' + m.code })]),
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Öffnen', onclick: function () { lookup(m.code); } }),
+        h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Vergessen', onclick: function () { forgetMyEv(m.code); location.hash = '#/veranstaltung'; route(); } })]));
+    });
+    mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
+  }
+  wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Veranstaltung</span>' }));
+  wrap.appendChild(h('p', { class: 'lead', text: 'Du hast eine Veranstaltung angeboten? Mit dem Veranstaltungscode siehst du, wer sich angemeldet hat. Änderungen oder Absagen der Veranstaltung übernimmt die Administration.' }));
+  wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
+  if (q.code) lookup(q.code);
   return root;
 }
 
@@ -1109,7 +1228,7 @@ function viewAdmin() {
             del._c = true; del.textContent = 'Wirklich löschen?'; setTimeout(function () { del._c = false; del.textContent = 'Löschen'; }, 4000);
           });
           tb.appendChild(h('tr', { class: past ? 'past' : '' }, [
-            h('td', null, [h('b', { text: e.title, style: 'overflow-wrap:anywhere' }), h('div', null, [e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null])]),
+            h('td', null, [h('b', { text: e.title, style: 'overflow-wrap:anywhere' }), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null, h('div', null, [e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null])]),
             h('td', { text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) }),
             h('td', null, [CAT_LABEL[e.category], h('div', { class: 'hint', text: e.type + ' \u00b7 ' + e.topic })]),
             h('td', null, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
@@ -1303,7 +1422,7 @@ function viewAdmin() {
 }
 
 /* ====================================================== Rahmen, Routing */
-var NAV = [['/', 'Katalog'], ['/anbieten', 'Veranstaltung anbieten'], ['/anmeldung', 'Meine Anmeldung'], ['/handbuch', 'Handbuch'], ['/admin', 'Admin']];
+var NAV = [['/', 'Katalog'], ['/anbieten', 'Veranstaltung anbieten'], ['/anmeldung', 'Meine Anmeldung'], ['/veranstaltung', 'Meine Veranstaltung'], ['/handbuch', 'Handbuch'], ['/admin', 'Admin']];
 function applyTitle() {
   var t = state.settings.appTitle || DEFAULT_TITLE;
   document.title = t; var n = $('.brand .name'); if (n) n.innerHTML = appTitleHtml(t);
@@ -1337,6 +1456,7 @@ function route() {
   switch (r.path) {
     case '/anbieten': node = viewCreate(); break;
     case '/anmeldung': case '/stornieren': node = viewMine(r.q); break;
+    case '/veranstaltung': node = viewMyEvent(r.q); break;
     case '/handbuch': node = viewManual(); break;
     case '/admin': node = viewAdmin(); break;
     default: r.path = '/'; node = viewCatalog();

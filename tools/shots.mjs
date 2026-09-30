@@ -20,7 +20,7 @@ await p.locator('.modal').screenshot({ path: path.join(out, 'buchung.jpg'), type
 await p.click('.modal button[type=submit]'); await p.waitForSelector('.modal .code'); await p.waitForTimeout(200);
 await p.locator('.modal').screenshot({ path: path.join(out, 'angemeldet.jpg'), type: 'jpeg', quality: 80 });
 await p.keyboard.press('Escape'); await p.setViewportSize({ width: 1280, height: 860 });
-await go('#/anmeldung'); await p.waitForSelector('#x-code'); await p.fill('#x-code', 'K7M2-QX9P'); await p.fill('#x-mail', 'erika.mustermann@example.org');
+await go('#/anmeldung'); await p.waitForSelector('#x-code'); await p.fill('#x-code', 'K7M2-QX9P');
 await shot('stornieren', { clip: { x: 0, y: 0, width: 1280, height: 860 } });
 await go('#/anbieten'); await p.waitForSelector('#f-title');
 await p.fill('#f-title', 'Erfolgreich im Erstgespräch'); await p.fill('#f-host', 'Anna Berger');

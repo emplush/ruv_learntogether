@@ -5,7 +5,7 @@
 1. Inhalt des Ordners `IIS/` in ein Verzeichnis des Webservers kopieren (als Site oder Anwendung).
 2. Dem Anwendungspool-Benutzer (z. B. `IIS AppPool\<Pool>`) **Ändern-Rechte** auf `AppData\Data` geben. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder als JSON-/Bilddateien.
 3. `index.html` aufrufen. Admin: Navigation „Admin“, Standardpasswort `RuVTest1234`, bitte sofort unter *Einstellungen* ändern.
-4. Die Anwendung **verschickt keine E-Mails**. Teilnahme-Angaben (Teams-Link, Kalendereintrag, Stornierungscode) zeigt sie direkt nach der Anmeldung und unter „Meine Anmeldung“.
+4. Die Anwendung **verschickt keine E-Mails**. Teilnahme-Angaben (Teams-Link, Kalenderdatei, Buchungscode) zeigt sie direkt nach der Anmeldung und unter „Meine Anmeldung“.
 
 **Hinweise**
 - `AppData\Data` ist per `hiddenSegments` (web.config) nicht per HTTP abrufbar. `settings.json` enthält u. a. den Hash des Admin-Passworts; Zugriffsrechte im Dateisystem entsprechend beschränken.

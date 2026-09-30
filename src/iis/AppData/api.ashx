@@ -24,6 +24,7 @@ namespace LearnTogether
         public string title { get; set; }
         public string host { get; set; }
         public string hostEmail { get; set; }
+        public string code { get; set; }
         public string category { get; set; }
         public string type { get; set; }
         public string topic { get; set; }
@@ -140,6 +141,7 @@ namespace LearnTogether
                     case "book": Book(); break;
                     case "cancel": Cancel(); break;
                     case "lookup": Lookup(); break;
+                    case "eventLookup": EventLookup(); break;
                     case "login": Login(); break;
                     default:
                         RequireAdmin();
@@ -635,8 +637,9 @@ namespace LearnTogether
                 if (img.Length > 0) StoreImage(ev, img);
                 DataFile d = LoadData();
                 d.events.Add(ev);
+                EnsureEventCodes(d);
                 SaveData(d);
-                Send(new { ok = true, id = ev.id });
+                Send(new { ok = true, id = ev.id, code = ev.code });
             }
         }
 
@@ -677,33 +680,99 @@ namespace LearnTogether
             return d;
         }
 
+        // Anmeldung zu einem Buchungscode: Teilnahme-Angaben inkl. Teams-Link
         void Lookup()
         {
             Dictionary<string, object> b = Body();
-            string code = NormCode(S(b, "code")), email = S(b, "email").ToLowerInvariant();
+            string code = NormCode(S(b, "code"));
+            CodeGuardCheck();
             BookingRec bk; EventRec ev;
             lock (Gate)
             {
                 DataFile d = LoadData();
-                bk = code.Length == 0 ? null : d.bookings.Find(delegate (BookingRec x) { return NormCode(x.code) == code && x.email == email; });
+                bk = code.Length < 8 ? null : d.bookings.Find(delegate (BookingRec x) { return NormCode(x.code) == code; });
                 ev = bk == null ? null : d.events.Find(delegate (EventRec x) { return x.id == bk.eventId; });
             }
             if (bk == null || ev == null)
             {
-                Thread.Sleep(300);
-                throw new ApiException("notfound", "Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte pr\u00fcfe Code und E-Mail-Adresse.");
+                CodeGuardFail();
+                throw new ApiException("notfound", "Zu diesem Buchungscode wurde keine Anmeldung gefunden. Bitte pr\u00fcfe die Eingabe.");
             }
             Send(new { ok = true, code = bk.code, name = bk.name, email = bk.email, eventInfo = EventDetail(ev), canCancel = StartOfSafe(ev.date, ev.start) > NowBerlin() });
         }
 
-        static string NewCode()
+        // Veranstaltungscode: Die anbietende Person sieht ihre Veranstaltung und die aktuelle Teilnehmerliste (nur Namen)
+        void EventLookup()
+        {
+            Dictionary<string, object> b = Body();
+            string code = NormCode(S(b, "code"));
+            CodeGuardCheck();
+            lock (Gate)
+            {
+                DataFile d = LoadData();
+                if (EnsureEventCodes(d)) SaveData(d);
+                EventRec ev = code.Length < 10 ? null : d.events.Find(delegate (EventRec x) { return NormCode(x.code) == code; });
+                if (ev == null) { CodeGuardFail(); throw new ApiException("notfound", "Zu diesem Veranstaltungscode wurde keine Veranstaltung gefunden. Bitte pr\u00fcfe die Eingabe."); }
+                List<object> people = new List<object>();
+                foreach (BookingRec bk in d.bookings)
+                    if (bk.eventId == ev.id) people.Add(new { name = bk.name, created = bk.created });
+                Dictionary<string, object> info = EventDetail(ev);
+                info["booked"] = people.Count;
+                Send(new { ok = true, code = ev.code, eventInfo = info, capacity = ev.capacity, participants = people, isPast = StartOfSafe(ev.date, ev.start) <= NowBerlin() });
+            }
+        }
+
+        // Zufallscode aus eindeutigen Zeichen, in der Mitte mit Bindestrich: 8 Zeichen (Buchungscode) bzw. 10 (Veranstaltungscode)
+        static string NewCode() { return NewCode(8); }
+        static string NewCode(int len)
         {
             const string alpha = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-            byte[] b = new byte[8];
+            byte[] b = new byte[len];
             using (RandomNumberGenerator rng = RandomNumberGenerator.Create()) { rng.GetBytes(b); }
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 8; i++) { if (i == 4) sb.Append('-'); sb.Append(alpha[b[i] % alpha.Length]); }
+            for (int i = 0; i < len; i++) { if (i == len / 2) sb.Append('-'); sb.Append(alpha[b[i] % alpha.Length]); }
             return sb.ToString();
+        }
+
+        static readonly Dictionary<string, int[]> CodeFails = new Dictionary<string, int[]>();
+
+        // Bremst das Raten von Codes: nach 10 Fehlversuchen in 10 Minuten 5 Minuten Sperre pro Adresse
+        void CodeGuardCheck()
+        {
+            string ip = ctx.Request.UserHostAddress ?? "?";
+            lock (CodeFails)
+            {
+                int[] f;
+                if (CodeFails.TryGetValue(ip, out f) && f[0] >= 10 && Environment.TickCount - f[1] < 5 * 60 * 1000)
+                    throw new ApiException("locked", "Zu viele Fehlversuche. Bitte warte f\u00fcnf Minuten und versuche es dann erneut.");
+            }
+        }
+
+        void CodeGuardFail()
+        {
+            string ip = ctx.Request.UserHostAddress ?? "?";
+            lock (CodeFails)
+            {
+                int[] f;
+                if (!CodeFails.TryGetValue(ip, out f) || Environment.TickCount - f[1] > 10 * 60 * 1000) f = new int[] { 0, 0 };
+                f[0]++; f[1] = Environment.TickCount;
+                CodeFails[ip] = f;
+            }
+            Thread.Sleep(300);
+        }
+
+        // Vergibt fehlende Veranstaltungscodes (aeltere Veranstaltungen); true, wenn etwas geaendert wurde
+        static bool EnsureEventCodes(DataFile d)
+        {
+            bool changed = false;
+            foreach (EventRec e in d.events)
+            {
+                if (!string.IsNullOrEmpty(e.code)) continue;
+                string c;
+                do { c = NewCode(10); } while (d.events.Exists(delegate (EventRec x) { return x.code == c; }));
+                e.code = c; changed = true;
+            }
+            return changed;
         }
 
         static string NormCode(string c) { return Regex.Replace((c ?? "").ToUpperInvariant(), "[^A-Z0-9]", ""); }
@@ -711,12 +780,13 @@ namespace LearnTogether
         void Cancel()
         {
             Dictionary<string, object> b = Body();
-            string code = NormCode(S(b, "code")), email = S(b, "email").ToLowerInvariant();
+            string code = NormCode(S(b, "code"));
+            CodeGuardCheck();
             lock (Gate)
             {
                 DataFile d = LoadData();
-                BookingRec bk = d.bookings.Find(delegate (BookingRec x) { return NormCode(x.code) == code && x.email == email; });
-                if (bk == null || code.Length == 0) throw new ApiException("notfound", "Zu diesen Angaben wurde keine Anmeldung gefunden. Bitte pr\u00fcfe Code und E-Mail-Adresse.");
+                BookingRec bk = code.Length < 8 ? null : d.bookings.Find(delegate (BookingRec x) { return NormCode(x.code) == code; });
+                if (bk == null) { CodeGuardFail(); throw new ApiException("notfound", "Zu diesem Buchungscode wurde keine Anmeldung gefunden. Bitte pr\u00fcfe die Eingabe."); }
                 EventRec ev = d.events.Find(delegate (EventRec x) { return x.id == bk.eventId; });
                 if (ev != null && StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Die Veranstaltung hat bereits begonnen. Eine Stornierung ist nicht mehr m\u00f6glich.");
                 d.bookings.Remove(bk);
@@ -732,9 +802,11 @@ namespace LearnTogether
             lock (Gate)
             {
                 DataFile d = LoadData();
+                if (EnsureEventCodes(d)) SaveData(d);
                 foreach (EventRec e in d.events)
                 {
                     Dictionary<string, object> x = PublicEvent(e, 0);
+                    x["code"] = e.code;
                     x["teamsLink"] = e.teamsLink;
                     x["hostEmail"] = e.hostEmail ?? "";
                     List<object> bl = new List<object>();
@@ -767,8 +839,9 @@ namespace LearnTogether
                 if (img.Length > 0) StoreImage(ev, img);
                 else if (B(e, "removeImage")) { DeleteImageFiles(ev.id); ev.hasImage = false; }
                 if (isNew) d.events.Add(ev);
+                EnsureEventCodes(d);
                 SaveData(d);
-                Send(new { ok = true, id = ev.id });
+                Send(new { ok = true, id = ev.id, code = ev.code });
             }
         }
 
@@ -1018,6 +1091,7 @@ namespace LearnTogether
                             d.bookings.Add(bk); nb++;
                         }
                 }
+                EnsureEventCodes(d);
                 SaveData(d);
                 Send(new { ok = true, events = ne, bookings = nb });
             }
