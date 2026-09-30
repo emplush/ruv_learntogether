@@ -308,3 +308,24 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .stage-prev { --bg: #001957; --surface: #143a86; --accent: #f79506; background: var(--bg); color: #fff; border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .stage-prev b { color: var(--accent); font-size: 1.15rem; }
 .stage-prev .sw { background: var(--surface); border-radius: 8px; padding: 6px 12px; font-size: .9rem; }
+
+/* Admin: Navigation links, Inhalt rechts */
+.admin-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 16px; }
+.admin-nav { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 20px; }
+.admin-grp { display: flex; flex-direction: column; gap: 2px; }
+.admin-grp h3 { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 4px 12px; }
+.admin-nav button { font: inherit; font-weight: 600; text-align: left; background: none; border: 0; color: var(--text); padding: 9px 12px; border-radius: 10px; cursor: pointer; }
+.admin-nav button:hover { background: var(--surface); }
+.admin-nav button[aria-current="page"] { background: var(--blue); color: #fff; }
+:root[data-theme="dark"] .admin-nav button[aria-current="page"] { background: var(--mint); color: var(--on-mint); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .admin-nav button[aria-current="page"] { background: var(--mint); color: var(--on-mint); } }
+.admin-title { font-size: 1.5rem; margin-bottom: 20px; }
+@media (max-width: 900px) {
+  .admin-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .admin-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px 20px; }
+  .admin-grp { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; }
+  .admin-grp h3 { margin: 0 6px 0 0; }
+}
+.hero-prev { display: block; padding: 24px; }
+.hero-prev .ph-t { color: #f79506; font-size: 1.6rem; font-weight: 800; line-height: 1.2; }
+.hero-prev .ph-x { margin-top: 8px; color: var(--muted); }

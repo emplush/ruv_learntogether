@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.6.0 (30.09.2026)
+- Admin neu gegliedert: Navigation links mit vier Gruppen (Übersicht, Katalog, E-Mail, System) und neun Bereichen, es wird immer nur ein Bereich angezeigt. Themenbereiche einzeln umschaltbar.
+- Überschrift und Hinweistext im Katalog im Admin änderbar (Bereich „Texte“, mit Vorschau und Standardtexten).
+- Einstellungen werden teilweise gespeichert (Server: nur mitgesendete Felder).
+
 ## 0.5.0 (30.09.2026)
 - Teilnehmendenzahl höchstens 50 (Formular, Server, Admin).
 - Admin: Hauptfarbe je Themenbereich einstellbar (mit Vorschau, Kontrollprüfung auf Lesbarkeit, Standardwert); neuer Reiter „Arten“ zum Hinzufügen, Umbenennen und Löschen (nur unbenutzte) der Veranstaltungsarten.

@@ -80,6 +80,8 @@ namespace LearnTogether
         public List<string> types { get; set; }
         public string colorDienstlich { get; set; }
         public string colorPrivat { get; set; }
+        public string heroTitle { get; set; }
+        public string heroText { get; set; }
         public SettingsRec()
         {
             appTitle = "LearnTogether@AD";
@@ -100,6 +102,8 @@ namespace LearnTogether
             types = new List<string>(new string[] { "Workshop", "Austausch", "Best Practice" });
             colorDienstlich = "#001957";
             colorPrivat = "#583720";
+            heroTitle = "Voneinander lernen. Miteinander wachsen.";
+            heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du wei\u00dft. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
         }
     }
 
@@ -149,7 +153,7 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": Send(new { ok = true, server = true, version = Version, mailConfigured = MailConfigured(LoadSettings()) }); break;
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), types = ps.types }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "createEvent": CreateEvent(); break;
@@ -1063,25 +1067,39 @@ namespace LearnTogether
             }
         }
 
+        // Jeder Teil ist optional: nur mitgesendete Felder werden geaendert.
         void AdminSaveSettings()
         {
             Dictionary<string, object> b = Body();
             lock (Gate)
             {
                 SettingsRec s = LoadSettings();
-                string title = S(b, "appTitle");
-                if (title.Length < 2 || title.Length > 60) throw new ApiException("invalid", "Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.");
-                s.appTitle = title;
-                s.baseUrl = S(b, "baseUrl");
-                s.smtpHost = S(b, "smtpHost");
-                int port = I(b, "smtpPort"); s.smtpPort = port > 0 ? port : 25;
-                s.smtpSsl = B(b, "smtpSsl");
-                s.smtpUser = S(b, "smtpUser");
-                if (b.ContainsKey("smtpPassword") && S(b, "smtpPassword").Length > 0) s.smtpPassword = S(b, "smtpPassword");
-                if (B(b, "clearSmtpPassword")) s.smtpPassword = "";
-                s.mailFrom = S(b, "mailFrom");
-                s.mailFromName = S(b, "mailFromName");
-                if (s.mailFrom.Length > 0 && !ValidEmail(s.mailFrom)) throw new ApiException("invalid", "Die Absenderadresse ist ung\u00fcltig.");
+                if (b.ContainsKey("appTitle"))
+                {
+                    string title = S(b, "appTitle");
+                    if (title.Length < 2 || title.Length > 60) throw new ApiException("invalid", "Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.");
+                    s.appTitle = title;
+                }
+                if (b.ContainsKey("baseUrl")) s.baseUrl = S(b, "baseUrl");
+                if (b.ContainsKey("heroTitle") || b.ContainsKey("heroText"))
+                {
+                    string ht = S(b, "heroTitle"), hx = S(b, "heroText");
+                    if (ht.Length < 3 || ht.Length > 80) throw new ApiException("invalid", "Die \u00dcberschrift muss zwischen 3 und 80 Zeichen lang sein.");
+                    if (hx.Length < 10 || hx.Length > 500) throw new ApiException("invalid", "Der Hinweistext muss zwischen 10 und 500 Zeichen lang sein.");
+                    s.heroTitle = ht; s.heroText = hx;
+                }
+                if (b.ContainsKey("smtpHost"))
+                {
+                    s.smtpHost = S(b, "smtpHost");
+                    int port = I(b, "smtpPort"); s.smtpPort = port > 0 ? port : 25;
+                    s.smtpSsl = B(b, "smtpSsl");
+                    s.smtpUser = S(b, "smtpUser");
+                    if (b.ContainsKey("smtpPassword") && S(b, "smtpPassword").Length > 0) s.smtpPassword = S(b, "smtpPassword");
+                    if (B(b, "clearSmtpPassword")) s.smtpPassword = "";
+                    s.mailFrom = S(b, "mailFrom");
+                    s.mailFromName = S(b, "mailFromName");
+                    if (s.mailFrom.Length > 0 && !ValidEmail(s.mailFrom)) throw new ApiException("invalid", "Die Absenderadresse ist ung\u00fcltig.");
+                }
                 SaveSettings(s);
             }
             Send(new { ok = true });

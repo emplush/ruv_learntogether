@@ -71,6 +71,8 @@ var sess = {
 /* ====================================================== Fachliche Konstanten & Datum */
 var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
 var MAX_CAP = 50;
+var DEFAULT_HERO = { title: 'Voneinander lernen. Miteinander wachsen.', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
+var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
 var COLORS = { dienstlich: '#001957', privat: '#583720' };
 var TOPICS = { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] };
 var CAT_LABEL = { dienstlich: 'Dienstlich', privat: 'Privat' };
@@ -83,6 +85,7 @@ function applyTaxonomy(t) {
     if (t.colors && t.colors[c]) COLORS[c] = t.colors[c];
   });
   if (t.types && t.types.length) TYPES = t.types.slice();
+  if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
 }
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 function hexRgb(x) { return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }); }
@@ -273,7 +276,7 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, types: j.types }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, types: j.types, hero: j.hero }; }); },
   adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, types: j.types }; }); },
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
@@ -303,6 +306,7 @@ var Local = (function () {
     if (!cfg) cfg = { appTitle: DEFAULT_TITLE, pw: 'RuVTest1234' };
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
+    if (!cfg.hero) cfg.hero = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
     if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     applyTaxonomy(cfg);
@@ -332,7 +336,7 @@ var Local = (function () {
   }
   function wrap(fn) { return new Promise(function (res, rej) { try { load(); res(fn()); } catch (e) { rej(e); } }); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types, hero: cfg.hero }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
         function names(list, what, max, old, usedFn, map) {
@@ -408,7 +412,18 @@ var Local = (function () {
     adminDeleteEvent: function (id) { return wrap(function () { data.events = data.events.filter(function (e) { return e.id !== id; }); data.bookings = data.bookings.filter(function (b) { return b.eventId !== id; }); save(); return {}; }); },
     adminDeleteBooking: function (id) { return wrap(function () { data.bookings = data.bookings.filter(function (b) { return b.id !== id; }); save(); return {}; }); },
     adminSettings: function () { return wrap(function () { return { appTitle: cfg.appTitle, baseUrl: '', smtpHost: '', smtpPort: 25, smtpSsl: false, smtpUser: '', smtpPasswordSet: false, mailFrom: '', mailFromName: '', mailConfigured: false, local: true }; }); },
-    adminSaveSettings: function (s) { return wrap(function () { var t = (s.appTitle || '').trim(); if (t.length < 2 || t.length > 60) throw ApiErr('invalid', 'Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.'); cfg.appTitle = t; save(); return {}; }); },
+    adminSaveSettings: function (s) {
+      return wrap(function () {
+        if ('appTitle' in s) { var t = (s.appTitle || '').trim(); if (t.length < 2 || t.length > 60) throw ApiErr('invalid', 'Der Titel der Anwendung muss zwischen 2 und 60 Zeichen lang sein.'); cfg.appTitle = t; }
+        if ('heroTitle' in s || 'heroText' in s) {
+          var ht = (s.heroTitle || '').trim(), hx = (s.heroText || '').trim();
+          if (ht.length < 3 || ht.length > 80) throw ApiErr('invalid', 'Die Überschrift muss zwischen 3 und 80 Zeichen lang sein.');
+          if (hx.length < 10 || hx.length > 500) throw ApiErr('invalid', 'Der Hinweistext muss zwischen 10 und 500 Zeichen lang sein.');
+          cfg.hero = { title: ht, text: hx }; applyTaxonomy(cfg);
+        }
+        save(); return {};
+      });
+    },
     adminChangePassword: function (c, n) { return wrap(function () { if (c !== cfg.pw) throw ApiErr('password', 'Das aktuelle Passwort ist nicht korrekt.'); if (n.length < 8) throw ApiErr('invalid', 'Das neue Passwort muss mindestens 8 Zeichen lang sein.'); cfg.pw = n; save(); }); },
     adminTestData: function (m) { return wrap(function () { data.events = data.events.filter(function (e) { return !e.isTest; }); data.bookings = data.bookings.filter(function (b) { return !b.isTest; }); var r = { events: 0, bookings: 0 }; if (m === 'load') { var t = insertTest(); r.events = t.events.length; r.bookings = t.bookings.length; } save(); return r; }); },
     adminMailLog: function () { return wrap(function () { return mail; }); },
@@ -737,8 +752,8 @@ function viewCatalog() {
   search.addEventListener('input', function () { filters.q = search.value; renderRows(); });
   durSel.addEventListener('change', function () { filters.dur = durSel.value; renderRows(); });
 
-  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: 'Voneinander lernen. Miteinander wachsen.' }),
-    h('p', { text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' }),
+  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: HERO.title }),
+    h('p', { text: HERO.text }),
     h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' }))])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [switchSeg, h('div', { class: 'search', html: ico('search') }, search)]),
@@ -928,16 +943,31 @@ function viewAdmin() {
     wrap.appendChild(h('p', { class: 'lead', text: 'Dieser Bereich ist passwortgeschützt. Hier verwaltest du Veranstaltungen, Anmeldungen und Einstellungen.' }));
     wrap.appendChild(form); pw.focus();
   }
-  var tab = 'events';
+  var SECTIONS = [
+    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen']]],
+    ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung']]],
+    ['E-Mail', [['mailsetup', 'Versand', 'E-Mail-Versand'], ['maillog', 'Protokoll', 'E-Mail-Protokoll']]],
+    ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten']]]
+  ];
+  var section = sess.get('lt_admin_sec') || 'events';
   function panel() {
     clear(wrap);
     wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('h1', { text: 'Administration', style: 'flex:1' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
-    var tabs = h('div', { class: 'tabs', role: 'tablist' }), content = h('div');
-    [['events', 'Veranstaltungen'], ['taxonomy', 'Themen'], ['types', 'Arten'], ['settings', 'Einstellungen'], ['testdata', 'Testdaten'], ['mail', 'E-Mail-Protokoll']].forEach(function (t) {
-      var b = h('button', { role: 'tab', type: 'button', text: t[1], 'aria-selected': String(tab === t[0]), onclick: function () { tab = t[0]; $$('button', tabs).forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); }); draw(); } }); tabs.appendChild(b);
+    var nav = h('nav', { class: 'admin-nav', 'aria-label': 'Bereiche der Administration' }), content = h('div', { class: 'admin-content' }), head = h('h2', { class: 'admin-title' }), body = h('div');
+    content.appendChild(head); content.appendChild(body);
+    SECTIONS.forEach(function (g) {
+      nav.appendChild(h('div', { class: 'admin-grp' }, [h('h3', { text: g[0] })].concat(g[1].map(function (it) {
+        return h('button', { type: 'button', text: it[1], 'data-sec': it[0], 'aria-current': section === it[0] ? 'page' : null, onclick: function () { section = it[0]; sess.set('lt_admin_sec', section); $$('button', nav).forEach(function (x) { if (x.getAttribute('data-sec') === section) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current'); }); draw(); } });
+      }))));
     });
-    wrap.appendChild(tabs); wrap.appendChild(content);
-    function draw() { clear(content); content.appendChild(loading()); var p = tab === 'events' ? adminEvents() : tab === 'taxonomy' ? adminTaxonomy() : tab === 'types' ? adminTypes() : tab === 'settings' ? adminSettings() : tab === 'testdata' ? adminTest() : adminMail(); p.then(function (n) { clear(content); content.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(content); content.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
+    wrap.appendChild(h('div', { class: 'admin-layout' }, [nav, content]));
+    function draw() {
+      var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
+      if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
+      head.textContent = meta[2]; clear(body); body.appendChild(loading());
+      var fn = { events: adminEvents, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, mailsetup: adminMailSetup, maillog: adminMail, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
+      fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
+    }
     draw();
   }
   function adminEvents() {
@@ -1017,7 +1047,8 @@ function viewAdmin() {
       var labels = { dienstlich: CAT_LABEL.dienstlich, privat: CAT_LABEL.privat }, colors = { dienstlich: COLORS.dienstlich, privat: COLORS.privat };
       var lists = {}; cats.forEach(function (c) { lists[c] = TOPICS[c].map(function (t) { return { name: t, orig: t }; }); });
       var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), flash = flasher(msg);
-      var host = h('div', { style: 'display:flex;flex-direction:column;gap:32px' });
+      var host = h('div', { style: 'display:flex;flex-direction:column;gap:32px' }), active = 'dienstlich', panels = {}, segBtns = {};
+      var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Themenbereich wählen' });
       cats.forEach(function (c) {
         var lab = h('input', { type: 'text', id: 'tx-l-' + c, value: labels[c], maxlength: '30' });
         lab.addEventListener('input', function () { labels[c] = lab.value; title.textContent = 'Themenbereich „' + labels[c] + '“'; });
@@ -1033,9 +1064,13 @@ function viewAdmin() {
         hex.addEventListener('input', function () { var v = hex.value.trim(); if (v && v[0] !== '#') v = '#' + v; colors[c] = v; if (/^#[0-9a-fA-F]{6}$/.test(v)) pick.value = v.toLowerCase(); paintPrev(); });
         paintPrev();
         var ed = listEditor(lists[c], function (orig) { return usage[c + '|' + orig] || 0; }, { label: 'Thema', ctx: function () { return 'im Themenbereich ' + labels[c]; }, addId: 'tx-a-' + c, addPlaceholder: 'Neues Thema', addText: 'Thema hinzufügen', max: 30, flash: flash });
-        host.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [title,
+        panels[c] = h('div', { class: 'panel', hidden: c !== active, style: 'display:flex;flex-direction:column;gap:16px' }, [title,
           h('div', { class: 'grid2' }, [field('Bezeichnung des Themenbereichs', lab, { id: 'tx-l-' + c, hint: 'Nur die Bezeichnung ist änderbar. Der Bereich selbst kann nicht gelöscht oder ergänzt werden.' }), fcol]), prev,
-          h('h3', { text: 'Themen' }), ed]));
+          h('h3', { text: 'Themen' }), ed]);
+        host.appendChild(panels[c]);
+        segBtns[c] = h('button', { type: 'button', text: labels[c], 'aria-pressed': String(c === active), onclick: function () { active = c; cats.forEach(function (k) { panels[k].hidden = k !== c; segBtns[k].setAttribute('aria-pressed', String(k === c)); }); } });
+        seg.appendChild(segBtns[c]);
+        lab.addEventListener('input', function () { segBtns[c].textContent = lab.value || c; });
       });
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Änderungen speichern' });
       save.addEventListener('click', function () {
@@ -1043,7 +1078,7 @@ function viewAdmin() {
         Api.adminSaveTaxonomy({ labels: labels, colors: colors, topics: lists }).then(function (r) { applyTaxonomy(r); toast('Themenbereiche gespeichert.'); return adminTaxonomy(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
       });
       var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
-        h('p', { class: 'lead', text: 'Hier passt du Bezeichnung, Farbe und Themen der beiden Themenbereiche an. Beim Umbenennen eines Themas werden bestehende Veranstaltungen automatisch angepasst. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet.' }), host, msg, h('div', null, save)]);
+        h('p', { class: 'lead', text: 'Hier passt du Bezeichnung, Farbe und Themen der beiden Themenbereiche an. Beim Umbenennen eines Themas werden bestehende Veranstaltungen automatisch angepasst. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet.' }), seg, host, msg, h('div', null, save)]);
       return self;
     });
   }
@@ -1064,39 +1099,73 @@ function viewAdmin() {
       return self;
     });
   }
-  function adminSettings() {
+  function inp(id, val, type, extra) { return h('input', Object.assign({ type: type || 'text', id: id, value: val == null ? '' : String(val) }, extra || {})); }
+  function boxMsg() { return h('div', { class: 'notice', hidden: true, role: 'status' }); }
+  function say(m, cls, text) { m.hidden = false; m.className = 'notice ' + cls; m.textContent = text; }
+  function adminTexts() {
+    return Promise.resolve().then(function () {
+      var t = inp('h-title', HERO.title, 'text', { maxlength: '80' }), x = h('textarea', { id: 'h-text', rows: '5', maxlength: '500' }); x.value = HERO.text;
+      var count = h('span', { class: 'hint' }), msg = boxMsg();
+      var prev = h('div', { class: 'stage-prev hero-prev', style: stageStyle(COLORS.dienstlich), 'aria-hidden': 'true' }, [h('div', { class: 'ph-t' }), h('div', { class: 'ph-x' })]);
+      function upd() { $('.ph-t', prev).textContent = t.value; $('.ph-x', prev).textContent = x.value; count.textContent = x.value.length + ' / 500 Zeichen'; }
+      t.addEventListener('input', upd); x.addEventListener('input', upd); upd();
+      var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Texte speichern' });
+      save.addEventListener('click', function () {
+        save.disabled = true;
+        Api.adminSaveSettings({ heroTitle: t.value, heroText: x.value }).then(function () { applyTaxonomy({ hero: { title: t.value.trim(), text: x.value.trim() } }); save.disabled = false; toast('Texte gespeichert.'); say(msg, 'ok', 'Die Texte sind im Katalog sichtbar.'); }, function (er) { save.disabled = false; say(msg, 'bad', er.message); });
+      });
+      var reset = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Standardtexte einsetzen', onclick: function () { t.value = DEFAULT_HERO.title; x.value = DEFAULT_HERO.text; upd(); } });
+      return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
+        h('p', { class: 'lead', text: 'Überschrift und Hinweistext oben im Katalog. Sie sind für alle Besucher sichtbar. Der Button „Selbst etwas anbieten“ bleibt bestehen.' }),
+        h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [field('Überschrift', t, { id: 'h-title', req: true, hint: 'Kurz und einladend, bis zu 80 Zeichen.' }), field('Hinweistext', x, { id: 'h-text', req: true, hint: 'Nenne, was es zu entdecken gibt, wie die Anmeldung geht und wann die Termine stattfinden (bis zu 500 Zeichen).' }), count]),
+        h('div', null, [h('h3', { text: 'Vorschau', style: 'margin-bottom:8px' }), prev]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [save, reset])]);
+    });
+  }
+  function adminGeneral() {
     return Api.adminSettings().then(function (s) {
       var isLocal = !!s.local;
-      function inp(id, val, type, extra) { return h('input', Object.assign({ type: type || 'text', id: id, value: val == null ? '' : String(val) }, extra || {})); }
       var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' }), base = inp('s-base', s.baseUrl, 'url', { placeholder: 'https://server.example.de/learntogether' });
-      var host = inp('s-host', s.smtpHost), port = inp('s-port', s.smtpPort, 'number'), user = inp('s-user', s.smtpUser), pass = inp('s-pass', '', 'password', { autocomplete: 'new-password', placeholder: s.smtpPasswordSet ? '(gespeichert, leer lassen zum Beibehalten)' : '' });
-      var ssl = h('input', { type: 'checkbox', id: 's-ssl', checked: !!s.smtpSsl }), from = inp('s-from', s.mailFrom, 'email'), fromName = inp('s-fromname', s.mailFromName);
-      var msg = h('div', { class: 'notice', hidden: true }), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Einstellungen speichern' });
-      var form = h('form', { class: 'form', style: 'gap:24px', novalidate: true }, [
-        h('fieldset', { class: 'fs' }, [h('legend', { text: 'Anwendung' }), h('div', { class: 'grid2' }, [field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }), isLocal ? null : field('Basis-Adresse der Anwendung', base, { id: 's-base', hint: 'Optional. Wird für den Stornierungslink in E-Mails verwendet. Leer lassen, um sie automatisch zu ermitteln.' })])]),
-        isLocal ? h('div', { class: 'notice info', text: 'Der E-Mail-Versand (SMTP) wird in der IIS-Version konfiguriert. Im Demo-Modus werden E-Mails nur simuliert.' }) :
-          h('fieldset', { class: 'fs' }, [h('legend', { text: 'E-Mail-Versand (SMTP)' }), h('div', { class: 'grid3' }, [field('SMTP-Server', host, { id: 's-host' }), field('Port', port, { id: 's-port' }), h('div', { class: 'field' }, [h('label', { for: 's-ssl', text: 'Verschlüsselung' }), h('label', { style: 'display:flex;gap:8px;align-items:center;min-height:46px;font-weight:400' }, [ssl, 'SSL/TLS verwenden'])])]), h('div', { class: 'grid2' }, [field('Benutzername', user, { id: 's-user' }), field('Passwort', pass, { id: 's-pass' })]), h('div', { class: 'grid2' }, [field('Absenderadresse', from, { id: 's-from', hint: 'Ohne Absenderadresse und Server werden keine E-Mails versendet.' }), field('Absendername', fromName, { id: 's-fromname' })])]),
-        msg, h('div', null, go)]);
+      var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Speichern' });
+      var form = h('form', { class: 'form panel', style: 'gap:20px;max-width:900px', novalidate: true }, [
+        h('div', { class: 'grid2' }, [field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }), isLocal ? null : field('Basis-Adresse der Anwendung', base, { id: 's-base', hint: 'Optional. Wird für den Stornierungslink in E-Mails verwendet. Leer lassen, um sie automatisch zu ermitteln.' })]), msg, h('div', null, go)]);
       form.addEventListener('submit', function (e) {
         e.preventDefault(); msg.hidden = true; go.disabled = true;
-        Api.adminSaveSettings({ appTitle: title.value, baseUrl: base.value, smtpHost: host.value, smtpPort: Number(port.value) || 25, smtpSsl: ssl.checked, smtpUser: user.value, smtpPassword: pass.value, mailFrom: from.value, mailFromName: fromName.value }).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); pass.value = ''; toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+        var p = { appTitle: title.value }; if (!isLocal) p.baseUrl = base.value;
+        Api.adminSaveSettings(p).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
       });
-      // Passwort
+      return form;
+    });
+  }
+  function adminMailSetup() {
+    return Api.adminSettings().then(function (s) {
+      if (s.local) return h('div', { class: 'notice info', style: 'max-width:900px', text: 'Der E-Mail-Versand (SMTP) wird in der IIS-Version konfiguriert. Im Demo-Modus werden E-Mails nur simuliert; das Ergebnis siehst du unter „Protokoll“.' });
+      var host = inp('s-host', s.smtpHost), port = inp('s-port', s.smtpPort, 'number'), user = inp('s-user', s.smtpUser), pass = inp('s-pass', '', 'password', { autocomplete: 'new-password', placeholder: s.smtpPasswordSet ? '(gespeichert, leer lassen zum Beibehalten)' : '' });
+      var ssl = h('input', { type: 'checkbox', id: 's-ssl', checked: !!s.smtpSsl }), from = inp('s-from', s.mailFrom, 'email'), fromName = inp('s-fromname', s.mailFromName);
+      var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Versand speichern' });
+      var form = h('form', { class: 'form panel', style: 'gap:20px', novalidate: true }, [
+        h('div', { class: 'grid3' }, [field('SMTP-Server', host, { id: 's-host' }), field('Port', port, { id: 's-port' }), h('div', { class: 'field' }, [h('label', { for: 's-ssl', text: 'Verschlüsselung' }), h('label', { style: 'display:flex;gap:8px;align-items:center;min-height:46px;font-weight:400' }, [ssl, 'SSL/TLS verwenden'])])]),
+        h('div', { class: 'grid2' }, [field('Benutzername', user, { id: 's-user' }), field('Passwort', pass, { id: 's-pass' })]),
+        h('div', { class: 'grid2' }, [field('Absenderadresse', from, { id: 's-from', hint: 'Ohne Absenderadresse und Server werden keine E-Mails versendet.' }), field('Absendername', fromName, { id: 's-fromname' })]), msg, h('div', null, go)]);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); msg.hidden = true; go.disabled = true;
+        Api.adminSaveSettings({ smtpHost: host.value, smtpPort: Number(port.value) || 25, smtpSsl: ssl.checked, smtpUser: user.value, smtpPassword: pass.value, mailFrom: from.value, mailFromName: fromName.value }).then(function () { go.disabled = false; pass.value = ''; toast('E-Mail-Versand gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
+      });
+      var to = inp('t-to', '', 'email', { placeholder: 'empfaenger@beispiel.de' }), tm = boxMsg();
+      var tbtn = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Testnachricht senden', onclick: function () { say(tm, 'info', 'Wird gesendet …'); Api.adminTestMail(to.value).then(function (r) { say(tm, r.ok ? 'ok' : 'bad', r.message); }, function (er) { say(tm, 'bad', er.message); }); } });
+      return h('div', { style: 'display:flex;flex-direction:column;gap:32px;max-width:900px' }, [form, h('div', null, [h('h3', { text: 'Versand testen', style: 'margin-bottom:12px' }), h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end' }, [field('Empfänger', to, { id: 't-to' }), tbtn]), tm])]);
+    });
+  }
+  function adminPassword() {
+    return Promise.resolve().then(function () {
       var cur = inp('p-cur', '', 'password', { autocomplete: 'current-password' }), n1 = inp('p-new', '', 'password', { autocomplete: 'new-password' }), n2 = inp('p-new2', '', 'password', { autocomplete: 'new-password' });
-      var pmsg = h('div', { class: 'notice', hidden: true }), pgo = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Passwort ändern' });
-      var pform = h('form', { class: 'form', style: 'gap:16px', novalidate: true }, [h('div', { class: 'grid3' }, [field('Aktuelles Passwort', cur, { id: 'p-cur', req: true }), field('Neues Passwort', n1, { id: 'p-new', req: true, hint: 'Mindestens 8 Zeichen.' }), field('Neues Passwort wiederholen', n2, { id: 'p-new2', req: true })]), pmsg, h('div', null, pgo)]);
+      var pmsg = boxMsg(), pgo = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Passwort ändern' });
+      var pform = h('form', { class: 'form panel', style: 'gap:16px;max-width:900px', novalidate: true }, [h('div', { class: 'grid3' }, [field('Aktuelles Passwort', cur, { id: 'p-cur', req: true }), field('Neues Passwort', n1, { id: 'p-new', req: true, hint: 'Mindestens 8 Zeichen.' }), field('Neues Passwort wiederholen', n2, { id: 'p-new2', req: true })]), pmsg, h('div', null, pgo)]);
       pform.addEventListener('submit', function (e) {
-        e.preventDefault(); pmsg.hidden = false;
-        if (n1.value !== n2.value) { pmsg.className = 'notice bad'; pmsg.textContent = 'Die beiden neuen Passwörter stimmen nicht überein.'; return; }
-        Api.adminChangePassword(cur.value, n1.value).then(function () { pmsg.className = 'notice ok'; pmsg.textContent = 'Das Passwort wurde geändert.'; cur.value = n1.value = n2.value = ''; }, function (er) { pmsg.className = 'notice bad'; pmsg.textContent = er.message; });
+        e.preventDefault();
+        if (n1.value !== n2.value) { say(pmsg, 'bad', 'Die beiden neuen Passwörter stimmen nicht überein.'); return; }
+        Api.adminChangePassword(cur.value, n1.value).then(function () { say(pmsg, 'ok', 'Das Passwort wurde geändert.'); cur.value = n1.value = n2.value = ''; }, function (er) { say(pmsg, 'bad', er.message); });
       });
-      var out = h('div', { style: 'display:flex;flex-direction:column;gap:40px' }, [form, h('div', null, [h('h2', { text: 'Admin-Passwort', style: 'margin-bottom:12px;color:var(--accent);font-size:1.25rem' }), pform])]);
-      if (!isLocal) {
-        var to = inp('t-to', '', 'email', { placeholder: 'empfaenger@beispiel.de' }), tm = h('div', { class: 'notice', hidden: true });
-        var tbtn = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Testnachricht senden', onclick: function () { tm.hidden = false; tm.className = 'notice info'; tm.textContent = 'Wird gesendet …'; Api.adminTestMail(to.value).then(function (r) { tm.className = 'notice ' + (r.ok ? 'ok' : 'bad'); tm.textContent = r.message; }, function (er) { tm.className = 'notice bad'; tm.textContent = er.message; }); } });
-        out.insertBefore(h('div', null, [h('h2', { text: 'E-Mail-Versand testen', style: 'margin-bottom:12px;color:var(--accent);font-size:1.25rem' }), h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end' }, [field('Empfänger', to, { id: 't-to' }), tbtn]), tm]), out.lastChild);
-      }
-      return out;
+      return pform;
     });
   }
   function adminTest(flash) {
