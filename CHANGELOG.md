@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.7.1 (30.09.2026)
+- web.config: Browser-Cache für statische Dateien deaktiviert, damit Updates (z. B. index.html) sofort sichtbar sind.
+
 ## 0.7.0 (30.09.2026)
 - Katalog: mehr Abstand und Trennlinie zwischen Kopfbereich und Filtern; Hinweistext läuft breiter (bis ca. 96 Zeichen).
 - Arten: bis zu 50 statt 10; alphabetisch aufsteigend im Katalog, im Formular und beim Neuladen im Admin.
