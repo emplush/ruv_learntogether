@@ -348,6 +348,8 @@ var Server = {
   adminDeleteMailLog: function (id) { return this.call('adminDeleteMailLog', { id: id }, true); },
   adminClearMailLog: function () { return this.call('adminClearMailLog', {}, true); },
   adminMailLog: function () { return this.call('adminMailLog', null, true).then(function (j) { return j.log; }); },
+  adminResendMail: function (id) { return this.call('adminResendMail', { id: id }, true); },
+  adminMailEml: function (id) { return fetch(API + '?action=adminMailEml&id=' + encodeURIComponent(id), { headers: { 'X-Admin-Token': adminToken }, cache: 'no-store' }).then(function (r) { if (!r.ok && r.status !== 200) throw ApiErr('server', 'Die Datei konnte nicht geladen werden.'); var ct = r.headers.get('Content-Type') || ''; if (ct.indexOf('json') >= 0) return r.json().then(function (j) { throw ApiErr(j.error, j.message); }); return r.blob(); }); },
   adminTestMail: function (to) { return this.call('adminTestMail', { to: to }, true); }
 };
 
@@ -1251,21 +1253,31 @@ function viewAdmin() {
   }
   function adminMailSetup() {
     return Api.adminSettings().then(function (s) {
-      if (s.local) return h('div', { class: 'notice info', style: 'max-width:900px', text: 'Der E-Mail-Versand (SMTP) wird in der IIS-Version konfiguriert. Im Demo-Modus werden E-Mails nur simuliert; das Ergebnis siehst du unter „Protokoll“.' });
+      if (s.local) return h('div', { class: 'notice info', style: 'max-width:900px', text: 'Der E-Mail-Versand wird in der IIS-Version konfiguriert. Im Demo-Modus werden E-Mails nur simuliert; das Ergebnis siehst du unter „Protokoll“.' });
+      var method = h('select', { id: 's-method' }, [['smtp', 'SMTP-Server (Netzwerk)'], ['iis', 'Lokaler IIS-SMTP-Dienst (Pickup)'], ['folder', 'Nur als .eml-Dateien in einen Ordner speichern']].map(function (o) { return h('option', { value: o[0], text: o[1], selected: (s.smtpMethod || 'smtp') === o[0] }); }));
       var host = inp('s-host', s.smtpHost), port = inp('s-port', s.smtpPort, 'number'), user = inp('s-user', s.smtpUser), pass = inp('s-pass', '', 'password', { autocomplete: 'new-password', placeholder: s.smtpPasswordSet ? '(gespeichert, leer lassen zum Beibehalten)' : '' });
-      var ssl = h('input', { type: 'checkbox', id: 's-ssl', checked: !!s.smtpSsl }), from = inp('s-from', s.mailFrom, 'email'), fromName = inp('s-fromname', s.mailFromName);
+      var ssl = h('input', { type: 'checkbox', id: 's-ssl', checked: !!s.smtpSsl }), win = h('input', { type: 'checkbox', id: 's-win', checked: !!s.smtpWinAuth }), from = inp('s-from', s.mailFrom, 'email'), fromName = inp('s-fromname', s.mailFromName);
+      var folder = inp('s-folder', s.mailFolder, 'text', { placeholder: 'leer = AppData\\Data\\mail-out' });
       var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Versand speichern' });
-      var form = h('form', { class: 'form panel', style: 'gap:20px', novalidate: true }, [
-        h('div', { class: 'grid3' }, [field('SMTP-Server', host, { id: 's-host' }), field('Port', port, { id: 's-port' }), h('div', { class: 'field' }, [h('label', { for: 's-ssl', text: 'Verschlüsselung' }), h('label', { style: 'display:flex;gap:8px;align-items:center;min-height:46px;font-weight:400' }, [ssl, 'SSL/TLS verwenden'])])]),
+      var smtpBox = h('div', { style: 'display:flex;flex-direction:column;gap:20px' }, [
+        h('div', { class: 'grid3' }, [field('SMTP-Server', host, { id: 's-host', hint: 'Name oder IP-Adresse.' }), field('Port', port, { id: 's-port', hint: '25 (ohne Verschlüsselung) oder 587 (STARTTLS). Port 465 wird nicht unterstützt.' }), h('div', { class: 'field' }, [h('label', { for: 's-ssl', text: 'Verschlüsselung' }), h('label', { style: 'display:flex;gap:8px;align-items:center;min-height:46px;font-weight:400' }, [ssl, 'SSL/TLS (STARTTLS) verwenden'])])]),
         h('div', { class: 'grid2' }, [field('Benutzername', user, { id: 's-user' }), field('Passwort', pass, { id: 's-pass' })]),
-        h('div', { class: 'grid2' }, [field('Absenderadresse', from, { id: 's-from', hint: 'Ohne Absenderadresse und Server werden keine E-Mails versendet.' }), field('Absendername', fromName, { id: 's-fromname' })]), msg, h('div', null, go)]);
+        h('label', { style: 'display:flex;gap:8px;align-items:center;font-weight:400' }, [win, 'Stattdessen Windows-Anmeldung des Anwendungspools verwenden (für interne Exchange-Server)'])]);
+      var folderBox = field('Ordner für .eml-Dateien', folder, { id: 's-folder', hint: 'Jede Mail wird als Datei abgelegt. Diese lassen sich in Outlook öffnen und versenden, oder ein Dienst holt sie dort ab. Der Anwendungspool braucht Schreibrechte.' });
+      var iisNote = h('div', { class: 'notice info', text: 'Die Mails werden dem lokal installierten SMTP-Dienst des IIS übergeben (Pickup-Verzeichnis). Der Dienst muss auf diesem Server eingerichtet sein und die Mails weiterleiten.' });
+      function upd() { var m = method.value; smtpBox.hidden = m !== 'smtp'; folderBox.hidden = m !== 'folder'; iisNote.hidden = m !== 'iis'; }
+      method.addEventListener('change', upd); upd();
+      var form = h('form', { class: 'form panel', style: 'gap:20px', novalidate: true }, [
+        field('Versandart', method, { id: 's-method', hint: 'Wenn der Versand per SMTP nicht klappt, kannst du Mails als Dateien ablegen lassen oder den lokalen IIS-SMTP-Dienst nutzen.' }), smtpBox, iisNote, folderBox,
+        h('div', { class: 'grid2' }, [field('Absenderadresse', from, { id: 's-from', hint: 'Muss bei den meisten Servern zu einem erlaubten Absender passen. Ohne Absenderadresse wird nicht versendet.' }), field('Absendername', fromName, { id: 's-fromname' })]), msg, h('div', null, go)]);
       form.addEventListener('submit', function (e) {
         e.preventDefault(); msg.hidden = true; go.disabled = true;
-        Api.adminSaveSettings({ smtpHost: host.value, smtpPort: Number(port.value) || 25, smtpSsl: ssl.checked, smtpUser: user.value, smtpPassword: pass.value, mailFrom: from.value, mailFromName: fromName.value }).then(function () { go.disabled = false; pass.value = ''; toast('E-Mail-Versand gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
+        Api.adminSaveSettings({ smtpMethod: method.value, smtpHost: host.value, smtpPort: Number(port.value) || 25, smtpSsl: ssl.checked, smtpWinAuth: win.checked, smtpUser: user.value, smtpPassword: pass.value, mailFolder: folder.value, mailFrom: from.value, mailFromName: fromName.value }).then(function () { go.disabled = false; pass.value = ''; toast('E-Mail-Versand gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
       });
       var to = inp('t-to', '', 'email', { placeholder: 'empfaenger@beispiel.de' }), tm = boxMsg();
+      tm.style.whiteSpace = 'pre-wrap';
       var tbtn = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Testnachricht senden', onclick: function () { say(tm, 'info', 'Wird gesendet …'); Api.adminTestMail(to.value).then(function (r) { say(tm, r.ok ? 'ok' : 'bad', r.message); }, function (er) { say(tm, 'bad', er.message); }); } });
-      return h('div', { style: 'display:flex;flex-direction:column;gap:32px;max-width:900px' }, [form, h('div', null, [h('h3', { text: 'Versand testen', style: 'margin-bottom:12px' }), h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end' }, [field('Empfänger', to, { id: 't-to' }), tbtn]), tm])]);
+      return h('div', { style: 'display:flex;flex-direction:column;gap:32px;max-width:900px' }, [form, h('div', null, [h('h3', { text: 'Versand testen', style: 'margin-bottom:8px' }), h('p', { class: 'hint', style: 'margin-bottom:12px', text: 'Speichere zuerst die Einstellungen. Bei einem Fehler erscheint hier die Ursache mit Hinweis zur Behebung; jeder Versuch steht außerdem im Protokoll.' }), h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end' }, [field('Empfänger', to, { id: 't-to' }), tbtn]), tm])]);
     });
   }
   function adminPassword() {
@@ -1330,8 +1342,10 @@ function viewAdmin() {
           confirmBtn('Protokoll leeren', 'Wirklich alle löschen?', 'btn-danger', function () { Api.adminClearMailLog().then(function () { toast('Protokoll geleert.'); return reload(); }, function (er) { toast(er.message, true); }); })]);
         var rows = log.map(function (m) {
           var st = m.status;
-          return h('tr', null, [h('td', { text: (m.time || '').replace('T', ' ').slice(0, 19) }), h('td', { text: m.to }), h('td', { text: m.subject }), h('td', null, [h('span', { class: 'tag' + (st === 'versendet' ? ' test' : ''), text: st }), m.error ? h('div', { class: 'hint', text: m.error }) : null]),
+          return h('tr', null, [h('td', { text: (m.time || '').replace('T', ' ').slice(0, 19) }), h('td', { text: m.to }), h('td', { text: m.subject }), h('td', null, [h('span', { class: 'tag' + (st === 'versendet' || st === 'gespeichert' ? ' test' : ''), text: st }), m.error ? h('div', { class: 'hint', style: 'max-width:520px;overflow-wrap:anywhere;white-space:pre-wrap', text: m.error }) : null]),
             h('td', null, h('div', { class: 'acts' }, [m.html ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Ansehen', onclick: function () { showMail(m); } }) : null,
+              m.bookingId && st !== 'versendet' && st !== 'gespeichert' ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Erneut senden', onclick: function () { Api.adminResendMail(m.id).then(function (r) { toast(r.ok ? 'Die E-Mail wurde erneut gesendet.' : 'Senden weiterhin fehlgeschlagen. Ursache steht im Protokoll.', !r.ok); return reload(); }, function (er) { toast(er.message, true); }); } }) : null,
+              m.hasEml ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: '.eml laden', onclick: function () { Api.adminMailEml(m.id).then(function (blob) { var u = URL.createObjectURL(blob); var a = h('a', { href: u, download: 'Mail-' + m.id + '.eml' }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 2000); }, function (er) { toast(er.message, true); }); } }) : null,
               confirmBtn('Löschen', 'Wirklich löschen?', 'btn-danger', function () { Api.adminDeleteMailLog(m.id).then(function () { toast('Eintrag gelöscht.'); return reload(); }, function (er) { toast(er.message, true); }); })]))]);
         });
         host.appendChild(tools);

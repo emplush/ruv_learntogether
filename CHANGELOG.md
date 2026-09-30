@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.10.0 (30.09.2026)
+- E-Mail-Versand: Versandart wählbar (SMTP, lokaler IIS-SMTP-Dienst, .eml-Dateien in Ordner), Windows-Anmeldung möglich. Versandfehler werden mit verständlicher Ursache und technischer Meldung angezeigt (Test und Protokoll). Fehlgeschlagene Mails werden als .eml gesichert (Download) und können erneut gesendet werden.
+
 ## 0.9.4 (30.09.2026)
 - Fix: Direktive `<%@ Assembly Name="System.Web.Extensions" %>` entfernt (unvollständiger Assembly-Name ließ sich unter .NET 4.8 nicht laden, HTTP 500). Die Assembly ist in ASP.NET 4.x standardmäßig eingebunden; ebenso den Assemblies-Eintrag aus der web.config entfernt.
 
