@@ -108,7 +108,7 @@ namespace LearnTogether
     public class Api : IHttpHandler
     {
         const string DefaultAdminPassword = "RuVTest1234";
-        const string Version = "0.13.0";
+        const string Version = "0.14.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         static readonly string[] Days = new string[] { "Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag" };

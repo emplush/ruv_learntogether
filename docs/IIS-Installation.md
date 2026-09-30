@@ -10,7 +10,7 @@
 **Hinweise**
 - `AppData\Data` ist per `hiddenSegments` (web.config) nicht per HTTP abrufbar. `settings.json` enthält u. a. den Hash des Admin-Passworts; Zugriffsrechte im Dateisystem entsprechend beschränken.
 - Für Updates alle Dateien außer `AppData\Data` überschreiben.
-- Die R+V-Schrift wird später über `@font-face` in `src/app.css` ergänzt (Variable `--font`).
+- Die R+V-Schrift „RuV Sans“ liegt in `AppData\fonts` (Light, Regular, Bold, Black). Die `web.config` liefert `.woff2` aus.
 
 ## Fehlersuche
 

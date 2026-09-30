@@ -67,9 +67,25 @@ def build_manual_page(css, logo_uri, body, fav=''):
     return page
 
 
+FONTS = ['Light', 'Regular', 'Bold', 'Black']
+
+
+def css_for(css, target):
+    """Setzt die Schrift-URLs ein: 'iis' (index.html), 'manual' (AppData/Handbuch.html), 'embed' (Base64 im HTML)."""
+    for n in FONTS:
+        if target == 'embed':
+            url = data_uri(os.path.join(SRC, 'assets', 'fonts', 'RuVSans-%s.woff2' % n), 'font/woff2')
+        elif target == 'manual':
+            url = 'fonts/RuVSans-%s.woff2' % n
+        else:
+            url = 'AppData/fonts/RuVSans-%s.woff2' % n
+        css = css.replace('{{FONT:%s}}' % n, url)
+    return css
+
+
 def main():
     want_pdf = '--no-pdf' not in sys.argv
-    css = rd(SRC, 'app.css')
+    css0 = rd(SRC, 'app.css')
     js = rd(SRC, 'app.js')
     tpl = rd(SRC, 'app.html')
     logo_d = os.path.join(SRC, 'assets', 'ruv-logo-dunkelblau.png')
@@ -86,10 +102,13 @@ def main():
     os.makedirs(os.path.join(IIS, 'AppData', 'assets'), exist_ok=True)
     shutil.copy(logo_d, os.path.join(IIS, 'AppData', 'assets'))
     shutil.copy(logo_w, os.path.join(IIS, 'AppData', 'assets'))
+    os.makedirs(os.path.join(IIS, 'AppData', 'fonts'), exist_ok=True)
+    for n in FONTS:
+        shutil.copy(os.path.join(SRC, 'assets', 'fonts', 'RuVSans-%s.woff2' % n), os.path.join(IIS, 'AppData', 'fonts'))
     open(os.path.join(IIS, 'AppData', 'Data', '.gitkeep'), 'w').close()
 
     # ---- Handbuch (HTML + PDF)
-    wr(os.path.join(IIS, 'AppData', 'Handbuch.html'), build_manual_page(css, data_uri(logo_d, 'image/png'), body, fav))
+    wr(os.path.join(IIS, 'AppData', 'Handbuch.html'), build_manual_page(css_for(css0, 'manual'), data_uri(logo_d, 'image/png'), body, fav))
     pdf_path = os.path.join(IIS, 'AppData', 'Nutzerhandbuch.pdf')
     if want_pdf:
         subprocess.check_call(['node', os.path.join(ROOT, 'tools', 'pdf.mjs'), os.path.join(IIS, 'AppData', 'Handbuch.html'), pdf_path])
@@ -99,16 +118,17 @@ def main():
     if has_pdf:
         os.makedirs(os.path.join(ROOT, 'docs'), exist_ok=True)
         shutil.copy(pdf_path, os.path.join(ROOT, 'docs', 'Nutzerhandbuch.pdf'))
-        shutil.copy(os.path.join(IIS, 'AppData', 'Handbuch.html'), os.path.join(ROOT, 'docs', 'Handbuch.html'))
+        wr(os.path.join(ROOT, 'docs', 'Handbuch.html'), build_manual_page(css_for(css0, 'embed'), data_uri(logo_d, 'image/png'), body, fav).replace('href="Nutzerhandbuch.pdf"', 'href="Nutzerhandbuch.pdf"'))
 
     # ---- IIS index.html
     cfg = {'version': VERSION, 'mode': 'iis', 'manualHtml': body, 'manualUrl': 'AppData/Handbuch.html', 'pdfUrl': 'AppData/Nutzerhandbuch.pdf' if has_pdf else None}
-    page = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
+    page = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css_for(css0, 'iis')).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
     wr(os.path.join(IIS, 'index.html'), page)
 
     # ---- Artefakt (Fragment ohne doctype/head/body, Logos und PDF eingebettet)
     cfg = {'version': VERSION, 'mode': 'artifact', 'manualHtml': body, 'logoDark': data_uri(logo_d, 'image/png'), 'logoWhite': data_uri(logo_w, 'image/png'),
            'pdfUrl': data_uri(pdf_path, 'application/pdf') if has_pdf else None}
+    css = css_for(css0, 'embed')
     frag = '<title>%s</title>\n<link rel="icon" type="image/png" href="%s">\n<style>\n%s\n</style>\n<script>window.__LT__ = %s;</script>\n<script>\n%s\n</script>\n' % (APP_TITLE, fav, css, js_json(cfg), js)
     wr(os.path.join(ART, 'LearnTogether-AD.fragment.html'), frag)
     # Vollstaendige Datei zum Testen/Speichern

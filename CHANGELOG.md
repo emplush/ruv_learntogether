@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.14.0 (30.09.2026)
+- R+V-Schrift „RuV Sans“ (Light, Regular, Bold, Black) eingebunden: in der Anwendung, im Handbuch (HTML und PDF). IIS-Paket enthält `AppData/fonts`, `web.config` kennt `.woff2`; das Artefakt bettet die Schrift ein.
+
 ## 0.13.0 (30.09.2026)
 - „Stornierungscode“ heißt jetzt **Buchungscode**. Er genügt allein zum Anzeigen, Stornieren und für die Kalenderdatei (keine E-Mail-Adresse mehr nötig); Fehlversuche werden gebremst.
 - Bestätigungsfenster: deutlicher Hinweis, den Buchungscode zu speichern und den Termin über die Kalenderdatei einzutragen; Teams-Link, Kalenderdatei und Code mit Kopier-Button.
