@@ -76,6 +76,8 @@ namespace LearnTogether
         public string textColorPrivat { get; set; }
         public string heroTitle { get; set; }
         public string heroText { get; set; }
+        public string noticeTitle { get; set; }
+        public string noticeText { get; set; }
         public SettingsRec()
         {
             appTitle = "LearnTogether@AD";
@@ -92,6 +94,8 @@ namespace LearnTogether
             headColorPrivat = "#f79506";
             textColorDienstlich = "#ffffff";
             textColorPrivat = "#ffffff";
+            noticeTitle = "Wichtig: Speichere deinen Buchungscode!";
+            noticeText = "Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt \u00fcber die Kalenderdatei (.ics) in deinen Kalender ein: Sie enth\u00e4lt alle Informationen, den Teams-Link und den Buchungscode.";
             heroTitle = "Voneinander lernen. Miteinander wachsen.";
             heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du wei\u00dft. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
         }
@@ -134,7 +138,7 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": { bool w; string we; CheckWritable(out w, out we); Send(new { ok = true, server = true, version = Version, writable = w, storageError = we }); break; }
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText }, notice = new { title = ps.noticeTitle, text = ps.noticeText } }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "createEvent": CreateEvent(); break;
@@ -1025,6 +1029,13 @@ namespace LearnTogether
                     if (ht.Length < 3 || ht.Length > 80) throw new ApiException("invalid", "Die \u00dcberschrift muss zwischen 3 und 80 Zeichen lang sein.");
                     if (hx.Length < 10 || hx.Length > 500) throw new ApiException("invalid", "Der Hinweistext muss zwischen 10 und 500 Zeichen lang sein.");
                     s.heroTitle = ht; s.heroText = hx;
+                }
+                if (b.ContainsKey("noticeTitle") || b.ContainsKey("noticeText"))
+                {
+                    string nt = S(b, "noticeTitle"), nx = S(b, "noticeText");
+                    if (nt.Length < 3 || nt.Length > 80) throw new ApiException("invalid", "Die \u00dcberschrift des Hinweises muss zwischen 3 und 80 Zeichen lang sein.");
+                    if (nx.Length < 10 || nx.Length > 600) throw new ApiException("invalid", "Der Hinweistext muss zwischen 10 und 600 Zeichen lang sein.");
+                    s.noticeTitle = nt; s.noticeText = nx;
                 }
                 SaveSettings(s);
             }

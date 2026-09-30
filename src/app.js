@@ -48,6 +48,7 @@ var ICONS = {
   undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
   redo: '<path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', minus: '<path d="M5 12h14"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>', ext: '<path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   book: '<path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/>',
   trend: '<path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
@@ -77,6 +78,8 @@ var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
 var MAX_CAP = 50;
 var MAX_TYPES = 50;
 var DEFAULT_HERO = { title: 'Voneinander lernen. Miteinander wachsen.', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
+var DEFAULT_NOTICE = { title: 'Wichtig: Speichere deinen Buchungscode!', text: 'Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt über die Kalenderdatei (.ics) in deinen Kalender ein: Sie enthält alle Informationen, den Teams-Link und den Buchungscode.' };
+var NOTICE = { title: DEFAULT_NOTICE.title, text: DEFAULT_NOTICE.text };
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
 var COLORS = { dienstlich: '#001957', privat: '#583720' };
 var HEADINGS = { dienstlich: '#f79506', privat: '#f79506' };
@@ -94,6 +97,7 @@ function applyTaxonomy(t) {
     if (t.texts && t.texts[c]) TEXTS[c] = t.texts[c];
   });
   if (t.types && t.types.length) TYPES = t.types.slice().sort(function (a, b) { return a.localeCompare(b, 'de', { sensitivity: 'base' }); });
+  if (t.notice) { if (t.notice.title) NOTICE.title = t.notice.title; if (t.notice.text) NOTICE.text = t.notice.text; }
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
 }
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
@@ -280,39 +284,49 @@ function fold(l) {
 }
 function manageUrl(code) { return location.href.split('#')[0] + '#/anmeldung?code=' + encodeURIComponent(code); }
 function mailHtml(m) {
-  var font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;", ink = '#001957', grey = '#707070';
-  var hd = contrast(m.bg, '#ffffff') >= 4.5 ? m.bg : ink, soft = mixHex(m.bg, m.text, .78), tint = mixHex(m.bg, '#ffffff', .9);
-  function pill(t, bg, fg) { return '<span style="display:inline-block;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0">' + esc(t) + '</span>'; }
-  function row(k, v) { return '<tr><td style="width:120px;padding:9px 0;border-top:1px solid #ececec;color:' + grey + ';vertical-align:top">' + k + '</td><td style="padding:9px 0;border-top:1px solid #ececec;color:' + ink + ';font-weight:600;vertical-align:top">' + v + '</td></tr>'; }
-  var h_ = [];
-  h_.push('<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f5f5f5;' + font + '">');
-  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td align="center" style="padding:24px 12px">');
-  h_.push('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">');
-  h_.push('<tr><td style="background:' + m.bg + ';padding:28px 32px 30px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>');
-  h_.push('<td style="vertical-align:middle">' + (m.logo ? '<img src="' + m.logo + '" width="88" alt="R+V" style="display:block;border:0">' : '<span style="' + font + 'font-size:24px;font-weight:800;color:' + m.text + '">R+V</span>') + '</td>');
-  h_.push('<td align="right" style="vertical-align:middle;' + font + 'font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:' + soft + '">' + esc(m.appTitle) + '</td></tr></table>');
-  h_.push('<div style="' + font + 'font-size:28px;line-height:1.25;font-weight:800;color:' + m.head + ';margin:26px 0 0">Deine Buchung ist bestätigt</div>');
-  h_.push('<div style="' + font + 'font-size:15px;line-height:1.5;color:' + m.text + ';margin:8px 0 0">Schön, dass du dabei bist.</div></td></tr>');
-  h_.push('<tr><td style="padding:30px 32px 8px;' + font + 'color:' + ink + '"><div>' + pill(m.area, tint, hd) + pill(m.type, '#f5f5f5', ink) + pill(m.topic, '#f5f5f5', ink) + '</div>');
-  h_.push('<div style="font-size:22px;line-height:1.3;font-weight:800;color:' + hd + ';margin:6px 0 20px">' + esc(m.title) + '</div>');
-  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45">' + row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host)) + '</table>');
-  if (m.desc) h_.push('<div style="font-size:14px;line-height:1.5;color:' + ink + ';margin:18px 0 0"><b>Worum geht es?</b><br>' + esc(m.desc).replace(/\n/g, '<br>') + '</div>');
-  h_.push('<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 8px"><tr><td style="background:#00dcdc;border-radius:24px"><a href="' + esc(m.teams) + '" style="display:inline-block;padding:14px 30px;' + font + 'font-size:16px;font-weight:700;color:#001957;text-decoration:none">Zur Teams-Sitzung</a></td></tr></table>');
-  h_.push('<div style="font-size:12px;color:' + grey + ';word-break:break-all">' + esc(m.teams) + '</div>');
-  h_.push('<div style="font-size:14px;color:' + grey + ';margin:14px 0 0">Bewahre diesen Kalendereintrag und den Buchungscode auf. Unter „Meine Anmeldung“ findest du Teams-Link und Kalendereintrag jederzeit wieder.</div></td></tr>');
-  h_.push('<tr><td style="padding:20px 32px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504"><tr><td style="padding:18px 20px;' + font + 'color:' + ink + '">');
-  h_.push('<div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400">Dein Buchungscode</div>');
-  h_.push('<div style="font-family:Consolas,\'Courier New\',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:' + ink + '">' + esc(m.code) + '</div>');
-  h_.push('<div style="font-size:14px;line-height:1.5">Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:700">Meine Anmeldung</a> (Eingabe des Buchungscodes genügt)</div></td></tr></table></td></tr>');
-  h_.push('<tr><td style="background:#f5f5f5;padding:18px 32px;' + font + 'font-size:12px;line-height:1.5;color:' + grey + '">' + esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Dieser Kalendereintrag wurde automatisch erstellt.</td></tr>');
-  h_.push('<tr><td style="background:' + m.bg + ';height:6px;line-height:6px;font-size:0">&nbsp;</td></tr></table></td></tr></table></body></html>');
-  return h_.join('');
+  /* Nur tabellenbasiertes HTML mit bgcolor/width-Attributen: Outlook (Word-Engine) versteht weder Flexbox noch border-radius zuverlaessig */
+  var F = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;", ink = '#001957', grey = '#5f6b85', mint = '#00dcdc', orange = '#f79506';
+  function td(bg, css, inner, attrs) { return '<td' + (bg ? ' bgcolor="' + bg + '"' : '') + (attrs || '') + ' style="' + F + css + '">' + inner + '</td>'; }
+  function tbl(w, inner, attrs) { return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"' + (w ? ' width="' + w + '"' : '') + (attrs || '') + '>' + inner + '</table>'; }
+  function gap(h) { return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td height="' + h + '" style="height:' + h + 'px;line-height:' + h + 'px;font-size:1px">&nbsp;</td></tr></table>'; }
+  function chip(t, bg, fg) { return td(bg, 'padding:6px 14px;font-size:13px;line-height:16px;font-weight:bold;color:' + fg + ';white-space:nowrap', '<font color="' + fg + '">' + esc(t) + '</font>'); }
+  function spacer() { return '<td width="10" style="width:10px;font-size:1px">&nbsp;</td>'; }
+  function row(k, v) { return '<tr>' + td('', 'width:130px;padding:11px 0;border-top:1px solid #e3e7ef;color:' + grey + ';font-size:14px;vertical-align:top', esc(k), ' width="130"') + td('', 'padding:11px 0;border-top:1px solid #e3e7ef;color:' + ink + ';font-size:15px;font-weight:bold;vertical-align:top', v) + '</tr>'; }
+  function btn(href, label, bg, fg) { return tbl('', '<tr>' + td(bg, 'padding:14px 32px;font-size:16px;line-height:20px;font-weight:bold;text-align:center', '<a href="' + esc(href) + '" style="color:' + fg + ';text-decoration:none;font-weight:bold"><font color="' + fg + '">' + esc(label) + '</font></a>') + '</tr>'); }
+  var pub = /^https?:/i.test(m.logo || ''), areaBg = m.priv ? orange : ink, areaFg = m.priv ? ink : '#ffffff';
+  var o = [];
+  o.push('<div style="background:#eef1f7;padding:24px 0">' + tbl('100%', '<tr><td align="center">' + tbl('640', '<tr><td bgcolor="#ffffff" style="background:#ffffff">' +
+    /* Kopfbereich */
+    tbl('100%', '<tr>' + td(ink, 'padding:26px 32px 22px', tbl('100%', '<tr>' +
+      td('', 'vertical-align:middle', pub ? '<img src="' + esc(m.logo) + '" width="96" alt="R+V" border="0" style="display:block;border:0;width:96px">' : '<font color="#ffffff"><b style="font-size:30px;letter-spacing:-1px;color:#ffffff">R+V</b></font>') +
+      td('', 'vertical-align:middle;text-align:right;font-size:16px;font-weight:bold;color:#ffffff', '<font color="#ffffff">' + esc(m.appBase) + '</font><font color="' + orange + '">' + esc(m.appAt) + '</font>', ' align="right"') + '</tr>')) + '</tr>' +
+      '<tr><td bgcolor="' + orange + '" height="6" style="height:6px;line-height:6px;font-size:1px;background:' + orange + '">&nbsp;</td></tr>') +
+    /* Inhalt */
+    tbl('100%', '<tr><td style="padding:30px 32px 6px;' + F + 'color:' + ink + '">' +
+      '<div style="font-size:12px;font-weight:bold;letter-spacing:1.5px;color:#eb6504;text-transform:uppercase">Buchungsbestätigung</div>' +
+      '<div style="font-size:28px;line-height:34px;font-weight:bold;color:' + ink + ';margin:4px 0 4px">Deine Buchung ist bestätigt</div>' +
+      '<div style="font-size:15px;line-height:22px;color:' + grey + '">Schön, dass du dabei bist. Alle Informationen findest du hier.</div>' + gap(22) +
+      tbl('', '<tr>' + chip(m.area, areaBg, areaFg) + spacer() + chip(m.type, mint, ink) + spacer() + chip(m.topic, '#e3e8f3', ink) + '</tr>') + gap(16) +
+      '<div style="font-size:23px;line-height:29px;font-weight:bold;color:' + ink + '">' + esc(m.title) + '</div>' + gap(14) +
+      tbl('100%', row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host))) +
+      (m.desc ? gap(14) + '<div style="font-size:15px;line-height:22px;color:' + ink + '"><b>Worum geht es?</b><br>' + esc(m.desc).replace(/\n/g, '<br>') + '</div>' : '') + gap(24) +
+      /* Teams */
+      tbl('100%', '<tr>' + td('#e6fbfb', 'padding:20px 22px;border-left:5px solid ' + mint, '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#0c7f89;text-transform:uppercase">Teams-Sitzung</div>' + gap(10) + btn(m.teams, 'An der Teams-Sitzung teilnehmen', mint, ink) + gap(10) + '<div style="font-size:12px;line-height:17px;color:' + grey + '">Oder Link kopieren:<br><a href="' + esc(m.teams) + '" style="color:#0c7f89;word-break:break-all">' + esc(m.teams) + '</a></div>') + '</tr>') + gap(18) +
+      /* Code */
+      tbl('100%', '<tr>' + td('#fff3df', 'padding:20px 22px;border-left:5px solid #eb6504', '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#a04400;text-transform:uppercase">Dein Buchungscode</div><div style="font-family:Consolas,\'Courier New\',monospace;font-size:28px;line-height:36px;font-weight:bold;letter-spacing:3px;color:' + ink + ';margin:4px 0 8px">' + esc(m.code) + '</div><div style="font-size:14px;line-height:20px;color:' + ink + '">Mit dem Code kannst du deine Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:bold">Meine Anmeldung</a></div>') + '</tr>') +
+    '</td></tr>') +
+    /* Fuss */
+    tbl('100%', '<tr>' + td('#f3f5f9', 'padding:18px 32px;font-size:12px;line-height:18px;color:' + grey, esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Dieser Kalendereintrag wurde automatisch erstellt. Bewahre ihn und den Buchungscode auf.') + '</tr>' +
+      '<tr><td bgcolor="' + m.accent + '" height="6" style="height:6px;line-height:6px;font-size:1px;background:' + m.accent + '">&nbsp;</td></tr>') +
+  '</td></tr>') + '</td></tr>') + '</div>');
+  return o.join('');
 }
 /* Beschreibung des Kalendereintrags: Inhalt und Aufbau wie die frueher versendete Bestaetigung, inkl. Buchungscode */
 function icsDescriptions(ev, code) {
   var c = ev.category, light = lum(COLORS[c].toLowerCase()) > .35, url = manageUrl(code), desc = htmlToText(ev.description).slice(0, 700);
-  var html = mailHtml({ appTitle: state.settings.appTitle, area: CAT_LABEL[c], type: ev.type, topic: ev.topic, bg: COLORS[c], head: HEADINGS[c], text: TEXTS[c], logo: '', name: '', title: ev.title, date: dateLong(ev.date), time: ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: code, cancel: url, desc: desc });
-  html = html.replace(/<!doctype html>.*?<body[^>]*>/i, '').replace(/<\/body><\/html>/i, ''); html = '<div style="background:#f5f5f5">' + html + '</div>';
+  var logo = (CFG.mode !== 'artifact' && /^https?:/i.test(location.href)) ? new URL('AppData/assets/ruv-logo-weiss.png', location.href.split('#')[0]).href : '';
+  var ti = String(state.settings.appTitle || ''), at = ti.indexOf('@');
+  var html = mailHtml({ appTitle: ti, appBase: at < 0 ? ti : ti.slice(0, at), appAt: at < 0 ? '' : ti.slice(at), area: CAT_LABEL[c], priv: c === 'privat', accent: COLORS[c], type: ev.type, topic: capFirst(ev.topic), logo: logo, title: ev.title, date: dateLong(ev.date), time: ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: code, cancel: url, desc: desc });
   var plain = ['DEINE BUCHUNG IST BESTÄTIGT', '', ev.title, CAT_LABEL[c] + ' \u00b7 ' + ev.type + ' \u00b7 ' + ev.topic, '',
     'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Durchführung:  ' + ev.host, '',
     'Teams-Sitzung: ' + ev.teamsLink, '', 'BUCHUNGSCODE:  ' + code, 'Buchung ansehen oder stornieren: ' + url, ''].concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Bewahre diesen Kalendereintrag und den Buchungscode auf.', state.settings.appTitle + ' \u00b7 Informelles Lernen im Außendienst']).join('\n');
@@ -348,7 +362,7 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, notice: j.notice }; }); },
   adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types }; }); },
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
@@ -379,6 +393,7 @@ var Local = (function () {
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
     if (!cfg.hero) cfg.hero = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
+    if (!cfg.notice) cfg.notice = { title: DEFAULT_NOTICE.title, text: DEFAULT_NOTICE.text };
     if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
     if (!cfg.headings) cfg.headings = JSON.parse(JSON.stringify(DEFAULT_TAX.headings));
     if (!cfg.texts) cfg.texts = JSON.parse(JSON.stringify(DEFAULT_TAX.texts));
@@ -410,7 +425,7 @@ var Local = (function () {
   }
   function wrap(fn) { return new Promise(function (res, rej) { try { load(); res(fn()); } catch (e) { rej(e); } }); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, notice: cfg.notice }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
         function names(list, what, max, old, usedFn, map) {
@@ -522,6 +537,12 @@ var Local = (function () {
           if (hx.length < 10 || hx.length > 500) throw ApiErr('invalid', 'Der Hinweistext muss zwischen 10 und 500 Zeichen lang sein.');
           cfg.hero = { title: ht, text: hx }; applyTaxonomy(cfg);
         }
+        if ('noticeTitle' in s || 'noticeText' in s) {
+          var nt = (s.noticeTitle || '').trim(), nx = (s.noticeText || '').trim();
+          if (nt.length < 3 || nt.length > 80) throw ApiErr('invalid', 'Die Überschrift des Hinweises muss zwischen 3 und 80 Zeichen lang sein.');
+          if (nx.length < 10 || nx.length > 600) throw ApiErr('invalid', 'Der Hinweistext muss zwischen 10 und 600 Zeichen lang sein.');
+          cfg.notice = { title: nt, text: nx }; applyTaxonomy(cfg);
+        }
         save(); return {};
       });
     },
@@ -545,7 +566,7 @@ function openModal(content, opt) {
   opt = opt || {};
   var prev = document.activeElement;
   var back = h('div', { class: 'modal-back' });
-  var box = h('div', { class: 'modal' + (opt.wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': opt.label || 'Dialog' });
+  var box = h('div', { class: 'modal' + (opt.wide ? ' wide' : '') + (opt.xwide ? ' xwide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': opt.label || 'Dialog' });
   var x = h('button', { class: 'modal-x', type: 'button', 'aria-label': 'Schließen', text: '\u00d7' });
   box.appendChild(x); box.appendChild(content); back.appendChild(box); document.body.appendChild(back);
   document.body.style.overflow = 'hidden';
@@ -910,10 +931,10 @@ function viewCatalog() {
 
 /* ---- Buchungs-Popup ---- */
 function openBooking(e, onChange) {
-  var body = h('div', { class: 'modal-body' });
-  var head = h('div', { class: 'modal-cover' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]);
-  var wrapper = h('div', null, [head, body]);
-  var m = openModal(wrapper, { label: 'Anmeldung: ' + e.title, onClose: onChange });
+  var body = h('div', { class: 'modal-body bk-main' });
+  var head = h('div', { class: 'bk-side' }, h('div', { class: 'bk-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]));
+  var wrapper = h('div', { class: 'bk' }, [head, body]);
+  var m = openModal(wrapper, { xwide: true, label: 'Anmeldung: ' + e.title, onClose: onChange });
   function showForm() {
     clear(body);
     var f = freeOf(e);
@@ -936,21 +957,20 @@ function openBooking(e, onChange) {
       });
     });
     body.appendChild(h('h2', { text: e.title, style: 'padding-right:40px;overflow-wrap:anywhere' }));
-    body.appendChild(h('dl', { class: 'facts' }, [
+    body.appendChild(h('dl', { class: 'facts f3' }, [
       h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(e.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: e.start + ' \u2013 ' + endHm(e) + ' Uhr' })]),
       h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: e.host })]),
       h('div', null, [h('dt', { text: 'Thema' }), h('dd', { text: e.topic })]), h('div', null, [h('dt', { text: 'Freie Plätze' }), h('dd', { text: f + ' von ' + e.capacity })])]));
-    body.appendChild(h('div', { class: 'rich', html: sanitizeHtml(e.description) }));
+    body.appendChild(h('div', { class: 'rich bk-desc', tabindex: '0', html: sanitizeHtml(e.description) }));
     body.appendChild(h('h3', { text: 'Jetzt anmelden' }));
     body.appendChild(form);
   }
   function showDone(r) {
     clear(body); rememberMine(r.eventInfo, r.code);
     body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Die Buchung war erfolgreich. Dein Platz ist reserviert.' }));
-    body.appendChild(codeWarning('Wichtig: Speichere deinen Buchungscode!', 'Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt über die Kalenderdatei (.ics) in deinen Kalender ein: Sie enthält alle Informationen, den Teams-Link und den Buchungscode.'));
-    body.appendChild(participationCard(r.eventInfo, r.code));
-    body.appendChild(h('p', { class: 'hint', text: 'Den Teams-Link, die Kalenderdatei und die Stornierung findest du jederzeit unter „Meine Anmeldung“ wieder, wenn du den Buchungscode eingibst. Auf diesem Gerät ist die Buchung dort bereits gespeichert.' }));
-    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/anmeldung?code=' + encodeURIComponent(r.code), text: 'Meine Anmeldung öffnen' })]));
+    body.appendChild(codeWarning(NOTICE.title, NOTICE.text));
+    body.appendChild(participationCard(r.eventInfo, r.code, { compact: true }));
+    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/anmeldung?code=' + encodeURIComponent(r.code), text: 'Meine Anmeldung öffnen' }), h('span', { class: 'hint', text: 'Teams-Link, Kalenderdatei und Stornierung findest du dort mit dem Buchungscode jederzeit wieder.' })]));
   }
   function showFail(er) {
     clear(body);
@@ -984,21 +1004,25 @@ function copyText(text, okMsg) {
   try { navigator.clipboard.writeText(text).then(function () { toast(okMsg || 'In die Zwischenablage kopiert.'); }, function () { toast('Kopieren nicht möglich. Bitte markiere den Text und kopiere ihn von Hand.', true); }); } catch (e) { toast('Kopieren nicht möglich.', true); }
 }
 function codeBox(label, code) {
-  return h('div', null, [h('p', { class: 'hint', text: label }), h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('span', { class: 'code', id: 'code-out', text: code }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Code kopieren', onclick: function () { copyText(code, 'Code kopiert.'); } })])]);
+  return h('div', { class: 'codebox' }, [h('p', { class: 'hint', text: label }), h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('span', { class: 'code', id: 'code-out', text: code }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Code kopieren', onclick: function () { copyText(code, 'Code kopiert.'); } })])]);
 }
 /* Alle Angaben zur Teilnahme: Termin, Teams-Link, Kalendereintrag und Buchungscode */
-function participationCard(info, code) {
-  var node = h('div', { style: 'display:flex;flex-direction:column;gap:16px' });
+function teamsBox(link) {
+  return h('div', { class: 'teams-box' }, [h('div', { class: 'tb-l', text: 'Teams-Link zur Veranstaltung' }),
+    h('a', { class: 'tb-link', href: link, target: '_blank', rel: 'noopener noreferrer', text: link }),
+    h('button', { class: 'btn btn-secondary btn-sm', type: 'button', html: ico('copy') + ' Link kopieren', onclick: function () { copyText(link, 'Teams-Link kopiert.'); } })]);
+}
+function participationCard(info, code, o) {
+  var node = h('div', { class: 'pcard' + (o && o.compact ? ' compact' : '') });
   node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(info.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[info.category]), chipEl('type', info.type), chipEl('type', info.topic)]));
   node.appendChild(h('h2', { text: info.title, style: 'overflow-wrap:anywhere' }));
-  node.appendChild(h('dl', { class: 'facts' }, [
+  node.appendChild(h('dl', { class: 'facts f4' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
     h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Durchführung' }), h('dd', { text: info.host })])]));
-  node.appendChild(h('div', { style: 'display:flex;flex-direction:column;gap:6px;align-items:flex-start' }, [
-    h('a', { class: 'btn btn-secondary', href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Zur Teams-Sitzung' }),
-    h('div', { class: 'hint', style: 'overflow-wrap:anywhere', text: info.teamsLink })]));
-  node.appendChild(h('div', null, h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, code); } })));
-  node.appendChild(codeBox('Dein Buchungscode', code));
+  node.appendChild(teamsBox(info.teamsLink));
+  node.appendChild(h('div', { class: 'pc-cols' }, [
+    h('div', { class: 'pc-ics' }, [h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, code); } })]),
+    codeBox('Dein Buchungscode', code)]));
   return node;
 }
 function codeWarning(title, text) { return h('div', { class: 'notice warn', role: 'alert' }, [h('b', { text: title }), h('div', { text: text })]); }
@@ -1374,6 +1398,24 @@ function viewAdmin() {
   function inp(id, val, type, extra) { return h('input', Object.assign({ type: type || 'text', id: id, value: val == null ? '' : String(val) }, extra || {})); }
   function boxMsg() { return h('div', { class: 'notice', hidden: true, role: 'status' }); }
   function say(m, cls, text) { m.hidden = false; m.className = 'notice ' + cls; m.textContent = text; }
+  function noticePanel() {
+    var nt = inp('n-title', NOTICE.title, 'text', { maxlength: '80' }), nx = h('textarea', { id: 'n-text', rows: '5', maxlength: '600' }); nx.value = NOTICE.text;
+    var count = h('span', { class: 'hint' }), msg = boxMsg();
+    var prev = h('div', { class: 'notice warn', 'aria-hidden': 'true' }, [h('b'), h('div')]);
+    function upd() { prev.firstChild.textContent = nt.value; prev.lastChild.textContent = nx.value; count.textContent = nx.value.length + ' / 600 Zeichen'; }
+    nt.addEventListener('input', upd); nx.addEventListener('input', upd); upd();
+    var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Hinweis speichern' });
+    save.addEventListener('click', function () {
+      save.disabled = true;
+      Api.adminSaveSettings({ noticeTitle: nt.value, noticeText: nx.value }).then(function () { applyTaxonomy({ notice: { title: nt.value.trim(), text: nx.value.trim() } }); save.disabled = false; toast('Hinweis gespeichert.'); say(msg, 'ok', 'Der Hinweis erscheint nach jeder Buchung.'); }, function (er) { save.disabled = false; say(msg, 'bad', er.message); });
+    });
+    var reset = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Standardtext einsetzen', onclick: function () { nt.value = DEFAULT_NOTICE.title; nx.value = DEFAULT_NOTICE.text; upd(); } });
+    return h('div', { style: 'display:flex;flex-direction:column;gap:16px;margin-top:16px;padding-top:24px;border-top:1px solid var(--line)' }, [
+      h('h2', { text: 'Hinweis nach der Buchung', style: 'font-size:1.3rem' }),
+      h('p', { class: 'lead', text: 'Dieser Hinweis erscheint im Bestätigungsfenster direkt nach einer Anmeldung, zum Beispiel zum Speichern des Buchungscodes.' }),
+      h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [field('Überschrift des Hinweises', nt, { id: 'n-title', req: true, hint: 'Bis zu 80 Zeichen.' }), field('Hinweistext', nx, { id: 'n-text', req: true }), count]),
+      h('div', null, [h('h3', { text: 'Vorschau', style: 'margin-bottom:8px' }), prev]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [save, reset])]);
+  }
   function adminTexts() {
     return Promise.resolve().then(function () {
       var t = inp('h-title', HERO.title, 'text', { maxlength: '80' }), x = h('textarea', { id: 'h-text', rows: '5', maxlength: '500' }); x.value = HERO.text;
@@ -1390,7 +1432,8 @@ function viewAdmin() {
       return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
         h('p', { class: 'lead', text: 'Überschrift und Hinweistext oben im Katalog. Sie sind für alle Besucher sichtbar. Der Button „Selbst etwas anbieten“ bleibt bestehen.' }),
         h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [field('Überschrift', t, { id: 'h-title', req: true, hint: 'Kurz und einladend, bis zu 80 Zeichen.' }), field('Hinweistext', x, { id: 'h-text', req: true, hint: 'Nenne, was es zu entdecken gibt, wie die Anmeldung geht und wann die Termine stattfinden (bis zu 500 Zeichen).' }), count]),
-        h('div', null, [h('h3', { text: 'Vorschau', style: 'margin-bottom:8px' }), prev]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [save, reset])]);
+        h('div', null, [h('h3', { text: 'Vorschau', style: 'margin-bottom:8px' }), prev]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [save, reset]),
+        noticePanel()]);
     });
   }
   function adminGeneral() {

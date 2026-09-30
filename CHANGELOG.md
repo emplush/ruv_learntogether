@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.16.0 (30.09.2026)
+- Buchungs- und Bestätigungsfenster: breiter (bis 1040 px) und deutlich niedriger, dadurch kaum noch Scrollen. Das Veranstaltungsbild steht links und wird ausschließlich quadratisch gezeigt.
+- Teams-Link in eigener, hervorgehobener Box mit Button „Link kopieren“; der Button „Zur Teams-Sitzung“ entfällt.
+- Hinweis nach der Buchung (Überschrift und Text) ist im Admin unter „Texte“ änderbar.
+- Chips größer, mit vollflächiger Farbe und besserer Schärfe.
+- Kalendereintrag (ICS) neu gestaltet: dunkelblauer Kopf mit R+V-Logo (sofern die Anwendung per http/https läuft) und Titel „LearnTogether@AD“ mit orangem Zusatz, Chips mit Abstand in R+V-Farben, echter Teams-Button, Buchungscode-Box; Aufbau rein tabellenbasiert für Outlook.
+
 ## 0.15.0 (30.09.2026)
 - Admin: Veranstaltungstabelle überarbeitet (schmalere Navigation, breitere Tabelle, weniger Spalten, Bereich/Art/Thema unter dem Titel, Aktionen in einer Zeile).
 - Admin: Teilnehmende erscheinen jetzt in einem Popup (Belegungsbalken, Tabelle mit Name, E-Mail und Buchungscode, Entfernen mit Rückfrage, E-Mail-Adressen kopieren, Teams-Link).
