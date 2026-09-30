@@ -71,6 +71,7 @@ var sess = {
 /* ====================================================== Fachliche Konstanten & Datum */
 var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
 var MAX_CAP = 50;
+var MAX_TYPES = 50;
 var DEFAULT_HERO = { title: 'Voneinander lernen. Miteinander wachsen.', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
 var COLORS = { dienstlich: '#001957', privat: '#583720' };
@@ -84,7 +85,7 @@ function applyTaxonomy(t) {
     if (t.topics && t.topics[c] && t.topics[c].length) TOPICS[c] = t.topics[c].slice();
     if (t.colors && t.colors[c]) COLORS[c] = t.colors[c];
   });
-  if (t.types && t.types.length) TYPES = t.types.slice();
+  if (t.types && t.types.length) TYPES = t.types.slice().sort(function (a, b) { return a.localeCompare(b, 'de', { sensitivity: 'base' }); });
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
 }
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
@@ -189,7 +190,7 @@ function makeImage(seed, size) {
   return c.toDataURL('image/jpeg', .72);
 }
 function descHtml(intro, points) { return '<p>' + intro + '</p><h3>Das erwartet dich</h3><ul>' + points.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul><p>Bring gern eigene Fragen und Beispiele mit. Die Sitzung findet online in Microsoft Teams statt.</p>'; }
-function mapType(name) { var i = DEFAULT_TAX.types.indexOf(name); return TYPES[(i < 0 ? 0 : i) % TYPES.length]; }
+function mapType(name) { if (TYPES.indexOf(name) >= 0) return name; var i = DEFAULT_TAX.types.indexOf(name); return TYPES[(i < 0 ? 0 : i) % TYPES.length]; }
 function mapTopic(cat, name) { var i = DEFAULT_TAX.topics[cat].indexOf(name); var l = TOPICS[cat]; return l[(i < 0 ? 0 : i) % l.length]; }
 function buildTestData() {
   var d = nextWeekdays(12), past = lastWeekday();
@@ -362,7 +363,7 @@ var Local = (function () {
         if (p.topics) {
           cats.forEach(function (cat) { var map = {}; nt[cat] = names(p.topics[cat], 'Thema', 30, cfg.topics[cat], function (ot) { return data.events.filter(function (e) { return e.category === cat && e.topic === ot; }).length; }, map); maps[cat] = map; });
         }
-        if (p.types) ny = names(p.types, 'Art', 10, cfg.types, function (ot) { return data.events.filter(function (e) { return e.type === ot; }).length; }, tmap);
+        if (p.types) ny = names(p.types, 'Art', MAX_TYPES, cfg.types, function (ot) { return data.events.filter(function (e) { return e.type === ot; }).length; }, tmap);
         if (nl) cfg.labels = nl; if (nc) cfg.colors = nc;
         if (p.topics) { data.events.forEach(function (e) { var m = maps[e.category]; if (m && Object.prototype.hasOwnProperty.call(m, e.topic)) e.topic = m[e.topic]; }); cfg.topics = nt; }
         if (ny) { data.events.forEach(function (e) { if (Object.prototype.hasOwnProperty.call(tmap, e.type)) e.type = tmap[e.type]; }); cfg.types = ny; }
@@ -1087,14 +1088,14 @@ function viewAdmin() {
       var usage = {}; evs.forEach(function (e) { usage[e.type] = (usage[e.type] || 0) + 1; });
       var list = TYPES.map(function (t) { return { name: t, orig: t }; });
       var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), flash = flasher(msg);
-      var ed = listEditor(list, function (o) { return usage[o] || 0; }, { label: 'Art', addId: 'ty-add', addPlaceholder: 'Neue Art', addText: 'Art hinzufügen', max: 10, flash: flash });
+      var ed = listEditor(list, function (o) { return usage[o] || 0; }, { label: 'Art', addId: 'ty-add', addPlaceholder: 'Neue Art', addText: 'Art hinzufügen', max: MAX_TYPES, flash: flash });
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Änderungen speichern' });
       save.addEventListener('click', function () {
         save.disabled = true;
         Api.adminSaveTaxonomy({ types: list }).then(function (r) { applyTaxonomy(r); toast('Arten gespeichert.'); return adminTypes(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
       });
       var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
-        h('p', { class: 'lead', text: 'Die Arten der Veranstaltung (z. B. Workshop oder Austausch) erscheinen im Formular, als Chip auf den Kacheln und im Katalogfilter. Du kannst Arten hinzufügen (bis 10), umbenennen und löschen. Umbenennen passt bestehende Veranstaltungen an, gelöscht wird nur, was keine Veranstaltung verwendet.' }),
+        h('p', { class: 'lead', text: 'Die Arten der Veranstaltung (z. B. Workshop oder Austausch) erscheinen im Formular, als Chip auf den Kacheln und im Katalogfilter. Du kannst Arten hinzufügen (bis zu 50), umbenennen und löschen. Umbenennen passt bestehende Veranstaltungen an, gelöscht wird nur, was keine Veranstaltung verwendet.' }),
         h('div', { class: 'panel' }, ed), msg, h('div', null, save)]);
       return self;
     });

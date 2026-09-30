@@ -1054,7 +1054,7 @@ namespace LearnTogether
                 if (ty != null)
                 {
                     Dictionary<string, string> map = new Dictionary<string, string>();
-                    List<string> names = ReadNameList(ty, "Art", 10, s.types, delegate (string ot) { int u = 0; foreach (EventRec e in d.events) if (e.type == ot) u++; return u; }, map);
+                    List<string> names = ReadNameList(ty, "Art", 50, s.types, delegate (string ot) { int u = 0; foreach (EventRec e in d.events) if (e.type == ot) u++; return u; }, map);
                     foreach (EventRec e in d.events)
                     {
                         string nt;

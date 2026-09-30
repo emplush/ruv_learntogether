@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.7.0 (30.09.2026)
+- Katalog: mehr Abstand und Trennlinie zwischen Kopfbereich und Filtern; Hinweistext läuft breiter (bis ca. 96 Zeichen).
+- Arten: bis zu 50 statt 10; alphabetisch aufsteigend im Katalog, im Formular und beim Neuladen im Admin.
+
 ## 0.6.0 (30.09.2026)
 - Admin neu gegliedert: Navigation links mit vier Gruppen (Übersicht, Katalog, E-Mail, System) und neun Bereichen, es wird immer nur ein Bereich angezeigt. Themenbereiche einzeln umschaltbar.
 - Überschrift und Hinweistext im Katalog im Admin änderbar (Bereich „Texte“, mit Vorschau und Standardtexten).

@@ -195,8 +195,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 /* ---------- Katalog ---------- */
 .hero { padding-block: 40px 24px; }
 .hero h1 { color: var(--accent); max-width: 20ch; }
-.hero p { margin-top: 12px; color: var(--muted); font-size: 1.1rem; max-width: 60ch; }
-.toolbar { display: flex; flex-direction: column; gap: 16px; padding-block: 8px 24px; }
+.hero p { margin-top: 12px; color: var(--muted); font-size: 1.1rem; max-width: 96ch; }
+.toolbar { display: flex; flex-direction: column; gap: 16px; padding-block: 32px 24px; margin-top: 32px; border-top: 1px solid var(--line); }
 .toolbar .r1 { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
 .toolbar .search { position: relative; flex: 1 1 260px; max-width: 460px; }
 .toolbar .search input { padding-left: 42px; border-radius: 999px; }
@@ -303,7 +303,7 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .top .wrap, footer.foot .wrap { max-width: none; }
 @media (min-width: 1400px) { .top .wrap, footer.foot .wrap { padding-inline: 48px; } }
 
-.hero-cta { margin-top: 20px; }
+.hero .hero-cta { margin-top: 24px; max-width: none; }
 .toolbar .grp.types { flex: 1 1 100%; }
 .stage-prev { --bg: #001957; --surface: #143a86; --accent: #f79506; background: var(--bg); color: #fff; border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .stage-prev b { color: var(--accent); font-size: 1.15rem; }
