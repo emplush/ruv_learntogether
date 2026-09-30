@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.4.0 (30.09.2026)
+- Admin: neuer Reiter „Themen“. Themen der Bereiche hinzufügen, umbenennen (bestehende Veranstaltungen werden angepasst) und löschen (nur wenn nicht verwendet). Bezeichnungen der Themenbereiche änderbar; die Bereiche selbst bleiben fest.
+- Fokus im Popup überschreibt keine bereits begonnene Eingabe mehr.
+
 ## 0.3.0 (30.09.2026)
 - Katalog: „Privat“ in brauner Farbwelt, „Dienstlich“ in Dunkelblau; Themenreihen alphabetisch; neuer Themenfilter zeigt nur die gewählte Reihe; Dauerfilter „Alle“.
 
