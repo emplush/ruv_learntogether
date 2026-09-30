@@ -292,6 +292,8 @@ var Server = {
   adminSaveSettings: function (s) { return this.call('adminSaveSettings', s, true); },
   adminChangePassword: function (c, n) { return this.call('adminChangePassword', { current: c, newPassword: n }, true).then(function (j) { adminToken = j.token; sess.set('lt_admin', j.token); }); },
   adminTestData: function (m) { var p = { mode: m }; if (m === 'load') { var t = buildTestData(); p.events = t.events; p.bookings = t.bookings; } return this.call('adminTestData', p, true); },
+  adminDeleteMailLog: function (id) { return this.call('adminDeleteMailLog', { id: id }, true); },
+  adminClearMailLog: function () { return this.call('adminClearMailLog', {}, true); },
   adminMailLog: function () { return this.call('adminMailLog', null, true).then(function (j) { return j.log; }); },
   adminTestMail: function (to) { return this.call('adminTestMail', { to: to }, true); }
 };
@@ -312,6 +314,7 @@ var Local = (function () {
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     applyTaxonomy(cfg);
     if (!mail) mail = [];
+    mail.forEach(function (m) { if (!m.id) m.id = rid(8); });
     if (!store.get('lt_seeded')) { store.set('lt_seeded', '1'); insertTest(); save(); }
   }
   function save() { store.set('lt_data', JSON.stringify(data)); store.set('lt_cfg', JSON.stringify(cfg)); store.set('lt_mail', JSON.stringify(mail.slice(0, 50))); }
@@ -385,7 +388,7 @@ var Local = (function () {
         if (booked(id) >= ev.capacity) throw ApiErr('full', 'Leider sind inzwischen alle Plätze vergeben. Die Anmeldung war nicht möglich.');
         var bk = { id: rid(8), eventId: id, name: name, email: email, code: newCode(), created: new Date().toISOString(), isTest: false };
         data.bookings.push(bk);
-        var m = buildMail(ev, bk, cfg.appTitle); mail.unshift(m); save();
+        var m = buildMail(ev, bk, cfg.appTitle); m.id = rid(8); mail.unshift(m); save();
         return { code: bk.code, mailSent: true, simulated: true, mail: m };
       });
     },
@@ -428,6 +431,8 @@ var Local = (function () {
     adminChangePassword: function (c, n) { return wrap(function () { if (c !== cfg.pw) throw ApiErr('password', 'Das aktuelle Passwort ist nicht korrekt.'); if (n.length < 8) throw ApiErr('invalid', 'Das neue Passwort muss mindestens 8 Zeichen lang sein.'); cfg.pw = n; save(); }); },
     adminTestData: function (m) { return wrap(function () { data.events = data.events.filter(function (e) { return !e.isTest; }); data.bookings = data.bookings.filter(function (b) { return !b.isTest; }); var r = { events: 0, bookings: 0 }; if (m === 'load') { var t = insertTest(); r.events = t.events.length; r.bookings = t.bookings.length; } save(); return r; }); },
     adminMailLog: function () { return wrap(function () { return mail; }); },
+    adminDeleteMailLog: function (id) { return wrap(function () { mail = mail.filter(function (m) { return m.id !== id; }); save(); return {}; }); },
+    adminClearMailLog: function () { return wrap(function () { mail = []; save(); return {}; }); },
     adminTestMail: function () { return fail('local', 'Im Demo-Modus werden keine E-Mails versendet.'); },
     reset: function () { ['lt_data', 'lt_cfg', 'lt_mail', 'lt_seeded'].forEach(store.del); data = cfg = mail = null; }
   };
@@ -757,7 +762,7 @@ function viewCatalog() {
     h('p', { text: HERO.text }),
     h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' }))])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
-    h('div', { class: 'r1' }, [switchSeg, h('div', { class: 'search', html: ico('search') }, search)]),
+    h('div', { class: 'r1' }, [h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Bereich' }), switchSeg]), h('div', { class: 'search', html: ico('search') }, search)]),
     typeChips,
     h('div', { class: 'r2' }, [h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Thema' }), topicSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Dauer' }), durSel]), h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Tageszeit' }), todSeg]), reset, count])])));
   root.appendChild(h('div', { class: 'wrap wide' }, rowsHost));
@@ -1189,13 +1194,43 @@ function viewAdmin() {
       return self;
     });
   }
+  function csvCell(v) { v = String(v == null ? '' : v); return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  function exportMailLog(log) {
+    var lines = [['Zeit', 'Empfänger', 'Betreff', 'Status', 'Fehler'].join(';')].concat(log.map(function (m) { return [(m.time || '').replace('T', ' ').slice(0, 19), m.to, m.subject, m.status, m.error || ''].map(csvCell).join(';'); }));
+    var csv = '﻿' + lines.join('\r\n') + '\r\n';
+    var name = 'E-Mail-Protokoll-' + ymd(new Date()) + '.csv';
+    if (CFG.mode === 'artifact') { // Downloads sind im Artefakt-Viewer gesperrt: CSV stattdessen in die Zwischenablage
+      try { navigator.clipboard.writeText(csv).then(function () { toast('Downloads sind hier gesperrt. Das CSV wurde in die Zwischenablage kopiert.'); }, function () { toast('Export im Artefakt-Viewer nicht möglich. In der IIS-Version wird ' + name + ' heruntergeladen.', true); }); } catch (e) { toast('Export im Artefakt-Viewer nicht möglich.', true); }
+      return;
+    }
+    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    var a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    toast(log.length + ' Einträge exportiert.');
+  }
   function adminMail() {
     return Api.adminMailLog().then(function (log) {
-      if (!log.length) return h('div', { class: 'empty' }, [h('h2', { text: 'Noch keine E-Mails' }), h('p', { text: 'Sobald sich jemand anmeldet, erscheint hier der Versandstatus.' })]);
-      var rows = log.map(function (m) {
-        var st = m.status; return h('tr', null, [h('td', { text: (m.time || '').replace('T', ' ').slice(0, 19) }), h('td', { text: m.to }), h('td', { text: m.subject }), h('td', null, [h('span', { class: 'tag' + (st === 'versendet' ? ' test' : ''), text: st }), m.error ? h('div', { class: 'hint', text: m.error }) : null]), h('td', null, m.html ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Ansehen', onclick: function () { showMail(m); } }) : null)]);
-      });
-      return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Zeit', 'Empfänger', 'Betreff', 'Status', ''].map(function (t) { return h('th', { text: t }); }))), h('tbody', null, rows)]));
+      var host = h('div');
+      function reload() { return Api.adminMailLog().then(function (l) { log = l; render(); }); }
+      function confirmBtn(label, sure, cls, fn) {
+        var b = h('button', { class: 'btn ' + cls + ' btn-sm', type: 'button', text: label });
+        b.addEventListener('click', function () { if (b._c) { fn(); return; } b._c = true; b.textContent = sure; setTimeout(function () { b._c = false; b.textContent = label; }, 4000); });
+        return b;
+      }
+      function render() {
+        clear(host);
+        if (!log.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Noch keine E-Mails' }), h('p', { text: 'Sobald sich jemand anmeldet, erscheint hier der Versandstatus.' })])); return; }
+        var tools = h('div', { class: 'toolrow' }, [h('span', { class: 'hint', text: log.length + (log.length === 1 ? ' Eintrag' : ' Einträge') }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Als CSV exportieren', onclick: function () { exportMailLog(log); } }),
+          confirmBtn('Protokoll leeren', 'Wirklich alle löschen?', 'btn-danger', function () { Api.adminClearMailLog().then(function () { toast('Protokoll geleert.'); return reload(); }, function (er) { toast(er.message, true); }); })]);
+        var rows = log.map(function (m) {
+          var st = m.status;
+          return h('tr', null, [h('td', { text: (m.time || '').replace('T', ' ').slice(0, 19) }), h('td', { text: m.to }), h('td', { text: m.subject }), h('td', null, [h('span', { class: 'tag' + (st === 'versendet' ? ' test' : ''), text: st }), m.error ? h('div', { class: 'hint', text: m.error }) : null]),
+            h('td', null, h('div', { class: 'acts' }, [m.html ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Ansehen', onclick: function () { showMail(m); } }) : null,
+              confirmBtn('Löschen', 'Wirklich löschen?', 'btn-danger', function () { Api.adminDeleteMailLog(m.id).then(function () { toast('Eintrag gelöscht.'); return reload(); }, function (er) { toast(er.message, true); }); })]))]);
+        });
+        host.appendChild(tools);
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Zeit', 'Empfänger', 'Betreff', 'Status', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), h('tbody', null, rows)])));
+      }
+      render(); return host;
     });
   }
   if (adminToken) panel(); else login();

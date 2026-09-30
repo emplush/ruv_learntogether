@@ -109,6 +109,7 @@ namespace LearnTogether
 
     public class MailLogRec
     {
+        public string id { get; set; }
         public string time { get; set; }
         public string to { get; set; }
         public string subject { get; set; }
@@ -194,6 +195,8 @@ namespace LearnTogether
                 case "adminSaveTaxonomy": AdminSaveTaxonomy(); break;
                 case "adminChangePassword": AdminChangePassword(); break;
                 case "adminTestData": AdminTestData(); break;
+                case "adminDeleteMailLog": { string mid = S(Body(), "id"); lock (Gate) { List<MailLogRec> ml = LoadMailLog(); ml.RemoveAll(delegate (MailLogRec x) { return x.id == mid; }); WriteJson("maillog.json", ml); } Send(new { ok = true }); break; }
+                case "adminClearMailLog": lock (Gate) { WriteJson("maillog.json", new List<MailLogRec>()); } Send(new { ok = true }); break;
                 case "adminMailLog": Send(new { ok = true, log = LoadMailLog() }); break;
                 case "adminTestMail": AdminTestMail(); break;
                 default: throw new ApiException("unknown", "Unbekannte Aktion.", 404);
@@ -306,7 +309,9 @@ namespace LearnTogether
             {
                 string p = Path.Combine(DataDir(), "maillog.json");
                 if (!File.Exists(p)) return new List<MailLogRec>();
-                return json.Deserialize<List<MailLogRec>>(File.ReadAllText(p, Encoding.UTF8));
+                List<MailLogRec> list = json.Deserialize<List<MailLogRec>>(File.ReadAllText(p, Encoding.UTF8));
+                foreach (MailLogRec m in list) if (string.IsNullOrEmpty(m.id)) m.id = RandomToken(6);
+                return list;
             }
         }
 
@@ -316,10 +321,11 @@ namespace LearnTogether
             {
                 List<MailLogRec> l = LoadMailLog();
                 MailLogRec r = new MailLogRec();
+                r.id = RandomToken(6);
                 r.time = NowBerlin().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
                 r.to = to; r.subject = subject; r.status = status; r.error = error ?? "";
                 l.Insert(0, r);
-                if (l.Count > 200) l.RemoveRange(200, l.Count - 200);
+                if (l.Count > 1000) l.RemoveRange(1000, l.Count - 1000);
                 WriteJson("maillog.json", l);
             }
         }

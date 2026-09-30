@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.8.0 (30.09.2026)
+- Katalog: Beschriftung „Bereich“ vor dem Umschalter dienstlich/privat.
+- Admin, E-Mail-Protokoll: Einträge einzeln löschen, Protokoll leeren (jeweils mit Bestätigung), Export als CSV (Excel-tauglich, Semikolon, UTF-8). Protokoll speichert bis zu 1000 Einträge.
+
 ## 0.7.1 (30.09.2026)
 - web.config: Browser-Cache für statische Dateien deaktiviert, damit Updates (z. B. index.html) sofort sichtbar sind.
 
