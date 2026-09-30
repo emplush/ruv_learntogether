@@ -336,3 +336,7 @@ pre.ics { background: var(--surface); padding: 12px; border-radius: 10px; overfl
 .afld label { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: var(--muted); }
 .afld input, .afld select { min-height: 42px; }
 .toolrow { min-height: 28px; }
+
+.demo-why { flex: 1 1 100%; margin-top: 2px; }
+.demo-why summary { cursor: pointer; font-weight: 700; color: var(--link); }
+.demo-why p { margin: 6px 0; max-width: 90ch; }

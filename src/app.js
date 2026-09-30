@@ -3,7 +3,11 @@
 (function () {
 'use strict';
 var CFG = window.__LT__ || {};
-var API = 'AppData/api.ashx';
+/* Basisverzeichnis der Anwendung (auch wenn die Adresse ohne abschliessenden Schraegstrich aufgerufen wird) */
+var BASE = (function () { var p = location.pathname, last = p.split('/').pop(); if (p.slice(-1) !== '/' && last.indexOf('.') < 0) p += '/'; return p.replace(/[^\/]*$/, ''); })();
+var API = BASE + 'AppData/api.ashx';
+function rel(u) { return /^(data:|https?:|blob:|\/)/i.test(u) ? u : BASE + u; }
+var diag = null; // Grund, warum der Server nicht genutzt wird (Demo-Modus)
 
 /* ====================================================== Hilfsfunktionen */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -304,7 +308,7 @@ function mailHtml(m) {
 function buildMail(ev, bk, title) {
   var url = cancelUrl(bk), c = ev.category, d = parseYmd(ev.date);
   var light = lum(COLORS[c].toLowerCase()) > .35;
-  var logo = light ? (CFG.logoDark || 'AppData/assets/ruv-logo-dunkelblau.png') : (CFG.logoWhite || 'AppData/assets/ruv-logo-weiss.png');
+  var logo = light ? (CFG.logoDark || rel('AppData/assets/ruv-logo-dunkelblau.png')) : (CFG.logoWhite || rel('AppData/assets/ruv-logo-weiss.png'));
   var html = mailHtml({ appTitle: title, area: CAT_LABEL[c], type: ev.type, topic: ev.topic, bg: COLORS[c], head: HEADINGS[c], text: TEXTS[c], logo: logo, name: bk.name, title: ev.title, date: dateLong(ev.date), time: ev.start + ' – ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: bk.code, cancel: url });
   return { time: new Date().toISOString(), to: bk.email, subject: 'Bestätigung: ' + ev.title + ' am ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(), html: html, ics: buildIcs(ev, bk), status: 'simuliert' };
 }
@@ -547,7 +551,7 @@ function placeholder(topic) {
   if (!s) { var keys = Object.keys(TOPIC_STYLE), hsh = 0; for (var i = 0; i < topic.length; i++) hsh = (hsh * 31 + topic.charCodeAt(i)) % 9973; s = TOPIC_STYLE[keys[hsh % keys.length]]; }
   return h('div', { class: 'ph', style: 'background:linear-gradient(135deg,' + s[0] + ',' + s[1] + ')', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24">' + ICONS[s[2]] + '</svg>' });
 }
-function cover(e) { return e.image ? h('img', { class: 'cover', src: e.image, alt: '', loading: 'lazy' }) : placeholder(e.topic); }
+function cover(e) { return e.image ? h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }) : placeholder(e.topic); }
 
 /* ====================================================== Rich-Text-Editor */
 function makeRte(initial) {
@@ -986,8 +990,8 @@ function viewManual() {
   wrap.appendChild(h('h1', { html: 'Nutzer<span class="accent">handbuch</span>' }));
   wrap.appendChild(h('p', { class: 'lead', text: 'So nutzt du ' + state.settings.appTitle + ': Veranstaltungen finden, dich anmelden, stornieren und selbst etwas anbieten.' }));
   var tools = h('div', { class: 'manual-tools' });
-  if (CFG.pdfUrl) tools.appendChild(h('a', { class: 'btn btn-primary', href: CFG.pdfUrl, download: 'LearnTogether-Nutzerhandbuch.pdf', html: ico('download') + ' Als PDF herunterladen' }));
-  if (mode === 'server' && CFG.manualUrl) tools.appendChild(h('a', { class: 'btn btn-secondary', href: CFG.manualUrl, target: '_blank', rel: 'noopener', html: ico('ext') + ' In neuem Tab öffnen' }));
+  if (CFG.pdfUrl) tools.appendChild(h('a', { class: 'btn btn-primary', href: rel(CFG.pdfUrl), download: 'LearnTogether-Nutzerhandbuch.pdf', html: ico('download') + ' Als PDF herunterladen' }));
+  if (mode === 'server' && CFG.manualUrl) tools.appendChild(h('a', { class: 'btn btn-secondary', href: rel(CFG.manualUrl), target: '_blank', rel: 'noopener', html: ico('ext') + ' In neuem Tab öffnen' }));
   wrap.appendChild(tools);
   var body = h('div', { class: 'manual-body', html: CFG.manualHtml || '<p>Das Handbuch ist in dieser Version nicht enthalten.</p>' });
   var toc = h('nav', { class: 'manual-toc', 'aria-label': 'Inhalt' });
@@ -1348,13 +1352,17 @@ function applyTitle() {
   var s = $('.foot .ftitle'); if (s) s.textContent = t;
 }
 function shell() {
-  var logo = CFG.logoDark || 'AppData/assets/ruv-logo-dunkelblau.png', logoW = CFG.logoWhite || 'AppData/assets/ruv-logo-weiss.png';
+  var logo = CFG.logoDark || rel('AppData/assets/ruv-logo-dunkelblau.png'), logoW = CFG.logoWhite || rel('AppData/assets/ruv-logo-weiss.png');
   document.body.appendChild(h('a', { class: 'sr', href: '#main', text: 'Zum Inhalt springen' }));
   var top = h('header', { class: 'top' }, h('div', { class: 'wrap' }, [
     h('a', { class: 'brand', href: '#/', 'aria-label': 'Zur Startseite' }, [h('img', { src: logo, alt: 'R+V' }), h('span', { class: 'sep' }), h('span', { class: 'name' })]),
     h('nav', { class: 'main', 'aria-label': 'Hauptnavigation' }, NAV.map(function (n) { return h('a', { href: '#' + n[0], 'data-r': n[0], html: (n[0] === '/admin' ? ico('lock') : '') + esc(n[1]) }); }))]));
   document.body.appendChild(top);
-  if (mode === 'local') document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser, E-Mails werden simuliert. Das Admin-Passwort für den Test lautet RuVTest1234.' })])));
+  if (mode === 'local') {
+    var why = CFG.mode === 'artifact' ? null : (diag || 'Der Server wurde nicht erreicht.');
+    var det = why ? h('details', { class: 'demo-why' }, [h('summary', { text: 'Warum Demo-Modus?' }), h('p', { text: why }), h('p', { class: 'hint', text: 'Geprüfte Adresse: ' + location.origin + API + '?action=ping' }), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Erneut prüfen', onclick: function () { location.reload(); } })]) : null;
+    document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser, E-Mails werden simuliert. Das Admin-Passwort für den Test lautet RuVTest1234.' }), det])));
+  }
   appEl = h('main', { id: 'main', tabindex: '-1' }); document.body.appendChild(appEl);
   document.body.appendChild(h('footer', { class: 'foot' }, h('div', { class: 'wrap' }, [h('img', { src: logoW, alt: 'R+V' }), h('span', null, [h('b', { class: 'ftitle' }), ' \u00b7 Informelles Lernen im Außendienst']), h('span', { class: 'sp', text: 'Version ' + (CFG.version || '') })])));
   applyTitle();
@@ -1378,9 +1386,26 @@ function route() {
   $$('nav.main a').forEach(function (a) { if (a.getAttribute('data-r') === r.path) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   window.scrollTo(0, 0);
 }
+/* Prueft, ob api.ashx antwortet, und erklaert andernfalls den Grund */
+function probeServer() {
+  if (location.protocol === 'file:') { diag = 'Die Seite wurde direkt aus dem Dateisystem geöffnet (file://). Sie muss über die Adresse des Webservers aufgerufen werden, z. B. https://server/pfad/index.html.'; return Promise.resolve(false); }
+  return fetch(API + '?action=ping', { cache: 'no-store' }).then(function (r) {
+    return r.text().then(function (t) {
+      var j = null; try { j = JSON.parse(t); } catch (e) { }
+      if (j && j.server) return true;
+      if (r.status === 404) diag = 'Die Datei AppData/api.ashx wurde nicht gefunden (HTTP 404). Prüfe, ob der Ordner AppData mit api.ashx auf den Server kopiert wurde und ob die Adresse zum Ordner mit index.html passt.';
+      else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Hinweise liefert die Fehlerseite des IIS bzw. AppData\\Data\\error.log.';
+      else if (r.status === 401 || r.status === 403) diag = 'Der Zugriff auf AppData/api.ashx wird verweigert (HTTP ' + r.status + '). Prüfe die anonyme Authentifizierung und die Ordnerberechtigungen.';
+      else if (r.status >= 400) diag = 'Der Server antwortet mit HTTP ' + r.status + ' auf AppData/api.ashx.';
+      else if (t.indexOf('<%@') >= 0) diag = 'Der IIS liefert api.ashx als Text aus. ASP.NET ist für diese Anwendung nicht aktiv (Windows-Feature „ASP.NET 4.x“ installieren, Anwendungspool auf .NET CLR v4 stellen).';
+      else diag = 'Die Antwort von AppData/api.ashx ist kein gültiges JSON. Vermutlich liefert der Server eine andere Seite (z. B. Anmeldeseite oder Umleitung) statt der API.';
+      return false;
+    });
+  }, function () { diag = 'Der Server ist nicht erreichbar (Netzwerkfehler, Zertifikat oder blockierte Anfrage).'; return false; });
+}
 function boot() {
-  var probe = CFG.mode === 'artifact' ? Promise.reject() : fetch(API + '?action=ping', { cache: 'no-store' }).then(function (r) { return r.json(); });
-  probe.then(function (j) { if (j && j.server) { mode = 'server'; Api = Server; } }, function () { }).then(function () {
+  var probe = CFG.mode === 'artifact' ? Promise.resolve(false) : probeServer();
+  probe.then(function (ok) { if (ok) { mode = 'server'; Api = Server; } }).then(function () {
     return Api.settings().catch(function () { return { appTitle: DEFAULT_TITLE }; });
   }).then(function (s) {
     state.settings = s; applyTaxonomy(s); shell(); route(); window.addEventListener('hashchange', route);
