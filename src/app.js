@@ -75,15 +75,19 @@ var MAX_TYPES = 50;
 var DEFAULT_HERO = { title: 'Voneinander lernen. Miteinander wachsen.', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
 var COLORS = { dienstlich: '#001957', privat: '#583720' };
+var HEADINGS = { dienstlich: '#f79506', privat: '#f79506' };
+var TEXTS = { dienstlich: '#ffffff', privat: '#ffffff' };
 var TOPICS = { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] };
 var CAT_LABEL = { dienstlich: 'Dienstlich', privat: 'Privat' };
-var DEFAULT_TAX = { types: ['Workshop', 'Austausch', 'Best Practice'], colors: { dienstlich: '#001957', privat: '#583720' }, labels: { dienstlich: 'Dienstlich', privat: 'Privat' }, topics: { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] } };
+var DEFAULT_TAX = { types: ['Workshop', 'Austausch', 'Best Practice'], colors: { dienstlich: '#001957', privat: '#583720' }, headings: { dienstlich: '#f79506', privat: '#f79506' }, texts: { dienstlich: '#ffffff', privat: '#ffffff' }, labels: { dienstlich: 'Dienstlich', privat: 'Privat' }, topics: { dienstlich: ['fachlich', 'vertrieblich'], privat: ['Sport', 'Freizeit', 'Essen & Trinken', 'Reisen', 'Sonstiges'] } };
 function applyTaxonomy(t) {
   if (!t) return;
   ['dienstlich', 'privat'].forEach(function (c) {
     if (t.labels && t.labels[c]) CAT_LABEL[c] = t.labels[c];
     if (t.topics && t.topics[c] && t.topics[c].length) TOPICS[c] = t.topics[c].slice();
     if (t.colors && t.colors[c]) COLORS[c] = t.colors[c];
+    if (t.headings && t.headings[c]) HEADINGS[c] = t.headings[c];
+    if (t.texts && t.texts[c]) TEXTS[c] = t.texts[c];
   });
   if (t.types && t.types.length) TYPES = t.types.slice().sort(function (a, b) { return a.localeCompare(b, 'de', { sensitivity: 'base' }); });
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
@@ -92,11 +96,22 @@ function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 function hexRgb(x) { return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }); }
 function lum(x) { var c = hexRgb(x).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
 function mixHex(a, b, t) { var A = hexRgb(a), B = hexRgb(b); return '#' + A.map(function (v, i) { return pad(Math.round(v + (B[i] - v) * t).toString(16)); }).join(''); }
-/* Zu helle Farben lassen weisse und orange Schrift unleserlich werden */
-function colorError(x) { if (!/^#[0-9a-fA-F]{6}$/.test(x)) return 'Bitte gib die Farbe als Hex-Wert an, z. B. #001957.'; if (lum(x.toLowerCase()) > 0.107) return 'Die Farbe ist zu hell. Bitte wähle einen dunkleren Ton, damit weiße und orange Schrift gut lesbar bleiben.'; return ''; }
-function stageStyle(x) {
-  return '--bg:' + x + ';--surface:' + mixHex(x, '#ffffff', .1) + ';--surface-2:' + mixHex(x, '#ffffff', .2) + ';--line:' + mixHex(x, '#ffffff', .32) + ';--muted:' + mixHex(x, '#ffffff', .8) + ';--arrow:' + mixHex(x, '#000000', .4);
+function hexOk(x) { return /^#[0-9a-fA-F]{6}$/.test(x); }
+function contrast(a, b) { var la = lum(a.toLowerCase()), lb = lum(b.toLowerCase()); return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05); }
+function fmt1(n) { return (Math.round(n * 10) / 10).toFixed(1).replace('.', ','); }
+/* Farbpruefung je Themenbereich: Text gegen Hintergrund mind. 4,5:1, Ueberschrift mind. 3:1 (WCAG) */
+function pairError(label, bg, head, text) {
+  if (!hexOk(bg) || !hexOk(head) || !hexOk(text)) return 'Bitte gib alle Farben als Hex-Wert an, z. B. #001957.';
+  var ct = contrast(bg, text), ch = contrast(bg, head);
+  if (ct < 4.5) return '„' + label + '“: Der Kontrast zwischen Hintergrund und Textfarbe ist zu gering (mindestens 4,5 : 1, aktuell ' + fmt1(ct) + ' : 1).';
+  if (ch < 3) return '„' + label + '“: Der Kontrast zwischen Hintergrund und Überschriftenfarbe ist zu gering (mindestens 3 : 1, aktuell ' + fmt1(ch) + ' : 1).';
+  return '';
 }
+function stageStyle(bg, head, text) {
+  bg = bg.toLowerCase(); head = (head || '#f79506').toLowerCase(); text = (text || '#ffffff').toLowerCase();
+  return '--bg:' + bg + ';--text:' + text + ';--accent:' + head + ';--surface:' + mixHex(bg, text, .1) + ';--surface-2:' + mixHex(bg, text, .2) + ';--line:' + mixHex(bg, text, .32) + ';--muted:' + mixHex(bg, text, .78) + ';--arrow:' + mixHex(bg, '#000000', .55);
+}
+function paintStage(cat) { return stageStyle(COLORS[cat], HEADINGS[cat], TEXTS[cat]); }
 var WINDOWS = [{ key: 'morgens', label: 'Morgens', from: 360, to: 540 }, { key: 'nachmittags', label: 'Nachmittags', from: 1020, to: 1200 }];
 var DUR_LABEL = { 15: '15 Minuten', 30: '30 Minuten', 45: '45 Minuten', 60: '60 Minuten (1 Std.)', 75: '75 Minuten', 90: '90 Minuten (1,5 Std.)', 105: '105 Minuten', 120: '120 Minuten (2 Std.)' };
 var DAY_S = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -191,7 +206,7 @@ function makeImage(seed, size) {
 }
 function descHtml(intro, points) { return '<p>' + intro + '</p><h3>Das erwartet dich</h3><ul>' + points.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul><p>Bring gern eigene Fragen und Beispiele mit. Die Sitzung findet online in Microsoft Teams statt.</p>'; }
 function mapType(name) { if (TYPES.indexOf(name) >= 0) return name; var i = DEFAULT_TAX.types.indexOf(name); return TYPES[(i < 0 ? 0 : i) % TYPES.length]; }
-function mapTopic(cat, name) { var i = DEFAULT_TAX.topics[cat].indexOf(name); var l = TOPICS[cat]; return l[(i < 0 ? 0 : i) % l.length]; }
+function mapTopic(cat, name) { if (TOPICS[cat].indexOf(name) >= 0) return name; var i = DEFAULT_TAX.topics[cat].indexOf(name); var l = TOPICS[cat]; return l[(i < 0 ? 0 : i) % l.length]; }
 function buildTestData() {
   var d = nextWeekdays(12), past = lastWeekday();
   var L = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_TESTDATEN%40thread.v2/0';
@@ -221,6 +236,15 @@ function buildTestData() {
     ['Genau fünf Plätze frei (Testfall)', 0, 'privat', 'Austausch', 'Freizeit', 7, '06:00', 45, 10, 5, 1, descHtml('Testfall: An der Grenze zu „fast ausgebucht“.', ['Fünf Plätze frei'])]
   ];
   var names = ['Lena Hoffmann', 'Paul Richter', 'Nina Wagner', 'Felix Braun', 'Clara Schulz', 'Max Keller', 'Sophie Lorenz', 'David Winter', 'Emma Fuchs', 'Lukas Brandt', 'Mia Schäfer', 'Ben Krause', 'Hanna Seidel', 'Leon Köhler', 'Laura Bauer', 'Tim Engel', 'Marie Vogt', 'Jan Ludwig', 'Lisa Arnold', 'Noah Frank', 'Eva Beck', 'Finn Otto', 'Ida Simon', 'Ole Graf', 'Lotta Voigt', 'Anton Busch', 'Zoe Ernst', 'Emil Kraus', 'Lea Pohl', 'Karl Jung', 'Rosa Horn', 'Elias Sauer', 'Greta Franke', 'Theo Böhm', 'Frieda Lang', 'Jakob Haas', 'Paula Roth', 'Milan Wolf', 'Nele Dietrich', 'Jonas Klein'];
+  // Grossveranstaltung mit der maximal moeglichen Teilnehmendenzahl
+  rows.push(['Großveranstaltung mit 50 Plätzen (Testfall)', 3, 'dienstlich', 'Best Practice', 'fachlich', 8, '07:00', 90, MAX_CAP, 12, 1, descHtml('Testfall: Höchstzahl von 50 Teilnehmenden.', ['Viele Plätze', 'Höchstgrenze laut Regeln'])]);
+  // Abdeckung: Jedes aktuelle Thema und jede aktuelle Art kommt mindestens einmal vor (auch neu angelegte). Einstellungen bleiben unveraendert.
+  var usedT = {}, usedY = {};
+  rows.forEach(function (r) { usedT[r[2] + '|' + mapTopic(r[2], r[4])] = 1; usedY[mapType(r[3])] = 1; });
+  var starts = ['06:30', '17:30', '07:15', '18:15', '06:45', '19:00'], extra = 0;
+  function extraRow(title, cat, type, topic) { extra++; rows.push([title, extra + 2, cat, type, topic, 1 + (extra % 10), starts[extra % starts.length], [30, 45, 60][extra % 3], 15, extra % 6, extra % 2, descHtml('Automatisch erzeugter Testtermin, damit dieses Thema bzw. diese Art im Katalog vorkommt.', ['Testinhalt eins', 'Testinhalt zwei'])]); }
+  ['dienstlich', 'privat'].forEach(function (c) { TOPICS[c].forEach(function (t, i) { if (!usedT[c + '|' + t]) { extraRow('Testtermin Thema: ' + capFirst(t), c, TYPES[(i + extra) % TYPES.length], t); usedY[TYPES[(i + extra - 1) % TYPES.length]] = 1; } }); });
+  TYPES.forEach(function (ty, i) { if (!usedY[ty]) { var c = i % 2 ? 'privat' : 'dienstlich'; extraRow('Testtermin Art: ' + ty, c, ty, TOPICS[c][i % TOPICS[c].length]); } });
   var events = [], bookings = [], ni = 0;
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1);
@@ -248,16 +272,41 @@ function buildIcs(ev, bk) {
   return L.map(fold).join('\r\n') + '\r\n';
 }
 function cancelUrl(bk) { var base = location.href.split('#')[0]; return base + '#/stornieren?code=' + encodeURIComponent(bk.code) + '&email=' + encodeURIComponent(bk.email); }
+/* Bestaetigungs-E-Mail (Demo-Vorschau). Spiegelt BuildMailHtml in AppData/api.ashx: R+V-Design im Farbton des Bereichs. */
+function mailHtml(m) {
+  var font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;", ink = '#001957', grey = '#707070';
+  var hd = contrast(m.bg, '#ffffff') >= 4.5 ? m.bg : ink, soft = mixHex(m.bg, m.text, .78), tint = mixHex(m.bg, '#ffffff', .9);
+  function pill(t, bg, fg) { return '<span style="display:inline-block;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0">' + esc(t) + '</span>'; }
+  function row(k, v) { return '<tr><td style="width:120px;padding:9px 0;border-top:1px solid #ececec;color:' + grey + ';vertical-align:top">' + k + '</td><td style="padding:9px 0;border-top:1px solid #ececec;color:' + ink + ';font-weight:600;vertical-align:top">' + v + '</td></tr>'; }
+  var h_ = [];
+  h_.push('<!doctype html><html lang="de"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f5f5f5;' + font + '">');
+  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5"><tr><td align="center" style="padding:24px 12px">');
+  h_.push('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">');
+  h_.push('<tr><td style="background:' + m.bg + ';padding:28px 32px 30px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>');
+  h_.push('<td style="vertical-align:middle">' + (m.logo ? '<img src="' + m.logo + '" width="88" alt="R+V" style="display:block;border:0">' : '<span style="' + font + 'font-size:24px;font-weight:800;color:' + m.text + '">R+V</span>') + '</td>');
+  h_.push('<td align="right" style="vertical-align:middle;' + font + 'font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:' + soft + '">' + esc(m.appTitle) + '</td></tr></table>');
+  h_.push('<div style="' + font + 'font-size:28px;line-height:1.25;font-weight:800;color:' + m.head + ';margin:26px 0 0">Deine Anmeldung ist bestätigt</div>');
+  h_.push('<div style="' + font + 'font-size:15px;line-height:1.5;color:' + m.text + ';margin:8px 0 0">Schön, dass du dabei bist, ' + esc(m.name) + '.</div></td></tr>');
+  h_.push('<tr><td style="padding:30px 32px 8px;' + font + 'color:' + ink + '"><div>' + pill(m.area, tint, hd) + pill(m.type, '#f5f5f5', ink) + pill(m.topic, '#f5f5f5', ink) + '</div>');
+  h_.push('<div style="font-size:22px;line-height:1.3;font-weight:800;color:' + hd + ';margin:6px 0 20px">' + esc(m.title) + '</div>');
+  h_.push('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45">' + row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Durchführung', esc(m.host)) + '</table>');
+  h_.push('<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 8px"><tr><td style="background:#00dcdc;border-radius:24px"><a href="' + esc(m.teams) + '" style="display:inline-block;padding:14px 30px;' + font + 'font-size:16px;font-weight:700;color:#001957;text-decoration:none">Zur Teams-Sitzung</a></td></tr></table>');
+  h_.push('<div style="font-size:12px;color:' + grey + ';word-break:break-all">' + esc(m.teams) + '</div>');
+  h_.push('<div style="font-size:14px;color:' + grey + ';margin:14px 0 0">Der Kalendereintrag (.ics) ist dieser E-Mail angehängt. Er enthält den Teams-Link und eine Erinnerung 15 Minuten vor Beginn.</div></td></tr>');
+  h_.push('<tr><td style="padding:20px 32px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504"><tr><td style="padding:18px 20px;' + font + 'color:' + ink + '">');
+  h_.push('<div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400">Dein Stornierungscode</div>');
+  h_.push('<div style="font-family:Consolas,\'Courier New\',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:' + ink + '">' + esc(m.code) + '</div>');
+  h_.push('<div style="font-size:14px;line-height:1.5">Kannst du nicht teilnehmen? Gib deinen Platz bitte frei: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:700">Anmeldung stornieren</a></div></td></tr></table></td></tr>');
+  h_.push('<tr><td style="background:#f5f5f5;padding:18px 32px;' + font + 'font-size:12px;line-height:1.5;color:' + grey + '">' + esc(m.appTitle) + ' &middot; Informelles Lernen im Außendienst<br>Diese E-Mail wurde automatisch versendet. Bitte antworte nicht darauf.</td></tr>');
+  h_.push('<tr><td style="background:' + m.bg + ';height:6px;line-height:6px;font-size:0">&nbsp;</td></tr></table></td></tr></table></body></html>');
+  return h_.join('');
+}
 function buildMail(ev, bk, title) {
-  var url = cancelUrl(bk), when = dateLong(ev.date) + ', ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr';
-  function row(k, v) { return '<tr><td style="width:130px;color:#707070;vertical-align:top">' + k + '</td><td>' + v + '</td></tr>'; }
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;color:#001957;max-width:560px"><p style="font-size:20px;font-weight:bold;color:#EB6504;margin:0 0 12px">Deine Anmeldung ist bestätigt</p>' +
-    '<p>Hallo ' + esc(bk.name) + ',<br/>du bist für die folgende Veranstaltung angemeldet:</p><table cellpadding="6" style="border-collapse:collapse;background:#F5F5F5;width:100%">' +
-    row('Veranstaltung', '<b>' + esc(ev.title) + '</b>') + row('Datum', esc(dateLong(ev.date))) + row('Uhrzeit', ev.start + ' \u2013 ' + endHm(ev) + ' Uhr') + row('Dauer', ev.duration + ' Minuten') + row('Durchführung', esc(ev.host)) +
-    row('Microsoft Teams', '<a href="' + esc(ev.teamsLink) + '" style="color:#109DA8">Zur Teams-Sitzung</a><br/><span style="font-size:12px">' + esc(ev.teamsLink) + '</span>') + '</table>' +
-    '<p>Ein Kalendereintrag (.ics) ist dieser E-Mail angehängt.</p><p style="background:#FFF4E0;padding:12px">Dein Stornierungscode: <b style="font-size:18px;letter-spacing:1px">' + esc(bk.code) + '</b><br/>Wenn du nicht teilnehmen kannst, gib bitte den Platz frei: <a href="' + esc(url) + '" style="color:#109DA8">Anmeldung stornieren</a></p>' +
-    '<p style="font-size:12px;color:#707070">' + esc(title) + '</p></div>';
-  return { time: new Date().toISOString(), to: bk.email, subject: 'Bestätigung: ' + ev.title + ' am ' + pad(parseYmd(ev.date).getDate()) + '.' + pad(parseYmd(ev.date).getMonth() + 1) + '.' + parseYmd(ev.date).getFullYear(), html: html, ics: buildIcs(ev, bk), status: 'simuliert', when: when };
+  var url = cancelUrl(bk), c = ev.category, d = parseYmd(ev.date);
+  var light = lum(COLORS[c].toLowerCase()) > .35;
+  var logo = light ? (CFG.logoDark || 'AppData/assets/ruv-logo-dunkelblau.png') : (CFG.logoWhite || 'AppData/assets/ruv-logo-weiss.png');
+  var html = mailHtml({ appTitle: title, area: CAT_LABEL[c], type: ev.type, topic: ev.topic, bg: COLORS[c], head: HEADINGS[c], text: TEXTS[c], logo: logo, name: bk.name, title: ev.title, date: dateLong(ev.date), time: ev.start + ' – ' + endHm(ev) + ' Uhr', duration: ev.duration, host: ev.host, teams: ev.teamsLink, code: bk.code, cancel: url });
+  return { time: new Date().toISOString(), to: bk.email, subject: 'Bestätigung: ' + ev.title + ' am ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(), html: html, ics: buildIcs(ev, bk), status: 'simuliert' };
 }
 
 /* ====================================================== Datenzugriff */
@@ -277,8 +326,8 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, types: j.types, hero: j.hero }; }); },
-  adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, types: j.types }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero }; }); },
+  adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types }; }); },
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
   book: function (id, name, email) { return this.call('book', { eventId: id, name: name, email: email }); },
@@ -311,6 +360,8 @@ var Local = (function () {
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
     if (!cfg.hero) cfg.hero = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
     if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
+    if (!cfg.headings) cfg.headings = JSON.parse(JSON.stringify(DEFAULT_TAX.headings));
+    if (!cfg.texts) cfg.texts = JSON.parse(JSON.stringify(DEFAULT_TAX.texts));
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     applyTaxonomy(cfg);
     if (!mail) mail = [];
@@ -340,7 +391,7 @@ var Local = (function () {
   }
   function wrap(fn) { return new Promise(function (res, rej) { try { load(); res(fn()); } catch (e) { rej(e); } }); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types, hero: cfg.hero }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
         function names(list, what, max, old, usedFn, map) {
@@ -355,23 +406,31 @@ var Local = (function () {
           old.forEach(function (ot) { if (Object.prototype.hasOwnProperty.call(map, ot)) return; var used = usedFn(ot); if (used) throw ApiErr('invalid', '"' + ot + '" wird von ' + used + ' Veranstaltung(en) verwendet und kann nicht gelöscht werden. Bitte ändere zuerst diese Veranstaltungen.'); });
           return out;
         }
-        var cats = ['dienstlich', 'privat'], nl, nc, nt = {}, maps = {}, ny, tmap = {};
+        var cats = ['dienstlich', 'privat'], nl, nc, nh, nx, nt = {}, maps = {}, ny, tmap = {};
         if (p.labels) {
           var c1 = (p.labels.dienstlich || '').trim(), c2 = (p.labels.privat || '').trim();
           if (c1.length < 2 || c1.length > 30 || c2.length < 2 || c2.length > 30) throw ApiErr('invalid', 'Die Bezeichnungen der Themenbereiche müssen zwischen 2 und 30 Zeichen lang sein.');
           if (c1.toLowerCase() === c2.toLowerCase()) throw ApiErr('invalid', 'Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.');
           nl = { dienstlich: c1, privat: c2 };
         }
-        if (p.colors) { nc = {}; cats.forEach(function (c) { var x = (p.colors[c] || '').trim().toLowerCase(); var er = colorError(x); if (er) throw ApiErr('invalid', er); nc[c] = x; }); }
+        if (p.colors || p.headings || p.texts) {
+          nc = {}; nh = {}; nx = {};
+          cats.forEach(function (c) {
+            function pick(o, cur) { return ((o ? o[c] : cur[c]) || '').trim().toLowerCase(); }
+            var bg = pick(p.colors, cfg.colors), hd = pick(p.headings, cfg.headings), tx = pick(p.texts, cfg.texts);
+            var er = pairError((nl || cfg.labels)[c], bg, hd, tx); if (er) throw ApiErr('invalid', er);
+            nc[c] = bg; nh[c] = hd; nx[c] = tx;
+          });
+        }
         if (p.topics) {
           cats.forEach(function (cat) { var map = {}; nt[cat] = names(p.topics[cat], 'Thema', 30, cfg.topics[cat], function (ot) { return data.events.filter(function (e) { return e.category === cat && e.topic === ot; }).length; }, map); maps[cat] = map; });
         }
         if (p.types) ny = names(p.types, 'Art', MAX_TYPES, cfg.types, function (ot) { return data.events.filter(function (e) { return e.type === ot; }).length; }, tmap);
-        if (nl) cfg.labels = nl; if (nc) cfg.colors = nc;
+        if (nl) cfg.labels = nl; if (nc) { cfg.colors = nc; cfg.headings = nh; cfg.texts = nx; }
         if (p.topics) { data.events.forEach(function (e) { var m = maps[e.category]; if (m && Object.prototype.hasOwnProperty.call(m, e.topic)) e.topic = m[e.topic]; }); cfg.topics = nt; }
         if (ny) { data.events.forEach(function (e) { if (Object.prototype.hasOwnProperty.call(tmap, e.type)) e.type = tmap[e.type]; }); cfg.types = ny; }
         applyTaxonomy(cfg); save();
-        return { labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, types: cfg.types };
+        return { labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types };
       });
     },
     events: function () { return wrap(function () { var now = new Date(); return data.events.filter(function (e) { return startDate(e) > now; }).map(pub); }); },
@@ -732,7 +791,7 @@ function viewCatalog() {
   if (filters.topic !== 'all' && TOPICS[filters.cat].indexOf(filters.topic) < 0) filters.topic = 'all';
   filters.types = filters.types.filter(function (t) { return TYPES.indexOf(t) >= 0; });
   var root = h('div', { class: 'stage' + (filters.cat === 'privat' ? ' priv' : '') });
-  function paint() { root.style.cssText = stageStyle(COLORS[filters.cat]); }
+  function paint() { root.style.cssText = paintStage(filters.cat); }
   paint();
   var rowsHost = h('div', { class: 'rows' });
   var count = h('span', { class: 'count', 'aria-live': 'polite' });
@@ -870,10 +929,11 @@ function openBooking(e, onChange) {
   }
   showForm();
 }
+function mailBody(html) { var d = new DOMParser().parseFromString(html, 'text/html'); return d.body ? d.body.innerHTML : html; }
 function showMail(mail) {
   var c = h('div', { class: 'modal-body' }, [h('h2', { text: 'Simulierte E-Mail', style: 'padding-right:40px' }),
     h('dl', { class: 'facts' }, [h('div', null, [h('dt', { text: 'An' }), h('dd', { text: mail.to })]), h('div', null, [h('dt', { text: 'Betreff' }), h('dd', { text: mail.subject })])]),
-    h('div', { class: 'mailprev', html: mail.html }), h('h3', { text: 'Anhang: Veranstaltung.ics' }), h('pre', { class: 'ics', text: mail.ics || '' })]);
+    h('div', { class: 'mailprev', html: mailBody(mail.html) }), h('h3', { text: 'Anhang: Veranstaltung.ics' }), h('pre', { class: 'ics', text: mail.ics || '' })]);
   openModal(c, { wide: true, label: 'Simulierte E-Mail' });
 }
 
@@ -978,15 +1038,47 @@ function viewAdmin() {
   }
   function adminEvents() {
     return Api.adminEvents().then(function (list) {
-      var q = '', open = {};
-      var host = h('div');
-      var search = h('input', { type: 'search', placeholder: 'Suchen …', 'aria-label': 'Veranstaltungen durchsuchen' });
-      search.addEventListener('input', function () { q = search.value.toLowerCase(); render(); });
+      var open = {}, F = { q: '', cat: '', type: '', topic: '', from: '', to: '' };
+      var host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
+      var search = h('input', { type: 'search', id: 'af-q', placeholder: 'Titel, Person, E-Mail, Thema …', 'aria-label': 'Veranstaltungen durchsuchen' });
+      var catSel = h('select', { id: 'af-cat', 'aria-label': 'Bereich' }), typeSel = h('select', { id: 'af-type', 'aria-label': 'Art' }), topicSel = h('select', { id: 'af-topic', 'aria-label': 'Thema' });
+      var from = h('input', { type: 'date', id: 'af-from', 'aria-label': 'Zeitraum von' }), to = h('input', { type: 'date', id: 'af-to', 'aria-label': 'Zeitraum bis' });
+      function opt(v, t) { return h('option', { value: v, text: t }); }
+      catSel.appendChild(opt('', 'Alle')); ['dienstlich', 'privat'].forEach(function (c) { catSel.appendChild(opt(c, CAT_LABEL[c])); });
+      typeSel.appendChild(opt('', 'Alle')); TYPES.forEach(function (t) { typeSel.appendChild(opt(t, t)); });
+      function fillTopics() {
+        clear(topicSel); topicSel.appendChild(opt('', 'Alle'));
+        ['dienstlich', 'privat'].forEach(function (c) {
+          if (F.cat && F.cat !== c) return;
+          var g = h('optgroup', { label: CAT_LABEL[c] });
+          TOPICS[c].slice().sort(function (a, b) { return a.localeCompare(b, 'de'); }).forEach(function (t) { g.appendChild(h('option', { value: c + '|' + t, text: capFirst(t) })); });
+          topicSel.appendChild(g);
+        });
+        topicSel.value = F.topic;
+      }
+      fillTopics();
+      search.addEventListener('input', function () { F.q = search.value.toLowerCase().trim(); render(); });
+      catSel.addEventListener('change', function () { F.cat = catSel.value; if (F.topic && F.cat && F.topic.split('|')[0] !== F.cat) F.topic = ''; fillTopics(); render(); });
+      typeSel.addEventListener('change', function () { F.type = typeSel.value; render(); });
+      topicSel.addEventListener('change', function () { F.topic = topicSel.value; render(); });
+      from.addEventListener('input', function () { F.from = from.value; render(); }); to.addEventListener('input', function () { F.to = to.value; render(); });
+      var resetBtn = h('button', { type: 'button', class: 'linkbtn', text: 'Filter zurücksetzen', hidden: true, onclick: function () { F = { q: '', cat: '', type: '', topic: '', from: '', to: '' }; search.value = ''; catSel.value = ''; typeSel.value = ''; from.value = ''; to.value = ''; fillTopics(); render(); } });
+      function matches(e) {
+        if (F.q && (e.title + ' ' + e.host + ' ' + (e.hostEmail || '') + ' ' + e.topic + ' ' + e.type + ' ' + CAT_LABEL[e.category]).toLowerCase().indexOf(F.q) < 0) return false;
+        if (F.cat && e.category !== F.cat) return false;
+        if (F.type && e.type !== F.type) return false;
+        if (F.topic && (e.category + '|' + e.topic) !== F.topic) return false;
+        if (F.from && e.date < F.from) return false;
+        if (F.to && e.date > F.to) return false;
+        return true;
+      }
       function reload() { return Api.adminEvents().then(function (l) { list = l; render(); }); }
       function render() {
         clear(host);
         var now = new Date();
-        var items = list.filter(function (e) { return !q || (e.title + ' ' + e.host + ' ' + e.topic + ' ' + e.type).toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return startDate(a) - startDate(b); });
+        var items = list.filter(matches).sort(function (a, b) { return startDate(a) - startDate(b); });
+        var active = !!(F.q || F.cat || F.type || F.topic || F.from || F.to); resetBtn.hidden = !active; count.textContent = (active ? items.length + ' von ' : '') + list.length + ' Veranstaltungen, ' + items.reduce(function (s, e) { return s + e.booked; }, 0) + ' Anmeldungen' + (active ? ' in der Auswahl' : ' insgesamt');
+        if (!items.length && active) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Nichts gefunden' }), h('p', { text: 'Für diese Filter gibt es keine Veranstaltung. Passe Suche, Filter oder Zeitraum an.' })])); return; }
         if (!items.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Veranstaltungen' }), h('p', { text: 'Lege Veranstaltungen über „Veranstaltung anbieten“ an oder lade Testdaten.' })])); return; }
         var tb = h('tbody');
         items.forEach(function (e) {
@@ -1011,10 +1103,12 @@ function viewAdmin() {
             tb.appendChild(h('tr', null, h('td', { colspan: '6', class: 'plist' }, [h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('b', { text: 'Angemeldete Personen' }), e.bookings.length ? h('button', { class: 'linkbtn', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).join('; ')); } }) : null]), e.bookings.length ? ul : h('p', { class: 'hint', text: 'Noch keine Anmeldungen.' }), h('div', { class: 'hint', style: 'margin-top:8px', html: 'Teams-Link: <a target="_blank" rel="noopener" href="' + esc(e.teamsLink) + '">' + esc(e.teamsLink) + '</a>' })])));
           }
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Kategorie', 'Durchführung', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Bereich', 'Durchführung', 'Belegung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       render();
-      return h('div', null, [h('div', { class: 'toolrow' }, [search, h('span', { class: 'hint', text: list.length + ' Veranstaltungen, ' + list.reduce(function (s, e) { return s + e.booked; }, 0) + ' Anmeldungen insgesamt' })]), host]);
+      function fld(label, ctl, cls) { return h('div', { class: 'afld' + (cls ? ' ' + cls : '') }, [h('label', { text: label }), ctl]); }
+      return h('div', null, [h('div', { class: 'afilter' }, [fld('Suche', search, 'wide'), fld('Bereich', catSel), fld('Art', typeSel), fld('Thema', topicSel), fld('Von', from), fld('Bis', to)]),
+        h('div', { class: 'toolrow' }, [count, resetBtn]), host]);
     });
   }
   function copy(text) { try { navigator.clipboard.writeText(text).then(function () { toast('In die Zwischenablage kopiert.'); }, function () { toast('Kopieren nicht möglich. Bitte manuell markieren: ' + text.slice(0, 80), true); }); } catch (e) { toast('Kopieren nicht möglich.', true); } }
@@ -1050,7 +1144,7 @@ function viewAdmin() {
     return Api.adminEvents().then(function (evs) {
       var cats = ['dienstlich', 'privat'];
       var usage = {}; evs.forEach(function (e) { var k = e.category + '|' + e.topic; usage[k] = (usage[k] || 0) + 1; });
-      var labels = { dienstlich: CAT_LABEL.dienstlich, privat: CAT_LABEL.privat }, colors = { dienstlich: COLORS.dienstlich, privat: COLORS.privat };
+      var labels = { dienstlich: CAT_LABEL.dienstlich, privat: CAT_LABEL.privat }, colors = { dienstlich: COLORS.dienstlich, privat: COLORS.privat }, headings = { dienstlich: HEADINGS.dienstlich, privat: HEADINGS.privat }, texts = { dienstlich: TEXTS.dienstlich, privat: TEXTS.privat };
       var lists = {}; cats.forEach(function (c) { lists[c] = TOPICS[c].map(function (t) { return { name: t, orig: t }; }); });
       var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), flash = flasher(msg);
       var host = h('div', { style: 'display:flex;flex-direction:column;gap:32px' }), active = 'dienstlich', panels = {}, segBtns = {};
@@ -1059,15 +1153,24 @@ function viewAdmin() {
         var lab = h('input', { type: 'text', id: 'tx-l-' + c, value: labels[c], maxlength: '30' });
         lab.addEventListener('input', function () { labels[c] = lab.value; title.textContent = 'Themenbereich „' + labels[c] + '“'; });
         var title = h('h2', { text: 'Themenbereich „' + labels[c] + '“', style: 'color:var(--accent);font-size:1.25rem' });
-        // Farbe
-        var pick = h('input', { type: 'color', id: 'tx-cp-' + c, value: colors[c], 'aria-label': 'Farbe wählen', style: 'width:56px;min-height:46px;padding:2px;flex:none' });
-        var hex = h('input', { type: 'text', id: 'tx-c-' + c, value: colors[c], maxlength: '7', 'aria-label': 'Hex-Wert der Farbe', style: 'max-width:130px;font-family:ui-monospace,Consolas,monospace' });
-        var prev = h('div', { class: 'stage-prev', 'aria-hidden': 'true' }, [h('b', { text: 'Überschrift' }), h('span', { text: ' Beispieltext in Weiß' }), h('span', { class: 'sw', text: 'Kachel' })]);
-        var fcol = field('Hauptfarbe im Katalog', h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [pick, hex, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Standard', onclick: function () { setColor(DEFAULT_TAX.colors[c]); } })]), { hint: 'Hintergrundfarbe des Katalogs für diesen Themenbereich. Kacheln und Rahmen werden daraus abgeleitet. Die Farbe muss dunkel genug für weiße Schrift sein.' });
-        function paintPrev() { var er = colorError(colors[c]); fcol.setErr(er); if (!er) prev.style.cssText = stageStyle(colors[c].toLowerCase()); }
-        function setColor(x) { colors[c] = x; hex.value = x; if (/^#[0-9a-fA-F]{6}$/.test(x)) pick.value = x.toLowerCase(); paintPrev(); }
-        pick.addEventListener('input', function () { setColor(pick.value); });
-        hex.addEventListener('input', function () { var v = hex.value.trim(); if (v && v[0] !== '#') v = '#' + v; colors[c] = v; if (/^#[0-9a-fA-F]{6}$/.test(v)) pick.value = v.toLowerCase(); paintPrev(); });
+        // Farben: Hintergrund, Ueberschrift, Text
+        var prev = h('div', { class: 'stage-prev', 'aria-hidden': 'true' }, [h('b', { text: 'Überschrift' }), h('span', { text: ' Beispieltext im Katalog' }), h('span', { class: 'sw', text: 'Kachel' })]);
+        var fields = {};
+        function colorField(key, map, idPart, label, hint) {
+          var pick = h('input', { type: 'color', id: 'tx-' + idPart + 'p-' + c, value: map[c], 'aria-label': label + ' wählen', style: 'width:56px;min-height:46px;padding:2px;flex:none' });
+          var hex = h('input', { type: 'text', id: 'tx-' + idPart + '-' + c, value: map[c], maxlength: '7', 'aria-label': 'Hex-Wert: ' + label, style: 'max-width:130px;font-family:ui-monospace,Consolas,monospace' });
+          var f = field(label, h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, [pick, hex]), { hint: hint });
+          f.setVal = function (x) { map[c] = x; hex.value = x; if (hexOk(x)) pick.value = x.toLowerCase(); paintPrev(); };
+          pick.addEventListener('input', function () { f.setVal(pick.value); });
+          hex.addEventListener('input', function () { var v = hex.value.trim(); if (v && v[0] !== '#') v = '#' + v; map[c] = v; if (hexOk(v)) pick.value = v.toLowerCase(); paintPrev(); });
+          fields[key] = f; return f;
+        }
+        var fbg = colorField('bg', colors, 'c', 'Hintergrundfarbe', 'Hintergrund des Katalogs; Kacheln und Rahmen werden daraus abgeleitet.');
+        var fhd = colorField('head', headings, 'h', 'Farbe der Überschriften', 'Für die Themenreihen und die große Überschrift.');
+        var ftx = colorField('text', texts, 't', 'Farbe der Texte', 'Für Hinweistext, Titel und Angaben auf den Kacheln.');
+        function paintPrev() { var er = pairError(labels[c], colors[c], headings[c], texts[c]); fbg.setErr(er); if (!er) prev.style.cssText = stageStyle(colors[c], headings[c], texts[c]); }
+        var defBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Standardfarben', onclick: function () { fhd.setVal(DEFAULT_TAX.headings[c]); ftx.setVal(DEFAULT_TAX.texts[c]); fbg.setVal(DEFAULT_TAX.colors[c]); } });
+        var fcol = h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, [fbg, fhd, ftx, h('div', null, defBtn)]);
         paintPrev();
         var ed = listEditor(lists[c], function (orig) { return usage[c + '|' + orig] || 0; }, { label: 'Thema', ctx: function () { return 'im Themenbereich ' + labels[c]; }, addId: 'tx-a-' + c, addPlaceholder: 'Neues Thema', addText: 'Thema hinzufügen', max: 30, flash: flash });
         panels[c] = h('div', { class: 'panel', hidden: c !== active, style: 'display:flex;flex-direction:column;gap:16px' }, [title,
@@ -1081,7 +1184,7 @@ function viewAdmin() {
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Änderungen speichern' });
       save.addEventListener('click', function () {
         save.disabled = true;
-        Api.adminSaveTaxonomy({ labels: labels, colors: colors, topics: lists }).then(function (r) { applyTaxonomy(r); toast('Themenbereiche gespeichert.'); return adminTaxonomy(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
+        Api.adminSaveTaxonomy({ labels: labels, colors: colors, headings: headings, texts: texts, topics: lists }).then(function (r) { applyTaxonomy(r); toast('Themenbereiche gespeichert.'); return adminTaxonomy(); }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { save.disabled = false; flash('bad', er.message); });
       });
       var self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
         h('p', { class: 'lead', text: 'Hier passt du Bezeichnung, Farbe und Themen der beiden Themenbereiche an. Beim Umbenennen eines Themas werden bestehende Veranstaltungen automatisch angepasst. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet.' }), seg, host, msg, h('div', null, save)]);
@@ -1112,7 +1215,7 @@ function viewAdmin() {
     return Promise.resolve().then(function () {
       var t = inp('h-title', HERO.title, 'text', { maxlength: '80' }), x = h('textarea', { id: 'h-text', rows: '5', maxlength: '500' }); x.value = HERO.text;
       var count = h('span', { class: 'hint' }), msg = boxMsg();
-      var prev = h('div', { class: 'stage-prev hero-prev', style: stageStyle(COLORS.dienstlich), 'aria-hidden': 'true' }, [h('div', { class: 'ph-t' }), h('div', { class: 'ph-x' })]);
+      var prev = h('div', { class: 'stage-prev hero-prev', style: paintStage('dienstlich'), 'aria-hidden': 'true' }, [h('div', { class: 'ph-t' }), h('div', { class: 'ph-x' })]);
       function upd() { $('.ph-t', prev).textContent = t.value; $('.ph-x', prev).textContent = x.value; count.textContent = x.value.length + ' / 500 Zeichen'; }
       t.addEventListener('input', upd); x.addEventListener('input', upd); upd();
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Texte speichern' });
@@ -1184,9 +1287,9 @@ function viewAdmin() {
           return adminTest({ cls: 'ok', text: m === 'load' ? r.events + ' Veranstaltungen mit ' + r.bookings + ' Anmeldungen wurden geladen.' : 'Alle Testdaten wurden entfernt.' });
         }).then(function (node) { self.parentNode.replaceChild(node, self); }, function (er) { msg.className = 'notice bad'; msg.textContent = er.message; });
       }
-      var scen = ['Ausgebuchte Veranstaltung (Kachel mit Chip „Ausgebucht“, Popup lässt sich nicht öffnen)', 'Veranstaltungen mit „Fast ausgebucht“ (1, 3 und genau 5 freie Plätze)', 'Veranstaltungen mit viel Platz und ohne Anmeldungen', 'Vergangene Veranstaltung (nur im Admin-Bereich sichtbar)', 'Alle Dauern von 15 bis 120 Minuten', 'Morgens (06:00–09:00 Uhr) und nachmittags (17:00–20:00 Uhr)', 'Alle Arten und alle Themen für dienstlich und privat', 'Mit hochgeladenem Bild und mit Platzhalterbild', 'Sehr langer Titel, Listen und Zwischenüberschriften in der Beschreibung', 'Vorhandene Anmeldungen mit Beispieladressen (@example.org)'];
+      var scen = ['Ausgebuchte Veranstaltung (Kachel mit Chip „Ausgebucht“, Popup lässt sich nicht öffnen)', 'Veranstaltungen mit „Fast ausgebucht“ (1, 3 und genau 5 freie Plätze)', 'Veranstaltungen mit viel Platz und ohne Anmeldungen, eine mit der Höchstzahl von 50 Plätzen', 'Vergangene Veranstaltung (nur im Admin-Bereich sichtbar)', 'Alle Dauern von 15 bis 120 Minuten', 'Morgens (06:00–09:00 Uhr) und nachmittags (17:00–20:00 Uhr)', 'Beide Themenbereiche mit allen aktuellen Themen und Arten, auch neu angelegten', 'Mit hochgeladenem Bild und mit Platzhalterbild', 'Sehr langer Titel, Listen und Zwischenüberschriften in der Beschreibung', 'Anbieter mit E-Mail-Adresse und vorhandene Anmeldungen (Beispieladressen @example.org)'];
       self = h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:760px' }, [
-        h('p', { class: 'lead', text: 'Testdaten füllen die Anwendung mit Beispielveranstaltungen, damit du alle Szenarien ausprobieren kannst. Sie sind mit „Testdaten“ markiert und lassen sich jederzeit wieder entfernen. Deine echten Veranstaltungen bleiben unberührt.' }),
+        h('p', { class: 'lead', text: 'Testdaten füllen die Anwendung mit Beispielveranstaltungen, damit du alle Szenarien ausprobieren kannst. Sie richten sich nach den aktuell eingestellten Themen und Arten und ändern diese Einstellungen nicht. Sie sind mit „Testdaten“ markiert und lassen sich jederzeit wieder entfernen. Deine echten Veranstaltungen bleiben unberührt.' }),
         h('div', { class: 'panel' }, [h('h3', { text: 'Enthaltene Szenarien', style: 'margin-bottom:8px' }), h('ul', { style: 'margin:0;padding-left:1.2em' }, scen.map(function (s) { return h('li', { text: s }); }))]),
         h('p', null, [h('b', { text: n ? n + ' Testveranstaltungen sind aktuell vorhanden.' : 'Aktuell sind keine Testdaten vorhanden.' })]),
         h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-primary', type: 'button', text: n ? 'Testdaten neu laden' : 'Testdaten laden', onclick: function () { run('load'); } }), h('button', { class: 'btn btn-danger', type: 'button', text: 'Testdaten entfernen', disabled: !n, onclick: function () { run('remove'); } }), mode === 'local' ? h('button', { class: 'btn btn-secondary', type: 'button', text: 'Demo komplett zurücksetzen', onclick: function () { Local.reset(); location.reload(); } }) : null]),

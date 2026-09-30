@@ -80,6 +80,10 @@ namespace LearnTogether
         public List<string> types { get; set; }
         public string colorDienstlich { get; set; }
         public string colorPrivat { get; set; }
+        public string headColorDienstlich { get; set; }
+        public string headColorPrivat { get; set; }
+        public string textColorDienstlich { get; set; }
+        public string textColorPrivat { get; set; }
         public string heroTitle { get; set; }
         public string heroText { get; set; }
         public SettingsRec()
@@ -102,6 +106,10 @@ namespace LearnTogether
             types = new List<string>(new string[] { "Workshop", "Austausch", "Best Practice" });
             colorDienstlich = "#001957";
             colorPrivat = "#583720";
+            headColorDienstlich = "#f79506";
+            headColorPrivat = "#f79506";
+            textColorDienstlich = "#ffffff";
+            textColorPrivat = "#ffffff";
             heroTitle = "Voneinander lernen. Miteinander wachsen.";
             heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du wei\u00dft. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
         }
@@ -154,7 +162,7 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": Send(new { ok = true, server = true, version = Version, mailConfigured = MailConfigured(LoadSettings()) }); break;
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText } }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "createEvent": CreateEvent(); break;
@@ -736,51 +744,106 @@ namespace LearnTogether
 
         static string H(string s) { return WebUtility.HtmlEncode(s ?? ""); }
 
+        // Daten fuer die Bestaetigungs-E-Mail (Design: siehe BuildMailHtml)
+        public class MailData
+        {
+            public string AppTitle, AreaLabel, Type, Topic, Bg, Head, Text, LogoSrc, Name, Title, Date, Time, Host, TeamsLink, Code, CancelUrl;
+            public int Duration;
+        }
+
+        static string BodyHead(string bg) { return Contrast(bg, "#ffffff") >= 4.5 ? bg : "#001957"; }
+
+        static string Pill(string t, string bg, string fg)
+        {
+            return "<span style=\"display:inline-block;background:" + bg + ";color:" + fg + ";font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;margin:0 6px 6px 0\">" + H(t) + "</span>";
+        }
+
+        // Moderne, tabellenbasierte HTML-Mail im R+V-Design; Farben richten sich nach dem Bereich (Hintergrund, Ueberschrift, Text).
+        public static string BuildMailHtml(MailData m)
+        {
+            const string font = "font-family:'Segoe UI',Arial,Helvetica,sans-serif;";
+            string ink = "#001957", grey = "#707070", hd = BodyHead(m.Bg), soft = Mix(m.Bg, m.Text, 0.78), tint = Mix(m.Bg, "#ffffff", 0.9);
+            StringBuilder h = new StringBuilder();
+            h.Append("<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light\"></head>");
+            h.Append("<body style=\"margin:0;padding:0;background:#f5f5f5;" + font + "\">");
+            h.Append("<div style=\"display:none;max-height:0;overflow:hidden;opacity:0\">Deine Anmeldung für " + H(m.Title) + " ist bestätigt.</div>");
+            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f5f5f5\"><tr><td align=\"center\" style=\"padding:24px 12px\">");
+            h.Append("<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden\">");
+            // Kopf im Farbton des Bereichs
+            h.Append("<tr><td style=\"background:" + m.Bg + ";padding:28px 32px 30px\">");
+            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
+            h.Append("<td style=\"vertical-align:middle\">" + (string.IsNullOrEmpty(m.LogoSrc) ? "<span style=\"" + font + "font-size:24px;font-weight:800;color:" + m.Text + "\">R+V</span>" : "<img src=\"" + m.LogoSrc + "\" width=\"88\" alt=\"R+V\" style=\"display:block;border:0\">") + "</td>");
+            h.Append("<td align=\"right\" style=\"vertical-align:middle;" + font + "font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:" + soft + "\">" + H(m.AppTitle) + "</td></tr></table>");
+            h.Append("<div style=\"" + font + "font-size:28px;line-height:1.25;font-weight:800;color:" + m.Head + ";margin:26px 0 0\">Deine Anmeldung ist bestätigt</div>");
+            h.Append("<div style=\"" + font + "font-size:15px;line-height:1.5;color:" + m.Text + ";margin:8px 0 0\">Schön, dass du dabei bist, " + H(m.Name) + ".</div>");
+            h.Append("</td></tr>");
+            // Inhalt
+            h.Append("<tr><td style=\"padding:30px 32px 8px;" + font + "color:" + ink + "\">");
+            h.Append("<div>" + Pill(m.AreaLabel, tint, hd) + Pill(m.Type, "#f5f5f5", ink) + Pill(m.Topic, "#f5f5f5", ink) + "</div>");
+            h.Append("<div style=\"font-size:22px;line-height:1.3;font-weight:800;color:" + hd + ";margin:6px 0 20px\">" + H(m.Title) + "</div>");
+            h.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"font-size:15px;line-height:1.45\">");
+            h.Append(DetailRow("Datum", H(m.Date), grey, ink));
+            h.Append(DetailRow("Uhrzeit", H(m.Time), grey, ink));
+            h.Append(DetailRow("Dauer", m.Duration + " Minuten", grey, ink));
+            h.Append(DetailRow("Durchführung", H(m.Host), grey, ink));
+            h.Append("</table>");
+            h.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:26px 0 8px\"><tr><td style=\"background:#00dcdc;border-radius:24px\"><a href=\"" + H(m.TeamsLink) + "\" style=\"display:inline-block;padding:14px 30px;" + font + "font-size:16px;font-weight:700;color:#001957;text-decoration:none\">Zur Teams-Sitzung</a></td></tr></table>");
+            h.Append("<div style=\"font-size:12px;color:" + grey + ";word-break:break-all\">" + H(m.TeamsLink) + "</div>");
+            h.Append("<div style=\"font-size:14px;color:" + grey + ";margin:14px 0 0\">Der Kalendereintrag (.ics) ist dieser E-Mail angehängt. Er enthält den Teams-Link und eine Erinnerung 15 Minuten vor Beginn.</div>");
+            h.Append("</td></tr>");
+            // Stornierung
+            h.Append("<tr><td style=\"padding:20px 32px 32px\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#fff4e0;border-radius:12px;border-left:4px solid #eb6504\"><tr><td style=\"padding:18px 20px;" + font + "color:" + ink + "\">");
+            h.Append("<div style=\"font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#a04400\">Dein Stornierungscode</div>");
+            h.Append("<div style=\"font-family:Consolas,'Courier New',monospace;font-size:26px;font-weight:700;letter-spacing:3px;margin:6px 0 10px;color:" + ink + "\">" + H(m.Code) + "</div>");
+            h.Append("<div style=\"font-size:14px;line-height:1.5\">Kannst du nicht teilnehmen? Gib deinen Platz bitte frei: <a href=\"" + H(m.CancelUrl) + "\" style=\"color:#0c7f89;font-weight:700\">Anmeldung stornieren</a></div>");
+            h.Append("</td></tr></table></td></tr>");
+            // Fuss
+            h.Append("<tr><td style=\"background:#f5f5f5;padding:18px 32px;" + font + "font-size:12px;line-height:1.5;color:" + grey + "\">" + H(m.AppTitle) + " &middot; Informelles Lernen im Außendienst<br>Diese E-Mail wurde automatisch versendet. Bitte antworte nicht darauf.</td></tr>");
+            h.Append("<tr><td style=\"background:" + m.Bg + ";height:6px;line-height:6px;font-size:0\">&nbsp;</td></tr>");
+            h.Append("</table></td></tr></table></body></html>");
+            return h.ToString();
+        }
+
+        static string DetailRow(string k, string v, string grey, string ink)
+        {
+            return "<tr><td style=\"width:120px;padding:9px 0;border-top:1px solid #ececec;color:" + grey + ";vertical-align:top\">" + k + "</td><td style=\"padding:9px 0;border-top:1px solid #ececec;color:" + ink + ";font-weight:600;vertical-align:top\">" + v + "</td></tr>";
+        }
+
         bool SendConfirmation(EventRec ev, BookingRec bk, out string message)
         {
             SettingsRec s = LoadSettings();
             DateTime st = StartOf(ev), en = st.AddMinutes(ev.duration);
             string cancelUrl = BaseUrl(s) + "#/stornieren?code=" + Uri.EscapeDataString(bk.code) + "&email=" + Uri.EscapeDataString(bk.email);
-            string subject = "Best\u00e4tigung: " + ev.title + " am " + st.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
-
-            StringBuilder h = new StringBuilder();
-            h.Append("<div style=\"font-family:Segoe UI,Arial,sans-serif;color:#001957;max-width:560px\">");
-            h.Append("<p style=\"font-size:20px;font-weight:bold;color:#EB6504;margin:0 0 12px\">Deine Anmeldung ist best\u00e4tigt</p>");
-            h.Append("<p>Hallo " + H(bk.name) + ",<br/>du bist f\u00fcr die folgende Veranstaltung angemeldet:</p>");
-            h.Append("<table cellpadding=\"6\" style=\"border-collapse:collapse;background:#F5F5F5;width:100%\">");
-            h.Append(Row("Veranstaltung", "<b>" + H(ev.title) + "</b>"));
-            h.Append(Row("Datum", H(LongDate(st))));
-            h.Append(Row("Uhrzeit", H(Hm(st) + " \u2013 " + Hm(en) + " Uhr")));
-            h.Append(Row("Dauer", ev.duration + " Minuten"));
-            h.Append(Row("Durchf\u00fchrung", H(ev.host)));
-            h.Append(Row("Microsoft Teams", "<a href=\"" + H(ev.teamsLink) + "\" style=\"color:#109DA8\">Zur Teams-Sitzung</a><br/><span style=\"font-size:12px\">" + H(ev.teamsLink) + "</span>"));
-            h.Append("</table>");
-            h.Append("<p>Ein Kalendereintrag (.ics) ist dieser E-Mail angeh\u00e4ngt.</p>");
-            h.Append("<p style=\"background:#FFF4E0;padding:12px\">Dein Stornierungscode: <b style=\"font-size:18px;letter-spacing:1px\">" + H(bk.code) + "</b><br/>");
-            h.Append("Wenn du nicht teilnehmen kannst, gib bitte den Platz frei: <a href=\"" + H(cancelUrl) + "\" style=\"color:#109DA8\">Anmeldung stornieren</a></p>");
-            h.Append("<p style=\"font-size:12px;color:#707070\">" + H(s.appTitle) + "</p></div>");
+            string subject = "Bestätigung: " + ev.title + " am " + st.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
+            bool biz = ev.category == "dienstlich";
+            MailData md = new MailData();
+            md.AppTitle = s.appTitle; md.AreaLabel = biz ? s.labelDienstlich : s.labelPrivat; md.Type = ev.type; md.Topic = ev.topic;
+            md.Bg = biz ? s.colorDienstlich : s.colorPrivat; md.Head = biz ? s.headColorDienstlich : s.headColorPrivat; md.Text = biz ? s.textColorDienstlich : s.textColorPrivat;
+            md.Name = bk.name; md.Title = ev.title; md.Date = LongDate(st); md.Time = Hm(st) + " – " + Hm(en) + " Uhr"; md.Duration = ev.duration; md.Host = ev.host;
+            md.TeamsLink = ev.teamsLink; md.Code = bk.code; md.CancelUrl = cancelUrl;
+            // Logo als eingebettetes Bild (CID); helles Logo auf dunklem, dunkles Logo auf hellem Hintergrund
+            string logoFile = Luminance(md.Bg) > 0.35 ? "ruv-logo-dunkelblau.png" : "ruv-logo-weiss.png";
+            string logoPath = Path.Combine(Path.Combine(Path.GetDirectoryName(ctx.Request.PhysicalPath), "assets"), logoFile);
+            if (File.Exists(logoPath)) md.LogoSrc = "cid:ruvlogo";
+            else logoPath = null;
+            string html = BuildMailHtml(md);
 
             StringBuilder t = new StringBuilder();
             t.AppendLine("Hallo " + bk.name + ",");
-            t.AppendLine("deine Anmeldung ist best\u00e4tigt.");
+            t.AppendLine("deine Anmeldung ist bestätigt.");
             t.AppendLine();
             t.AppendLine("Veranstaltung: " + ev.title);
             t.AppendLine("Datum: " + LongDate(st));
             t.AppendLine("Uhrzeit: " + Hm(st) + " - " + Hm(en) + " Uhr");
             t.AppendLine("Dauer: " + ev.duration + " Minuten");
-            t.AppendLine("Durchf\u00fchrung: " + ev.host);
+            t.AppendLine("Durchführung: " + ev.host);
             t.AppendLine("Teams: " + ev.teamsLink);
             t.AppendLine();
             t.AppendLine("Stornierungscode: " + bk.code);
             t.AppendLine("Stornierung: " + cancelUrl);
 
             string ics = BuildIcs(ev, bk, st, en);
-            return SendMail(s, bk.email, subject, h.ToString(), t.ToString(), ics, out message);
-        }
-
-        static string Row(string k, string v)
-        {
-            return "<tr><td style=\"width:130px;color:#707070;vertical-align:top\">" + k + "</td><td>" + v + "</td></tr>";
+            return SendMail(s, bk.email, subject, html, t.ToString(), ics, logoPath, out message);
         }
 
         static string IcsEsc(string t)
@@ -829,7 +892,7 @@ namespace LearnTogether
             return sb.ToString();
         }
 
-        bool SendMail(SettingsRec s, string to, string subject, string html, string text, string ics, out string message)
+        bool SendMail(SettingsRec s, string to, string subject, string html, string text, string ics, string logoPath, out string message)
         {
             if (!MailConfigured(s))
             {
@@ -846,7 +909,9 @@ namespace LearnTogether
                     m.Subject = subject; m.SubjectEncoding = Encoding.UTF8;
                     m.BodyEncoding = Encoding.UTF8;
                     m.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(text, Encoding.UTF8, "text/plain"));
-                    m.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(html, Encoding.UTF8, "text/html"));
+                    AlternateView hv = AlternateView.CreateAlternateViewFromString(html, Encoding.UTF8, "text/html");
+                    if (!string.IsNullOrEmpty(logoPath)) { LinkedResource lr = new LinkedResource(logoPath, "image/png"); lr.ContentId = "ruvlogo"; lr.TransferEncoding = TransferEncoding.Base64; hv.LinkedResources.Add(lr); }
+                    m.AlternateViews.Add(hv);
                     if (!string.IsNullOrEmpty(ics))
                     {
                         MemoryStream ms = new MemoryStream(new UTF8Encoding(false).GetBytes(ics));
@@ -969,6 +1034,8 @@ namespace LearnTogether
         static object Labels(SettingsRec s) { return new { dienstlich = s.labelDienstlich, privat = s.labelPrivat }; }
         static object Topics(SettingsRec s) { return new { dienstlich = s.topicsDienstlich, privat = s.topicsPrivat }; }
         static object Colors(SettingsRec s) { return new { dienstlich = s.colorDienstlich, privat = s.colorPrivat }; }
+        static object Headings(SettingsRec s) { return new { dienstlich = s.headColorDienstlich, privat = s.headColorPrivat }; }
+        static object Texts(SettingsRec s) { return new { dienstlich = s.textColorDienstlich, privat = s.textColorPrivat }; }
 
         // Relative Luminanz (WCAG) einer Farbe #rrggbb
         static double Luminance(string hex)
@@ -980,6 +1047,31 @@ namespace LearnTogether
                 c[i] = v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
             }
             return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+        }
+
+        static double Contrast(string a, string b)
+        {
+            double la = Luminance(a), lb = Luminance(b);
+            double hi = Math.Max(la, lb), lo = Math.Min(la, lb);
+            return (hi + 0.05) / (lo + 0.05);
+        }
+
+        static string Mix(string a, string b, double t)
+        {
+            StringBuilder sb = new StringBuilder("#");
+            for (int i = 0; i < 3; i++)
+            {
+                int x = Convert.ToInt32(a.Substring(1 + i * 2, 2), 16), y = Convert.ToInt32(b.Substring(1 + i * 2, 2), 16);
+                sb.Append(((int)Math.Round(x + (y - x) * t)).ToString("x2"));
+            }
+            return sb.ToString();
+        }
+
+        static string HexOf(string v)
+        {
+            string c = (v ?? "").Trim().ToLowerInvariant();
+            if (!Regex.IsMatch(c, "^#[0-9a-f]{6}$")) throw new ApiException("invalid", "Bitte gib die Farbe als Hex-Wert an, z. B. #001957.");
+            return c;
         }
 
         // Liest eine Namensliste [{name, orig}], prueft sie und liefert neue Liste und Umbenennungs-Zuordnung (orig -> name).
@@ -1027,14 +1119,20 @@ namespace LearnTogether
                     if (string.Equals(l1, l2, StringComparison.OrdinalIgnoreCase)) throw new ApiException("invalid", "Die beiden Themenbereiche brauchen unterschiedliche Bezeichnungen.");
                     s.labelDienstlich = l1; s.labelPrivat = l2;
                 }
-                if (cl != null)
+                Dictionary<string, object> hd = D(b, "headings"), tx = D(b, "texts");
+                if (cl != null || hd != null || tx != null)
                 {
                     foreach (string cat in cats)
                     {
-                        string c = S(cl, cat).ToLowerInvariant();
-                        if (!Regex.IsMatch(c, "^#[0-9a-f]{6}$")) throw new ApiException("invalid", "Bitte gib die Farbe als Hex-Wert an, z. B. #001957.");
-                        if (Luminance(c) > 0.107) throw new ApiException("invalid", "Die Farbe f\u00fcr \"" + (cat == "dienstlich" ? s.labelDienstlich : s.labelPrivat) + "\" ist zu hell. Bitte w\u00e4hle einen dunkleren Ton, damit wei\u00dfe und orange Schrift gut lesbar bleiben.");
-                        if (cat == "dienstlich") s.colorDienstlich = c; else s.colorPrivat = c;
+                        string bg = cat == "dienstlich" ? s.colorDienstlich : s.colorPrivat, hc = cat == "dienstlich" ? s.headColorDienstlich : s.headColorPrivat, tc = cat == "dienstlich" ? s.textColorDienstlich : s.textColorPrivat;
+                        if (cl != null) bg = HexOf(S(cl, cat));
+                        if (hd != null) hc = HexOf(S(hd, cat));
+                        if (tx != null) tc = HexOf(S(tx, cat));
+                        string lab = cat == "dienstlich" ? s.labelDienstlich : s.labelPrivat;
+                        double ct = Contrast(bg, tc), ch = Contrast(bg, hc);
+                        if (ct < 4.5) throw new ApiException("invalid", "\"" + lab + "\": Der Kontrast zwischen Hintergrund und Textfarbe ist zu gering (mindestens 4,5 : 1, aktuell " + ct.ToString("0.0", CultureInfo.InvariantCulture) + " : 1).");
+                        if (ch < 3.0) throw new ApiException("invalid", "\"" + lab + "\": Der Kontrast zwischen Hintergrund und \u00dcberschriftenfarbe ist zu gering (mindestens 3 : 1, aktuell " + ch.ToString("0.0", CultureInfo.InvariantCulture) + " : 1).");
+                        if (cat == "dienstlich") { s.colorDienstlich = bg; s.headColorDienstlich = hc; s.textColorDienstlich = tc; } else { s.colorPrivat = bg; s.headColorPrivat = hc; s.textColorPrivat = tc; }
                     }
                 }
                 if (tp != null)
@@ -1069,7 +1167,7 @@ namespace LearnTogether
                     s.types = names;
                 }
                 SaveData(d); SaveSettings(s);
-                Send(new { ok = true, labels = Labels(s), topics = Topics(s), colors = Colors(s), types = s.types });
+                Send(new { ok = true, labels = Labels(s), topics = Topics(s), colors = Colors(s), headings = Headings(s), texts = Texts(s), types = s.types });
             }
         }
 
@@ -1182,7 +1280,7 @@ namespace LearnTogether
             if (!ValidEmail(to)) throw new ApiException("invalid", "Bitte gib eine g\u00fcltige E-Mail-Adresse an.");
             SettingsRec s = LoadSettings();
             string msg;
-            bool ok = SendMail(s, to, "Testnachricht von " + s.appTitle, "<p>Der E-Mail-Versand funktioniert.</p>", "Der E-Mail-Versand funktioniert.", null, out msg);
+            bool ok = SendMail(s, to, "Testnachricht von " + s.appTitle, "<p>Der E-Mail-Versand funktioniert.</p>", "Der E-Mail-Versand funktioniert.", null, null, out msg);
             Send(new { ok = ok, message = ok ? "Testnachricht wurde versendet." : (msg.Length > 0 ? msg : "Versand fehlgeschlagen.") });
         }
     }

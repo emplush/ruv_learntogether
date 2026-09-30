@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.9.0 (30.09.2026)
+- Testdaten an die aktuelle Version angepasst: decken alle aktuellen Themen und Arten ab (auch neu angelegte), enthalten eine Veranstaltung mit 50 Plätzen und Anbieter-E-Mail; Themen und Arten werden durch Testdaten nicht verändert.
+- Admin, Veranstaltungen: Live-Filter mit Suche, Bereich, Art, Thema und Zeitraum (von/bis), Trefferzahl, Filter zurücksetzen.
+- Bestätigungs-E-Mail neu im R+V-Design (moderne Tabellen-Mail, R+V-Logo, Farbton je Bereich: Hintergrund, Überschrift, Text).
+- Admin: je Themenbereich zusätzlich Farbe für Überschriften und Texte; Kontrastprüfung (Text 4,5 : 1, Überschrift 3 : 1) in Formular und Server. Katalog übernimmt die Farben.
+
 ## 0.8.0 (30.09.2026)
 - Katalog: Beschriftung „Bereich“ vor dem Umschalter dienstlich/privat.
 - Admin, E-Mail-Protokoll: Einträge einzeln löschen, Protokoll leeren (jeweils mit Bestätigung), Export als CSV (Excel-tauglich, Semikolon, UTF-8). Protokoll speichert bis zu 1000 Einträge.
