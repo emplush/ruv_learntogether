@@ -1182,7 +1182,7 @@ function viewAdmin() {
     wrap.appendChild(form); pw.focus();
   }
   var SECTIONS = [
-    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen']]],
+    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung']]],
     ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten']]]
   ];
@@ -1202,11 +1202,12 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
+      var fn = { events: adminEvents, stats: adminStats, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
   }
+/*__STATS__*/
   function adminEvents() {
     return Api.adminEvents().then(function (list) {
       var F = { q: '', cat: '', type: '', topic: '', from: '', to: '' };

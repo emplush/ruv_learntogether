@@ -86,7 +86,7 @@ def css_for(css, target):
 def main():
     want_pdf = '--no-pdf' not in sys.argv
     css0 = rd(SRC, 'app.css')
-    js = rd(SRC, 'app.js')
+    js = rd(SRC, 'app.js').replace('/*__STATS__*/', rd(SRC, 'stats.js'))
     tpl = rd(SRC, 'app.html')
     logo_d = os.path.join(SRC, 'assets', 'ruv-logo-dunkelblau.png')
     logo_w = os.path.join(SRC, 'assets', 'ruv-logo-weiss.png')

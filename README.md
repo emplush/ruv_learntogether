@@ -1,6 +1,6 @@
 # LearnTogether@AD
 
-Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Buchung mit Buchungscode, Teams-Link und Kalenderdatei direkt im Programm („Meine Anmeldung“), Veranstaltungscode und Teilnehmerliste („Meine Veranstaltung“), Stornierung und passwortgeschützten Admin-Bereich.
+Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Buchung mit Buchungscode, Teams-Link und Kalenderdatei direkt im Programm („Meine Anmeldung“), Veranstaltungscode und Teilnehmerliste („Meine Veranstaltung“), Stornierung und passwortgeschützten Admin-Bereich mit Statistiken und PDF-Berichten.
 
 ## Ordner
 

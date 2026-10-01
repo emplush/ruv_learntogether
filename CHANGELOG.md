@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.18.0 (01.10.2026)
+- Neu im Admin-Bereich: **Statistik und Berichte** (Gruppe „Übersicht“). Filter nach Zeitraum, Bereich und Testdaten.
+- 8 Kennzahlen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen, Termine ohne Anmeldung, ausgebuchte Termine, Ø Vorlauf der Anmeldung.
+- 13 Auswertungen: Veranstaltungen, Teilnehmende und Auslastung pro Monat (je Bereich), Monatsübersicht, Teilnehmende nach Thema, Art, Tageszeit und Dauer, Veranstaltungen nach Wochentag, Auslastungsverteilung, Top-10-Veranstaltungen, Top-10-Anbietende, Veranstaltungen ohne Anmeldung.
+- PDF-Export: je Auswertung (Button „PDF“) und als Gesamtbericht. Das PDF wird im Browser erzeugt, ohne zusätzliche Bibliothek und ohne Serveraufruf (Standardschrift Helvetica, R+V-Kopfzeile, Seitenzahlen).
+
 ## 0.17.1 (30.09.2026)
 - Katalog: Das Thema „Sonstiges“ steht in beiden Bereichen immer zuletzt, auch in den Themenlisten (Filter, Admin).
 - Kalendereintrag: Der Betreff beginnt immer mit dem App-Titel („LearnTogether@AD - Titel“).
