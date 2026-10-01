@@ -4,6 +4,7 @@
 <table>
 <tr><th>Gruppe</th><th>Bereich</th><th>Wofür du ihn brauchst</th></tr>
 <tr><td>Übersicht</td><td>Veranstaltungen</td><td>Alle Termine und Anmeldungen ansehen, bearbeiten, löschen</td></tr>
+<tr><td>Übersicht</td><td>Archiv</td><td>Beendete Veranstaltungen, getrennt nach dienstlich und privat</td></tr>
 <tr><td>Übersicht</td><td>Statistik</td><td>Kennzahlen und Auswertungen, PDF-Berichte</td></tr>
 <tr><td>Katalog</td><td>Texte</td><td>Überschrift und Hinweistexte</td></tr>
 <tr><td>Katalog</td><td>Themen</td><td>Bezeichnung, Farben und Themen der beiden Bereiche</td></tr>
@@ -25,7 +26,7 @@
 <div class="tip">Es gibt ein gemeinsames Passwort für die Administration. Gib es nur an Personen weiter, die Teilnehmerlisten mit E-Mail-Adressen sehen dürfen.</div>
 
 <h2>Veranstaltungen und Anmeldungen</h2>
-<p>Unter <b>Übersicht › Veranstaltungen</b> siehst du alle Termine, auch vergangene (grau, mit dem Hinweis „vergangen“). Pro Zeile erscheinen Titel, Bereich, Art, Thema, Termin, die anbietende Person mit E-Mail-Adresse, der Veranstaltungscode und die Belegung als Balken.</p>
+<p>Unter <b>Übersicht › Veranstaltungen</b> siehst du alle Termine, die noch nicht beendet sind. Sobald eine Veranstaltung endet, wandert sie automatisch ins Archiv. Abgesagte Termine bleiben bis zu ihrem Ende in der Liste (grau, mit dem Hinweis „abgesagt“). Pro Zeile erscheinen Titel, Bereich, Art, Thema, Termin, die anbietende Person mit E-Mail-Adresse, der Veranstaltungscode und die Belegung als Balken.</p>
 {{FIGURE:adm-events|Die Veranstaltungsübersicht mit Filtern und Aktionen.}}
 <h3>Suchen und filtern</h3>
 <p>Die Filter wirken sofort beim Tippen: Suche (Titel, Person, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
@@ -44,11 +45,31 @@
 </ul>
 <div class="tip">Informiere angemeldete Personen vor dem Löschen, zum Beispiel über die kopierten E-Mail-Adressen. Die Anwendung verschickt selbst keine E-Mails.</div>
 
+<h2>Archiv</h2>
+<p>Unter <b>Übersicht › Archiv</b> stehen alle Veranstaltungen, die stattgefunden haben. Auch abgesagte Veranstaltungen kommen nach ihrem geplanten Ende hierher, mit dem Hinweis „abgesagt“. Das Archiv trennt zwischen <b>Dienstlich</b> und <b>Privat</b>. Oben wechselst du mit dem Schalter, in Klammern steht die Zahl der Einträge.</p>
+{{FIGURE:adm-archiv|Das Archiv mit Bereichsschalter, Suche und Filtern.}}
+<ul>
+<li><b>Suche:</b> Titel, Person, Thema und Art, sofort beim Tippen.</li>
+<li><b>Filter:</b> Art, Thema und ein Zeitraum mit Start- und Enddatum. <b>Filter zurücksetzen</b> zeigt wieder alles.</li>
+<li><b>Spalte „Personenbezogene Daten“:</b> zeigt „Personenbezogen“ mit dem Datum der geplanten Anonymisierung oder „Anonymisiert“ mit dem Datum der Anonymisierung.</li>
+<li><b>Teilnehmende:</b> öffnet die Liste mit Name, E-Mail und Buchungscode. Bei anonymisierten Veranstaltungen steht dort „Anonymisiert“.</li>
+<li><b>Löschen:</b> entfernt eine archivierte Veranstaltung samt Anmeldungen endgültig, zum Beispiel auf Wunsch einer betroffenen Person.</li>
+</ul>
+<h3>Aufbewahrung und Anonymisierung</h3>
+<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie ersetzt Name und E-Mail-Adresse der anbietenden und der angemeldeten Personen durch „Anonymisiert“ und macht Veranstaltungs- und Buchungscodes ungültig. Die Zahl der Anmeldungen bleibt für die Statistik erhalten.</p>
+<table>
+<tr><th>Art der Veranstaltung</th><th>Anonymisierung</th></tr>
+<tr><td>Privat</td><td>Am Tag nach der Veranstaltung</td></tr>
+<tr><td>Dienstlich</td><td>Fünf Jahre nach dem Ende. Bis dahin bleiben die Daten gespeichert, ausschließlich für Nachweis und Anrechnung (IDD).</td></tr>
+<tr><td>Abgesagt (dienstlich oder privat)</td><td>Am Tag nach dem geplanten Termin, weil es keine Teilnahme zum Nachweisen gibt</td></tr>
+</table>
+<div class="tip">Zugriff auf die personenbezogenen Daten haben nur die Administratoren aus VH-VP-TV. Die Daten werden nicht veröffentlicht. Die Anonymisierung läuft auf dem Server und wird bei jedem Zugriff auf die Daten geprüft, es ist kein Zeitplan auf dem Server nötig.</div>
+
 <h2>Statistik und Berichte</h2>
 <p>Unter <b>Übersicht › Statistik</b> findest du Auswertungen zu allen Veranstaltungen und Anmeldungen. Oben grenzt du sie ein: Zeitraum von/bis, Bereich und, falls Testdaten vorhanden sind, <b>Testdaten ausblenden</b>.</p>
 {{FIGURE:adm-statistik|Kennzahlen und Auswertungen im Statistikbereich.}}
 <h3>Kennzahlen</h3>
-<p>Acht Kacheln fassen die Auswahl zusammen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen, Veranstaltungen ohne Anmeldung, ausgebuchte Veranstaltungen und der Ø Vorlauf der Anmeldung (Tage vor Beginn).</p>
+<p>Neun Kacheln fassen die Auswahl zusammen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen (ohne anonymisierte), Veranstaltungen ohne Anmeldung, ausgebuchte und abgesagte Veranstaltungen sowie der Ø Vorlauf der Anmeldung (Tage vor Beginn). Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in die Kachel „Abgesagt“. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
 <h3>Auswertungen</h3>
 <table>
 <tr><th>Auswertung</th><th>Was sie zeigt</th></tr>
@@ -62,6 +83,7 @@
 <tr><td>Auslastung der Veranstaltungen</td><td>Wie viele Termine leer, halb voll oder ausgebucht sind</td></tr>
 <tr><td>Gefragteste Veranstaltungen</td><td>Top 10 nach Anmeldungen</td></tr>
 <tr><td>Aktivste Anbietende</td><td>Top 10 nach Teilnehmenden</td></tr>
+<tr><td>Personenbezogene Daten</td><td>Wie viele Veranstaltungen noch personenbezogen gespeichert oder schon anonymisiert sind</td></tr>
 <tr><td>Veranstaltungen ohne Anmeldung</td><td>Termine, bei denen Werbung oder Nacharbeit lohnt</td></tr>
 </table>
 <p>Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet, nicht in dem der Buchung.</p>
@@ -153,6 +175,9 @@
 <li>Die Anwendung speichert Name und E-Mail-Adresse der Anbietenden und der angemeldeten Personen sowie die Veranstaltungsdaten. Sie verschickt keine E-Mails und setzt keine Benutzerkonten ein.</li>
 <li>Der Teams-Link wird nur Personen mit Buchungscode angezeigt und steht nicht im Katalog.</li>
 <li>Die Teilnehmerliste sehen nur die Administration und Anbietende mit Veranstaltungscode, und zwar ohne E-Mail-Adressen.</li>
+<li>Private Veranstaltungen werden am Tag danach anonymisiert, dienstliche nach fünf Jahren (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
+<li>Anbietende können ihre Veranstaltung über „Meine Veranstaltung“ selbst absagen, auch mit bestehenden Anmeldungen. Die Absage sehen Angemeldete unter „Meine Anmeldung“.</li>
+<li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. Eine IDD-Anrechnung ist noch nicht möglich und in Planung.</li>
 <li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
 <li>Der Betrieb gilt als Proof of Concept. Prüfe vor einem breiten Einsatz Datenschutz, Betriebsrat und Berechtigungskonzept.</li>
 </ul>

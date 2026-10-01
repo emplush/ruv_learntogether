@@ -38,6 +38,11 @@ namespace LearnTogether
         public long imgVer { get; set; }
         public bool isTest { get; set; }
         public string created { get; set; }
+        public bool cancelled { get; set; }
+        public string cancelledAt { get; set; }
+        public string cancelReason { get; set; }
+        public bool anonymized { get; set; }
+        public string anonymizedAt { get; set; }
     }
 
     public class BookingRec
@@ -146,6 +151,7 @@ namespace LearnTogether
                     case "cancel": Cancel(); break;
                     case "lookup": Lookup(); break;
                     case "eventLookup": EventLookup(); break;
+                    case "cancelEvent": CancelEvent(); break;
                     case "login": Login(); break;
                     default:
                         RequireAdmin();
@@ -273,7 +279,47 @@ namespace LearnTogether
             File.Delete(tmp);
         }
 
-        DataFile LoadData() { return ReadJson<DataFile>("data.json"); }
+        // Liest die Daten und anonymisiert dabei faellige Veranstaltungen (private und abgesagte am Tag danach, dienstliche 5 Jahre nach dem Ende)
+        DataFile LoadData()
+        {
+            DataFile d = ReadJson<DataFile>("data.json");
+            if (Anonymize(d)) { try { SaveData(d); } catch (Exception ex) { LogError(ex); } }
+            return d;
+        }
+
+        const int RetainYears = 5;
+
+        static bool Anonymize(DataFile d)
+        {
+            DateTime now = NowBerlin(); bool changed = false;
+            foreach (EventRec e in d.events)
+            {
+                if (e.anonymized) continue;
+                DateTime due;
+                try
+                {
+                    if (e.category == "privat" || e.cancelled) due = DateTime.ParseExact(e.date, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddDays(1);
+                    else due = StartOfSafe(e.date, e.start).AddMinutes(e.duration).AddYears(RetainYears);
+                }
+                catch (FormatException) { continue; }
+                if (now < due) continue;
+                EventRec ev = e;
+                ev.host = "Anonymisiert"; ev.hostEmail = ""; ev.teamsLink = ""; ev.anonymized = true; ev.anonymizedAt = now.ToString("s", CultureInfo.InvariantCulture);
+                string c;
+                do { c = NewCode(10); } while (d.events.Exists(delegate (EventRec x) { return x.code == c; }));
+                ev.code = c;
+                foreach (BookingRec b in d.bookings)
+                {
+                    if (b.eventId != ev.id) continue;
+                    b.name = "Anonymisiert"; b.email = "";
+                    string bc;
+                    do { bc = NewCode(); } while (d.bookings.Exists(delegate (BookingRec x) { return x.code == bc; }));
+                    b.code = bc;
+                }
+                changed = true;
+            }
+            return changed;
+        }
         void SaveData(DataFile d) { WriteJson("data.json", d); }
 
         static SettingsRec fallbackSettings; // Einstellungen im Arbeitsspeicher, falls AppData\Data nicht beschreibbar ist
@@ -635,7 +681,7 @@ namespace LearnTogether
             {
                 DataFile d = LoadData();
                 foreach (EventRec e in d.events)
-                    if (StartOfSafe(e.date, e.start) > now) l.Add(PublicEvent(e, CountBookings(d, e.id)));
+                    if (StartOfSafe(e.date, e.start) > now && !e.cancelled) l.Add(PublicEvent(e, CountBookings(d, e.id)));
             }
             Send(new { ok = true, events = l });
         }
@@ -673,6 +719,7 @@ namespace LearnTogether
                 DataFile d = LoadData();
                 ev = d.events.Find(delegate (EventRec x) { return x.id == eventId; });
                 if (ev == null) throw new ApiException("notfound", "Diese Veranstaltung gibt es nicht mehr.");
+                if (ev.cancelled) throw new ApiException("cancelled", "Diese Veranstaltung wurde abgesagt. Eine Anmeldung ist nicht mehr m\u00f6glich.");
                 if (StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Diese Veranstaltung hat bereits begonnen. Eine Anmeldung ist nicht mehr m\u00f6glich.");
                 if (d.bookings.Exists(delegate (BookingRec x) { return x.eventId == ev.id && x.email == email; }))
                     throw new ApiException("duplicate", "Mit dieser E-Mail-Adresse bist du bereits angemeldet.");
@@ -694,7 +741,8 @@ namespace LearnTogether
         {
             Dictionary<string, object> d = PublicEvent(e, 0);
             d.Remove("booked"); d.Remove("isTest");
-            d["teamsLink"] = e.teamsLink;
+            d["teamsLink"] = e.cancelled ? "" : e.teamsLink;
+            d["cancelled"] = e.cancelled; d["cancelReason"] = e.cancelReason ?? ""; d["cancelledAt"] = e.cancelledAt ?? "";
             return d;
         }
 
@@ -736,7 +784,7 @@ namespace LearnTogether
                     if (bk.eventId == ev.id) people.Add(new { name = bk.name, created = bk.created });
                 Dictionary<string, object> info = EventDetail(ev);
                 info["booked"] = people.Count;
-                Send(new { ok = true, code = ev.code, eventInfo = info, capacity = ev.capacity, participants = people, isPast = StartOfSafe(ev.date, ev.start) <= NowBerlin() });
+                Send(new { ok = true, code = ev.code, eventInfo = info, capacity = ev.capacity, participants = people, isPast = StartOfSafe(ev.date, ev.start) <= NowBerlin(), canCancel = !ev.cancelled && StartOfSafe(ev.date, ev.start) > NowBerlin() });
             }
         }
 
@@ -795,6 +843,26 @@ namespace LearnTogether
 
         static string NormCode(string c) { return Regex.Replace((c ?? "").ToUpperInvariant(), "[^A-Z0-9]", ""); }
 
+        // Absage einer Veranstaltung durch die anbietende Person (Veranstaltungscode); bestehende Buchungen bleiben und zeigen die Absage unter "Meine Anmeldung"
+        void CancelEvent()
+        {
+            Dictionary<string, object> b = Body();
+            string code = NormCode(S(b, "code")), reason = S(b, "reason");
+            if (reason.Length > 300) reason = reason.Substring(0, 300);
+            CodeGuardCheck();
+            lock (Gate)
+            {
+                DataFile d = LoadData();
+                EventRec ev = code.Length < 10 ? null : d.events.Find(delegate (EventRec x) { return NormCode(x.code) == code; });
+                if (ev == null) { CodeGuardFail(); throw new ApiException("notfound", "Zu diesem Veranstaltungscode wurde keine Veranstaltung gefunden. Bitte pr\u00fcfe die Eingabe."); }
+                if (ev.cancelled) throw new ApiException("invalid", "Diese Veranstaltung ist bereits abgesagt.");
+                if (StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Die Veranstaltung hat bereits begonnen. Eine Absage ist nicht mehr m\u00f6glich.");
+                ev.cancelled = true; ev.cancelledAt = NowBerlin().ToString("s", CultureInfo.InvariantCulture); ev.cancelReason = reason.Trim();
+                SaveData(d);
+                Send(new { ok = true, cancelled = true, booked = CountBookings(d, ev.id) });
+            }
+        }
+
         void Cancel()
         {
             Dictionary<string, object> b = Body();
@@ -827,6 +895,8 @@ namespace LearnTogether
                     x["code"] = e.code;
                     x["teamsLink"] = e.teamsLink;
                     x["hostEmail"] = e.hostEmail ?? "";
+                    x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
+                    x["anonymized"] = e.anonymized; x["anonymizedAt"] = e.anonymizedAt ?? "";
                     List<object> bl = new List<object>();
                     foreach (BookingRec bk in d.bookings)
                         if (bk.eventId == e.id) bl.Add(new { id = bk.id, name = bk.name, email = bk.email, code = bk.code, created = bk.created });
@@ -1096,6 +1166,7 @@ namespace LearnTogether
                             ReadEvent(e, ev, true);
                             ev.id = "t-" + Regex.Replace(S(e, "id"), "[^a-zA-Z0-9]", "");
                             ev.isTest = true;
+                            if (B(e, "cancelled")) { ev.cancelled = true; ev.cancelReason = S(e, "cancelReason"); ev.cancelledAt = NowBerlin().ToString("s", CultureInfo.InvariantCulture); }
                             ev.created = NowBerlin().ToString("s", CultureInfo.InvariantCulture);
                             string img = S(e, "imageData");
                             if (img.Length > 0) StoreImage(ev, img);

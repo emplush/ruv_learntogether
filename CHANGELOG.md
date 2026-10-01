@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.20.0 (01.10.2026)
+- **Automatische Anonymisierung:** Private Veranstaltungen werden am Tag nach der Veranstaltung anonymisiert (Name und E-Mail von Anbietenden und Teilnehmenden, Veranstaltungs- und Buchungscodes, Teams-Link). Dienstliche Veranstaltungen bleiben fünf Jahre nach ihrem Ende gespeichert, ausschließlich für Nachweis und Anrechnung, danach werden sie ebenfalls anonymisiert. Abgesagte Veranstaltungen werden am Tag nach dem geplanten Termin anonymisiert. Die Zahl der Anmeldungen bleibt für die Statistik erhalten. Die Prüfung läuft bei jedem Datenzugriff, ein Zeitplan auf dem Server ist nicht nötig.
+- **Absage durch Anbietende:** Unter „Meine Veranstaltung“ lässt sich eine Veranstaltung mit Veranstaltungscode absagen (mit optionalem Grund), auch wenn schon Anmeldungen bestehen. Sie verschwindet aus dem Katalog. Angemeldete sehen die Absage unter „Meine Anmeldung“ (Hinweis oben, Grund, kein Teams-Link und keine Kalenderdatei). Gemerkte Buchungen werden beim Öffnen der Seite automatisch geprüft.
+- **Archiv im Admin-Bereich:** Beendete Veranstaltungen (und abgesagte nach ihrem Termin) wandern automatisch ins Archiv, getrennt nach Dienstlich und Privat, mit Suche, Filtern nach Art und Thema und Zeitraum von/bis. Anzeige des Anonymisierungsstatus, Teilnehmerliste, Löschen. Die Veranstaltungsliste zeigt nur noch nicht beendete Termine.
+- **Statistik:** 9 Kennzahlen (neu: Abgesagt), neue Auswertung „Personenbezogene Daten“ (gespeichert oder anonymisiert), abgesagte Veranstaltungen zählen nicht in die Auswertungen, anonymisierte Anbietende fehlen in der Anbieter-Auswertung.
+- **Handbücher:** Arbeitszeit-Regel (dienstlich ja, privat nein, selbst einstechen), IDD-Status (noch nicht möglich, in Planung), Datenschutz, Absagen und Archiv in beiden Handbüchern. Die Arbeitszeit-Regel steht bewusst nur im Handbuch, nicht prominent in der App.
+- Testdaten: neue Szenarien „anonymisierter privater Termin“ und „abgesagter Termin mit Anmeldungen“.
+
 ## 0.19.0 (01.10.2026)
 - **Design an das R+V-Design-System angeglichen:** 4 px Radius statt Pillen, keine Schatten und Verläufe (Bildplatzhalter flach), keine Akzentkanten an Hinweisen und Karten, Fokusring 3 px in Orange, Headlines in Bold (Typostufen 52/36/20), unterstrichene Links in den Link-Farben, Mint-Buttons nach Token (hell #109da8, Hover #00dcdc), dunkles Design nur in Dunkelblau mit Rahmen.
 - **Topline in RuV Slab** über den Seitenüberschriften; im Katalog-Hero markiert `*Wort*` Highlight-Wörter in Orange (ohne Markierung: alles nach dem ersten Satz).

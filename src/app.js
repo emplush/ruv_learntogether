@@ -146,6 +146,14 @@ function toMin(t) { var p = t.split(':').map(Number); return p[0] * 60 + p[1]; }
 function minToHm(m) { return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
 function startDate(e) { var d = parseYmd(e.date); var m = toMin(e.start); d.setHours(Math.floor(m / 60), m % 60, 0, 0); return d; }
 function endHm(e) { return minToHm(toMin(e.start) + e.duration); }
+var RETAIN_YEARS = 5;
+function endDate(e) { return new Date(startDate(e).getTime() + e.duration * 60000); }
+function eventEnded(e) { return endDate(e) <= new Date(); }
+/* Zeitpunkt der Anonymisierung: private und abgesagte Veranstaltungen am Tag danach, dienstliche 5 Jahre nach dem Ende */
+function anonymizeOn(e) {
+  if (e.category === 'privat' || e.cancelled) { var d = parseYmd(e.date); d.setDate(d.getDate() + 1); return d; }
+  var x = endDate(e); x.setFullYear(x.getFullYear() + RETAIN_YEARS); return x;
+}
 function dateShort(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; }
 function dateFull(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); }
 function dateLong(s) { var d = parseYmd(s); return DAY_L[d.getDay()] + ', ' + pad(d.getDate()) + '. ' + MONTH_L[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -246,7 +254,9 @@ function buildTestData() {
     ['Neue Tarifmerkmale in der Hausratversicherung', 4, 'dienstlich', 'Best Practice', 'fachlich', 3, '08:00', 60, 30, 3, 0, descHtml('Ein Überblick über die wichtigsten Änderungen und wie du sie im Kundengespräch erklärst.', ['Die Änderungen in Kürze', 'Beispielrechnungen', 'Argumente für die Beratung'])],
     ['Fragen & Antworten zur Betriebshaftpflicht', 5, 'dienstlich', 'Austausch', 'fachlich', 4, '17:15', 30, 6, 5, 1, descHtml('Schnelle Runde: Bringe deine Fragen zur Betriebshaftpflicht mit, wir klären sie gemeinsam.', ['Deckungsumfang im Alltag', 'Abgrenzung zu anderen Sparten', 'Erfahrungen aus Beratungsgesprächen'])],
     ['Kurzimpuls: Cyber-Risiken für kleine Betriebe', 6, 'dienstlich', 'Best Practice', 'fachlich', 5, '06:00', 15, 40, 12, 0, descHtml('Ein Kurzimpuls in fünfzehn Minuten. Ideal vor dem ersten Termin des Tages.', ['Die drei häufigsten Angriffswege', 'Was Kunden wirklich fragen'])],
-    ['Vergangener Workshop: Zeitmanagement im Außendienst', 7, 'dienstlich', 'Workshop', 'fachlich', -1, '17:00', 60, 15, 11, 1, descHtml('Dieser Termin liegt in der Vergangenheit und erscheint nur im Admin-Bereich.', ['Testfall: vergangene Veranstaltung'])],
+    ['Vergangener Workshop: Zeitmanagement im Außendienst', 7, 'dienstlich', 'Workshop', 'fachlich', -1, '17:00', 60, 15, 11, 1, descHtml('Dieser Termin liegt in der Vergangenheit und erscheint nur im Archiv des Admin-Bereichs.', ['Testfall: vergangene Veranstaltung'])],
+    ['Vergangener Lauftreff: Tipps fürs Frühjahr', 8, 'privat', 'Austausch', 'Sport', -1, '17:30', 45, 12, 5, 0, descHtml('Dieser private Termin liegt in der Vergangenheit. Seine personenbezogenen Daten sind anonymisiert.', ['Testfall: anonymisierter privater Termin'])],
+    ['Abgesagt: Verkaufsgespräche trainieren (Testfall)', 2, 'dienstlich', 'Workshop', 'vertrieblich', 3, '17:30', 45, 10, 4, 0, descHtml('Dieser Termin wurde abgesagt, obwohl es schon Anmeldungen gab.', ['Testfall: abgesagte Veranstaltung mit Anmeldungen']), 'x'],
     ['Lauftreff-Talk: 10 Kilometer unter 55 Minuten', 8, 'privat', 'Austausch', 'Sport', 1, '06:15', 45, 15, 6, 1, descHtml('Erfahrungen, Trainingspläne und Motivation für alle, die laufen oder damit anfangen möchten.', ['Trainingspläne im Vergleich', 'Laufen bei jedem Wetter', 'Gemeinsame Ziele setzen'])],
     ['Rückenfit am Morgen', 9, 'privat', 'Workshop', 'Sport', 2, '06:30', 30, 25, 2, 0, descHtml('Leichte Übungen für einen entspannten Rücken. Du brauchst nur eine Matte oder ein Handtuch.', ['Mobilisation', 'Kräftigung', 'Tipps für den Schreibtisch'])],
     ['Fotografie mit dem Smartphone', 0, 'privat', 'Workshop', 'Freizeit', 3, '18:00', 60, 12, 12, 1, descHtml('Bessere Fotos ohne teure Kamera. Licht, Bildaufbau und Bearbeitung in einer Stunde.', ['Licht und Perspektive', 'Bildaufbau', 'Schnelle Bearbeitung'])],
@@ -275,6 +285,7 @@ function buildTestData() {
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1);
     var e = { id: id, title: r[0], host: H[r[1] % H.length], hostEmail: H[r[1] % H.length].toLowerCase().replace(/ü/g, 'ue').replace(/ /g, '.') + '@example.org', category: r[2], type: mapType(r[3]), topic: mapTopic(r[2], r[4]), date: r[5] < 0 ? past : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', isTest: true };
+    if (r[12] === 'x') { e.cancelled = true; e.cancelledAt = new Date().toISOString(); e.cancelReason = 'Der Anbieter ist erkrankt. Ein neuer Termin folgt.'; }
     events.push(e);
     for (var b = 0; b < r[9]; b++) { var nm = names[ni++ % names.length]; bookings.push({ eventId: id, name: nm, email: nm.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/[^a-z]+/g, '.') + '.' + (i + 1) + '@example.org' }); }
   });
@@ -389,6 +400,7 @@ var Server = {
   cancel: function (code) { return this.call('cancel', { code: code }); },
   lookup: function (code) { return this.call('lookup', { code: code }); },
   eventLookup: function (code) { return this.call('eventLookup', { code: code }); },
+  cancelEvent: function (code, reason) { return this.call('cancelEvent', { code: code, reason: reason || '' }); },
   login: function (pw) { return this.call('login', { password: pw }).then(function (j) { adminToken = j.token; sess.set('lt_admin', j.token); }); },
   adminEvents: function () { return this.call('adminEvents', null, true).then(function (j) { return j.events; }); },
   adminSaveEvent: function (ev) { return this.call('adminSaveEvent', { event: ev }, true); },
@@ -421,6 +433,15 @@ var Local = (function () {
     if (!store.get('lt_seeded')) { store.set('lt_seeded', '1'); insertTest(); save(); }
   }
   function save() { store.set('lt_data', JSON.stringify(data)); store.set('lt_cfg', JSON.stringify(cfg));  }
+  function anonymize(e) {
+    e.host = 'Anonymisiert'; e.hostEmail = ''; e.code = newCode(10); e.teamsLink = ''; e.anonymized = true; e.anonymizedAt = new Date().toISOString();
+    data.bookings.forEach(function (b) { if (b.eventId === e.id) { b.name = 'Anonymisiert'; b.email = ''; b.code = newCode(); } });
+  }
+  function sweep() {
+    var now = new Date(), ch = false;
+    data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } });
+    if (ch) save();
+  }
   function insertTest() {
     data.events = data.events.filter(function (e) { return !e.isTest; });
     data.bookings = data.bookings.filter(function (b) { return !b.isTest; });
@@ -429,7 +450,7 @@ var Local = (function () {
     t.bookings.forEach(function (b) { data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + b.eventId, name: b.name, email: b.email, code: newCode(), created: new Date().toISOString(), isTest: true }); });
     return t;
   }
-  function detail(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'imageData' && k !== 'hostEmail' && k !== 'isTest' && k !== 'created' && k !== 'code') o[k] = e[k]; }); o.image = e.imageData || null; return o; }
+  function detail(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'imageData' && k !== 'hostEmail' && k !== 'isTest' && k !== 'created' && k !== 'code') o[k] = e[k]; }); o.image = e.imageData || null; if (e.cancelled) o.teamsLink = ''; return o; }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }
   function pub(e) { var o = {}; Object.keys(e).forEach(function (k) { if (k !== 'teamsLink' && k !== 'imageData' && k !== 'hostEmail' && k !== 'code') o[k] = e[k]; }); o.booked = booked(e.id); o.image = e.imageData || null; return o; }
   function fail(code, msg) { return Promise.reject(ApiErr(code, msg)); }
@@ -442,7 +463,7 @@ var Local = (function () {
     if (v.imageData) target.imageData = v.imageData; else if (v.removeImage) target.imageData = '';
     return target;
   }
-  function wrap(fn) { return new Promise(function (res, rej) { try { load(); res(fn()); } catch (e) { rej(e); } }); }
+  function wrap(fn) { return new Promise(function (res, rej) { try { load(); sweep(); res(fn()); } catch (e) { rej(e); } }); }
   return {
     settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, notice: cfg.notice }; }); },
     adminSaveTaxonomy: function (p) {
@@ -486,7 +507,7 @@ var Local = (function () {
         return { labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types };
       });
     },
-    events: function () { return wrap(function () { var now = new Date(); return data.events.filter(function (e) { return startDate(e) > now; }).map(pub); }); },
+    events: function () { return wrap(function () { var now = new Date(); return data.events.filter(function (e) { return startDate(e) > now && !e.cancelled; }).map(pub); }); },
     createEvent: function (v) { return wrap(function () { var e = readEvent(v, { id: rid(8), code: newCode(10), created: new Date().toISOString(), isTest: false }, false); data.events.push(e); save(); return { id: e.id, code: e.code }; }); },
     book: function (id, name, email) {
       return wrap(function () {
@@ -495,6 +516,7 @@ var Local = (function () {
         if (!validEmail(email)) throw ApiErr('invalid', 'Bitte gib eine gültige E-Mail-Adresse an.');
         var ev = data.events.filter(function (e) { return e.id === id; })[0];
         if (!ev) throw ApiErr('notfound', 'Diese Veranstaltung gibt es nicht mehr.');
+        if (ev.cancelled) throw ApiErr('cancelled', 'Diese Veranstaltung wurde abgesagt. Eine Anmeldung ist nicht mehr möglich.');
         if (startDate(ev) <= new Date()) throw ApiErr('past', 'Diese Veranstaltung hat bereits begonnen. Eine Anmeldung ist nicht mehr möglich.');
         if (data.bookings.some(function (b) { return b.eventId === id && b.email === email; })) throw ApiErr('duplicate', 'Mit dieser E-Mail-Adresse bist du bereits angemeldet.');
         if (booked(id) >= ev.capacity) throw ApiErr('full', 'Leider sind inzwischen alle Plätze vergeben. Die Anmeldung war nicht möglich.');
@@ -531,7 +553,18 @@ var Local = (function () {
         if (!ev) throw ApiErr('notfound', 'Zu diesem Veranstaltungscode wurde keine Veranstaltung gefunden. Bitte prüfe die Eingabe.');
         var people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { return { name: b.name, created: b.created }; });
         var info = detail(ev); info.booked = people.length;
-        return { code: ev.code, eventInfo: info, capacity: ev.capacity, participants: people, isPast: startDate(ev) <= new Date() };
+        return { code: ev.code, eventInfo: info, capacity: ev.capacity, participants: people, isPast: startDate(ev) <= new Date(), canCancel: !ev.cancelled && startDate(ev) > new Date() };
+      });
+    },
+    cancelEvent: function (code, reason) {
+      return wrap(function () {
+        code = normCode(code);
+        var ev = code.length < 10 ? null : data.events.filter(function (e) { return normCode(e.code) === code; })[0];
+        if (!ev) throw ApiErr('notfound', 'Zu diesem Veranstaltungscode wurde keine Veranstaltung gefunden. Bitte prüfe die Eingabe.');
+        if (ev.cancelled) throw ApiErr('invalid', 'Diese Veranstaltung ist bereits abgesagt.');
+        if (startDate(ev) <= new Date()) throw ApiErr('past', 'Die Veranstaltung hat bereits begonnen. Eine Absage ist nicht mehr möglich.');
+        ev.cancelled = true; ev.cancelledAt = new Date().toISOString(); ev.cancelReason = String(reason || '').trim().slice(0, 300);
+        save(); return { cancelled: true, booked: booked(ev.id) };
       });
     },
     login: function (pw) { return wrap(function () { if (pw !== cfg.pw) throw ApiErr('password', 'Das Passwort ist nicht korrekt.'); adminToken = 'local'; sess.set('lt_admin', 'local'); }); },
@@ -976,7 +1009,7 @@ function openBooking(e, onChange) {
       go.disabled = true; go.textContent = 'Wird geprüft …';
       Api.book(e.id, name.value, mail.value).then(function (r) { showDone(r); }, function (er) {
         go.disabled = false; go.textContent = 'Anmelden';
-        if (er.code === 'full' || er.code === 'past' || er.code === 'notfound') { showFail(er); return; }
+        if (er.code === 'full' || er.code === 'past' || er.code === 'notfound' || er.code === 'cancelled') { showFail(er); return; }
         msg.hidden = false; msg.textContent = er.message;
       });
     });
@@ -1046,6 +1079,11 @@ function participationCard(info, code, o) {
   if (!compact) node.appendChild(h('dl', { class: 'facts f4' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
     h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', { text: info.host })])]));
+  if (info.cancelled) {
+    node.appendChild(h('div', { class: 'notice warn', role: 'alert' }, h('div', { class: 'n-body' }, [h('b', { text: 'Diese Veranstaltung wurde abgesagt' }), h('div', { text: (info.cancelReason ? 'Grund: ' + info.cancelReason + ' ' : '') + 'Der Termin findet nicht statt. Deine Anmeldung kannst du aus deiner Liste entfernen.' })])));
+    node.appendChild(codeBox('Dein Buchungscode', code));
+    return node;
+  }
   node.appendChild(teamsBox(info.teamsLink));
   node.appendChild(h('div', { class: 'pc-cols' }, [
     h('div', { class: 'pc-ics' }, [h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, code); } })]),
@@ -1094,7 +1132,7 @@ function codeForm(o) {
 }
 function viewMine(q) {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' })), wrap = root.firstChild;
-  var result = h('div', { style: 'margin-top:32px' }), mineBox = h('div', { style: 'margin-top:40px' });
+  var result = h('div', { style: 'margin-top:32px' }), mineBox = h('div', { style: 'margin-top:40px' }), alerts = h('div', { style: 'display:flex;flex-direction:column;gap:12px;margin-top:20px' });
   var cf = codeForm({ id: 'x-code', label: 'Buchungscode', placeholder: 'XXXX-XXXX', value: q.code || '', example: 'z. B. K7M2-QX9P', len: 8, button: 'Anmeldung anzeigen', hint: 'Den Buchungscode hast du nach der Buchung im Fenster gesehen.', run: lookup });
   function show(r) {
     clear(result); cf.form.hidden = true; mineBox.hidden = true; window.scrollTo({ top: 0 }); rememberMine(r.eventInfo, r.code);
@@ -1102,9 +1140,10 @@ function viewMine(q) {
     var acts = h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:20px' });
     var done = h('div', { style: 'margin-top:16px' });
     if (r.canCancel) {
-      var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: 'Teilnahme stornieren' });
+      var cl0 = r.eventInfo.cancelled ? 'Aus meinen Buchungen entfernen' : 'Teilnahme stornieren';
+      var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: cl0 });
       cancel.addEventListener('click', function () {
-        if (!cancel._c) { cancel._c = true; cancel.setAttribute('data-c', '1'); cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.removeAttribute('data-c'); cancel.textContent = 'Teilnahme stornieren'; }, 4000); return; }
+        if (!cancel._c) { cancel._c = true; cancel.setAttribute('data-c', '1'); cancel.textContent = r.eventInfo.cancelled ? 'Wirklich entfernen?' : 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.removeAttribute('data-c'); cancel.textContent = cl0; }, 4000); return; }
         cancel.disabled = true;
         Api.cancel(r.code).then(function () { forgetMine(r.code); clear(result); clear(acts); result.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Teilnahme an „' + r.eventInfo.title + '“ wurde storniert. Der Platz ist wieder frei.' })); result.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
           function (er) { cancel.disabled = false; clear(done); done.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message })); });
@@ -1120,15 +1159,26 @@ function viewMine(q) {
     mineBox.appendChild(h('h2', { text: 'Auf diesem Gerät gespeichert', style: 'font-size:1.25rem;margin-bottom:12px' }));
     var ul = h('div', { style: 'display:flex;flex-direction:column;gap:10px' });
     mine.forEach(function (m) {
-      ul.appendChild(h('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px' }, [h('div', { style: 'flex:1 1 240px;min-width:0' }, [h('b', { text: m.title, style: 'overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(m.date) + ', ' + m.start + ' Uhr · Code ' + m.code })]),
+      var st = h('div', { class: 'mine-status', hidden: true });
+      ul.appendChild(h('div', { class: 'panel', style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px' }, [h('div', { style: 'flex:1 1 240px;min-width:0' }, [h('b', { text: m.title, style: 'overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(m.date) + ', ' + m.start + ' Uhr · Code ' + m.code }), st]),
         h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Öffnen', onclick: function () { lookup(m.code); } }),
         h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Vergessen', onclick: function () { forgetMine(m.code); location.hash = '#/anmeldung'; route(); } })]));
     });
     mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
+    /* Zustand der gemerkten Buchungen pruefen: Absagen werden oben hervorgehoben */
+    mine.forEach(function (m, i) {
+      Api.lookup(m.code).then(function (r) {
+        var st = $$('.mine-status', ul)[i]; if (!st) return;
+        if (r.eventInfo.cancelled) {
+          st.hidden = false; st.appendChild(chipEl('full', 'Abgesagt'));
+          alerts.appendChild(h('div', { class: 'notice warn', role: 'alert' }, h('div', { class: 'n-body' }, [h('b', { text: 'Abgesagt: ' + r.eventInfo.title }), h('div', { text: dateFull(r.eventInfo.date) + ', ' + r.eventInfo.start + ' Uhr. ' + (r.eventInfo.cancelReason ? 'Grund: ' + r.eventInfo.cancelReason : 'Der Termin findet nicht statt.') })])));
+        }
+      }, function (er) { var st = $$('.mine-status', ul)[i]; if (st && er.code === 'notfound') { st.hidden = false; st.appendChild(chipEl('type', 'Nicht mehr vorhanden')); forgetMine(m.code); } });
+    });
   }
   wrap.appendChild(topline('Buchung')); wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Anmeldung</span>' }));
   wrap.appendChild(h('p', { class: 'lead', text: 'Gib deinen Buchungscode ein. Du siehst dann den Teams-Link zu deiner Veranstaltung, kannst die Kalenderdatei (.ics) herunterladen oder deine Teilnahme stornieren, wenn du nicht dabei sein kannst.' }));
-  wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
+  wrap.appendChild(alerts); wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
   if (q.code) lookup(q.code);
   return root;
 }
@@ -1149,8 +1199,22 @@ function viewMyEvent(q) {
       h('dl', { class: 'facts' }, [h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]), h('div', null, [h('dt', { text: 'Angemeldet' }), h('dd', { text: list.length + ' von ' + r.capacity + ' Plätzen' })]), h('div', null, [h('dt', { text: 'Teams-Sitzung' }), h('dd', null, h('a', { href: info.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Link öffnen' }))])]),
       h('h3', { text: 'Teilnehmerliste' }), table,
       h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Aktualisieren', onclick: function () { lookup(r.code); } }), list.length ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Liste kopieren', onclick: function () { copyText(info.title + '\n' + list.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('\n'), 'Teilnehmerliste kopiert.'); } }) : null]),
-      r.isPast ? h('p', { class: 'hint', text: 'Die Veranstaltung hat begonnen oder ist vorbei.' }) : null]));
+      r.isPast && !info.cancelled ? h('p', { class: 'hint', text: 'Die Veranstaltung hat begonnen oder ist vorbei.' }) : null,
+      info.cancelled ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Diese Veranstaltung ist abgesagt' }), h('div', { text: (info.cancelReason ? 'Grund: ' + info.cancelReason + ' ' : '') + (list.length ? 'Die ' + list.length + ' angemeldeten Personen sehen die Absage unter „Meine Anmeldung“.' : 'Es gab keine Anmeldungen.') })])) : null,
+      r.canCancel ? cancelBox(r) : null]));
     result.appendChild(h('div', { style: 'margin-top:20px;display:flex;gap:12px;flex-wrap:wrap' }, [h('button', { class: 'btn btn-secondary', type: 'button', text: 'Anderen Code eingeben', onclick: function () { location.hash = '#/veranstaltung'; route(); } })]));
+  }
+  function cancelBox(r) {
+    var reason = h('textarea', { id: 'v-reason', rows: '3', maxlength: '300', placeholder: 'Zum Beispiel: Ich bin erkrankt. Ein neuer Termin folgt.' });
+    var go = h('button', { class: 'btn btn-danger', type: 'button', text: 'Veranstaltung absagen' }), msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
+    go.addEventListener('click', function () {
+      if (!go._c) { go._c = true; go.setAttribute('data-c', '1'); go.textContent = 'Wirklich absagen?'; setTimeout(function () { go._c = false; go.removeAttribute('data-c'); go.textContent = 'Veranstaltung absagen'; }, 4000); return; }
+      go.disabled = true;
+      Api.cancelEvent(r.code, reason.value).then(function () { toast('Die Veranstaltung wurde abgesagt.'); lookup(r.code); }, function (er) { go.disabled = false; msg.hidden = false; msg.textContent = er.message; });
+    });
+    return h('div', { class: 'cancel-box' }, [h('h3', { text: 'Veranstaltung absagen' }),
+      h('p', { class: 'hint', text: r.eventInfo.booked ? 'Es gibt bereits ' + r.eventInfo.booked + ' Anmeldung(en). Sie sehen die Absage unter „Meine Anmeldung“. Die Plattform verschickt keine E-Mails.' : 'Noch niemand hat sich angemeldet. Die Veranstaltung verschwindet aus dem Katalog.' }),
+      field('Grund (freiwillig, sichtbar für angemeldete Personen)', reason, { id: 'v-reason' }), msg, h('div', null, go)]);
   }
   function lookup(c) { cf.busy('Wird gesucht …'); Api.eventLookup(c).then(show, function (er) { cf.fail(er); cf.form.hidden = false; }); }
   var mine = myEvList();
@@ -1165,7 +1229,7 @@ function viewMyEvent(q) {
     mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
   }
   wrap.appendChild(topline('Für Anbietende')); wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Veranstaltung</span>' }));
-  wrap.appendChild(h('p', { class: 'lead', text: 'Du hast eine Veranstaltung angeboten? Mit dem Veranstaltungscode siehst du, wer sich angemeldet hat. Änderungen oder Absagen der Veranstaltung übernimmt die Administration.' }));
+  wrap.appendChild(h('p', { class: 'lead', text: 'Du hast eine Veranstaltung angeboten? Mit dem Veranstaltungscode siehst du, wer sich angemeldet hat. Hier kannst du die Veranstaltung auch absagen. Änderungen übernimmt die Administration.' }));
   wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
   if (q.code) lookup(q.code);
   return root;
@@ -1201,7 +1265,7 @@ function viewAdmin() {
     wrap.appendChild(form); pw.focus();
   }
   var SECTIONS = [
-    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
+    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung']]],
     ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
   ];
@@ -1221,14 +1285,15 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
+      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
   }
 /*__STATS__*/
   function adminEvents() {
-    return Api.adminEvents().then(function (list) {
+    return Api.adminEvents().then(function (all) {
+      var list = all.filter(function (e) { return !eventEnded(e); });
       var F = { q: '', cat: '', type: '', topic: '', from: '', to: '' };
       var host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
       var search = h('input', { type: 'search', id: 'af-q', placeholder: 'Titel, Person, E-Mail, Thema …', 'aria-label': 'Veranstaltungen durchsuchen' });
@@ -1263,14 +1328,14 @@ function viewAdmin() {
         if (F.to && e.date > F.to) return false;
         return true;
       }
-      function reload() { return Api.adminEvents().then(function (l) { list = l; render(); if (peopleId) { if (list.some(function (x) { return x.id === peopleId; })) showPeople(peopleId); else if (peopleModal) peopleModal.close(); } }); }
+      function reload() { return Api.adminEvents().then(function (l) { list = l.filter(function (e) { return !eventEnded(e); }); render(); if (peopleId) { if (list.some(function (x) { return x.id === peopleId; })) showPeople(peopleId); else if (peopleModal) peopleModal.close(); } }); }
       function render() {
         clear(host);
         var now = new Date();
         var items = list.filter(matches).sort(function (a, b) { return startDate(a) - startDate(b); });
-        var active = !!(F.q || F.cat || F.type || F.topic || F.from || F.to); resetBtn.hidden = !active; count.textContent = (active ? items.length + ' von ' : '') + list.length + ' Veranstaltungen, ' + items.reduce(function (s, e) { return s + e.booked; }, 0) + ' Anmeldungen' + (active ? ' in der Auswahl' : ' insgesamt');
+        var active = !!(F.q || F.cat || F.type || F.topic || F.from || F.to); resetBtn.hidden = !active; count.textContent = (active ? items.length + ' von ' : '') + list.length + ' Veranstaltungen (ohne beendete, siehe Archiv), ' + items.reduce(function (s, e) { return s + e.booked; }, 0) + ' Anmeldungen' + (active ? ' in der Auswahl' : ' insgesamt');
         if (!items.length && active) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Nichts gefunden' }), h('p', { text: 'Für diese Filter gibt es keine Veranstaltung. Passe Suche, Filter oder Zeitraum an.' })])); return; }
-        if (!items.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Veranstaltungen' }), h('p', { text: 'Lege Veranstaltungen über „Veranstaltung anbieten“ an oder lade Testdaten.' })])); return; }
+        if (!items.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Veranstaltungen' }), h('p', { text: 'Lege Veranstaltungen über „Veranstaltung anbieten“ an oder lade Testdaten. Beendete Veranstaltungen findest Du im Archiv.' })])); return; }
         var tb = h('tbody');
         items.forEach(function (e) {
           var past = startDate(e) <= now, f = freeOf(e), pct = Math.min(100, Math.round(e.booked / e.capacity * 100));
@@ -1279,8 +1344,8 @@ function viewAdmin() {
             if (del._c) { Api.adminDeleteEvent(e.id).then(function () { toast('Veranstaltung gelöscht.'); return reload(); }, function (er) { toast(er.message, true); }); return; }
             del._c = true; del.setAttribute('data-c', '1'); del.textContent = 'Wirklich löschen?'; setTimeout(function () { del._c = false; del.removeAttribute('data-c'); del.textContent = 'Löschen'; }, 4000);
           });
-          tb.appendChild(h('tr', { class: past ? 'past' : '' }, [
-            h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { class: 'tag cat-' + e.category, text: CAT_LABEL[e.category] }), h('span', { text: e.type + ' · ' + capFirst(e.topic) }), e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null]), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null]),
+          tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [
+            h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { class: 'tag cat-' + e.category, text: CAT_LABEL[e.category] }), h('span', { text: e.type + ' · ' + capFirst(e.topic) }), e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, e.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : null]), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null]),
             h('td', { class: 'c-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '–' + endHm(e) + ' Uhr' })]),
             h('td', { class: 'c-host' }, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
             h('td', { class: 'c-occ' }, [h('b', { text: e.booked + ' / ' + e.capacity }), h('div', { class: 'bar' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]),

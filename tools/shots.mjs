@@ -41,4 +41,10 @@ await nav('Statistik'); await p.waitForSelector('.st-card'); await shot('adm-sta
 await nav('Texte'); await p.waitForSelector('#h-title'); await shot('adm-texte', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await nav('Themen'); await shot('adm-themen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await nav('Arten'); await shot('adm-arten', { clip: { x: 0, y: 60, width: 1280, height: 600 } });
+await nav('Archiv'); await p.waitForSelector('#ar-q'); await p.click('.seg button[data-cat="privat"]'); await p.waitForTimeout(300); await shot('adm-archiv', { clip: { x: 0, y: 60, width: 1280, height: 640 } });
+await nav('Veranstaltungen'); await p.waitForSelector('table.tbl'); await p.fill('#af-q', 'Brettspiel'); await p.waitForTimeout(200);
+await p.addStyleTag({ content: '.top{position:static!important}' });
+{ const row = p.locator('table.tbl tbody tr:has(.acts)').first(); const code = (await row.locator('.hint', { hasText: 'Veranstaltungscode' }).textContent()).replace('Veranstaltungscode', '').trim();
+  await go('#/veranstaltung?code=' + code); await p.waitForSelector('#v-reason'); await p.locator('.cancel-box').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await shot('absagen', { fullPage: true, clip: { x: 240, y: 100, width: 800, height: 1240 } });
+    }
 await b.close(); console.log('Screenshots in', out);
