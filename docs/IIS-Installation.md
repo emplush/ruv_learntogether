@@ -4,11 +4,11 @@
 
 1. Inhalt des Ordners `IIS/` in ein Verzeichnis des Webservers kopieren (als Site oder Anwendung).
 2. Dem Anwendungspool-Benutzer (z. B. `IIS AppPool\<Pool>`) **Ändern-Rechte** auf `AppData\Data` geben. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder als JSON-/Bilddateien.
-3. `index.html` aufrufen. Admin: Navigation „Admin“, Standardpasswort `RuVTest1234`, bitte sofort unter *Einstellungen* ändern.
-4. Die Anwendung **verschickt keine E-Mails**. Teilnahme-Angaben (Teams-Link, Kalenderdatei, Buchungscode) zeigt sie direkt nach der Anmeldung und unter „Meine Anmeldung“.
+3. `index.html` aufrufen. Anmelden mit Benutzername `admin` und Standardpasswort `RuVTest1234`; die Anwendung verlangt sofort ein neues Passwort. Weitere Administrierende ernennt die Hauptadministration unter Admin › Nutzer.
+4. Die Anwendung **verschickt keine E-Mails**. Teilnahme-Angaben (Teams-Link, Kalenderdatei) zeigt sie direkt nach der Anmeldung und unter „Meine Anmeldungen“. Mitteilungen (z. B. Absagen) erscheinen dort ebenfalls.
 
 **Hinweise**
-- `AppData\Data` ist per `hiddenSegments` (web.config) nicht per HTTP abrufbar. `settings.json` enthält u. a. den Hash des Admin-Passworts; Zugriffsrechte im Dateisystem entsprechend beschränken.
+- `AppData\Data` ist per `hiddenSegments` (web.config) nicht per HTTP abrufbar. `data.json` enthält Konten (Passwort-Hashes) und personenbezogene Daten, `settings.json` den Schlüssel für die Sitzungen; Zugriffsrechte im Dateisystem entsprechend beschränken.
 - `AppData\Private` (Administrationshandbuch als HTML und PDF) ist ebenfalls per `hiddenSegments` gesperrt und wird nur nach Admin-Anmeldung über `api.ashx` ausgeliefert.
 - Für Updates alle Dateien außer `AppData\Data` überschreiben.
 - Die R+V-Schrift „RuV Sans“ liegt in `AppData\fonts` (Light, Regular, Bold, Black). Die `web.config` liefert `.woff2` aus.

@@ -1,6 +1,6 @@
 # LearnTogether@AD
 
-Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Buchung mit Buchungscode, Teams-Link und Kalenderdatei direkt im Programm („Meine Anmeldung“), Veranstaltungscode und Teilnehmerliste („Meine Veranstaltung“), Stornierung und passwortgeschützten Admin-Bereich mit Statistiken und PDF-Berichten.
+Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstaltungen (Workshop, Austausch, Best Practice), Katalog im Kachel-Stil, Registrierung und Anmeldung mit Benutzername (öffentlich ist nur der Benutzername), „Meine Anmeldungen“ mit Teams-Link, Kalenderdatei, Abmeldung, Mitteilungen bei Absagen und 1 bis 5 Sterne, „Meine Veranstaltungen“ mit Teilnehmenden und Absage, Profil mit Statistiken, Archiv und Passwortänderung, Abzeichen (6 Stufen) und Expertenstatus sowie Admin-Bereich mit Nutzerverwaltung, Statistiken und PDF-Berichten. Anonymisierung fünf Jahre nach dem Ende jeder Veranstaltung.
 
 ## Ordner
 
@@ -14,7 +14,7 @@ Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstal
 
 ## Installation auf dem IIS
 
-Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `IIS/` in ein IIS-Verzeichnis kopieren, Schreibrechte auf `AppData\Data` für den Anwendungspool vergeben, fertig. Standard-Adminpasswort: `RuVTest1234` (bitte im Admin-Bereich ändern).
+Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `IIS/` in ein IIS-Verzeichnis kopieren, Schreibrechte auf `AppData\Data` für den Anwendungspool vergeben, fertig. Standard-Admin: Benutzername `admin`, Passwort `RuVTest1234` (wird beim ersten Anmelden zur Änderung verlangt). Läuft die Anwendung nur über HTTP, laufen Passwörter unverschlüsselt durch das Netz; HTTPS wird empfohlen.
 
 ## Bauen
 

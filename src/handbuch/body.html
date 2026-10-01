@@ -1,16 +1,32 @@
 <h2>Worum es geht</h2>
 <p>{{APP_TITLE}} ist eine Plattform für informelles Lernen im R+V-Außendienst. Kolleginnen und Kollegen bieten kurze Online-Termine an, zum Beispiel einen Workshop, einen Austausch oder eine Best-Practice-Runde. Alle anderen können sich dafür anmelden. Themen dürfen dienstlich oder privat sein.</p>
 <p>Alle Veranstaltungen finden online in <b>Microsoft Teams</b> statt, <b>montags bis freitags</b>, entweder <b>morgens von 06:00 bis 09:00 Uhr</b> oder <b>nachmittags von 17:00 bis 20:00 Uhr</b>. Eine einzelne Veranstaltung dauert höchstens zwei Stunden.</p>
-<p>Du brauchst kein Benutzerkonto und kein Passwort. Zum Anmelden genügen dein Name und deine E-Mail-Adresse. Die Anwendung verschickt <b>keine E-Mails</b>: Alle Angaben zu deiner Anmeldung siehst du direkt im Programm.</p>
-<p>Die Anwendung hat vier Bereiche, die du oben in der Navigation findest:</p>
+<p>Zum Anmelden für Veranstaltungen und zum Anbieten brauchst du ein <b>Konto</b>. Du registrierst dich einmal mit einem frei gewählten Benutzernamen. Den Katalog kannst du auch ohne Konto ansehen. Die Anwendung verschickt <b>keine E-Mails</b>. Alle Angaben zu deinen Anmeldungen siehst du direkt im Programm.</p>
+<p>Die Navigation oben zeigt diese Bereiche:</p>
 <table>
 <tr><th>Bereich</th><th>Wofür du ihn brauchst</th></tr>
 <tr><td>Katalog</td><td>Veranstaltungen entdecken und dich anmelden</td></tr>
 <tr><td>Veranstaltung anbieten</td><td>Selbst einen Termin anlegen</td></tr>
-<tr><td>Meine Anmeldung</td><td>Mit dem Buchungscode Teams-Link und Kalenderdatei abrufen oder die Teilnahme stornieren</td></tr>
-<tr><td>Meine Veranstaltung</td><td>Mit dem Veranstaltungscode die Teilnehmerliste deiner eigenen Veranstaltung sehen</td></tr>
+<tr><td>Meine Anmeldungen</td><td>Teams-Link, Kalenderdatei, Abmeldung und Bewertung deiner gebuchten Veranstaltungen</td></tr>
+<tr><td>Meine Veranstaltungen</td><td>Teilnehmende, Absage und Bewertungen deiner eigenen Veranstaltungen</td></tr>
+<tr><td>Profil (dein Benutzername)</td><td>Deine Daten, Abzeichen, Statistiken, Archiv und Passwort</td></tr>
 <tr><td>Handbuch</td><td>Diese Anleitung</td></tr>
 </table>
+
+<h2>Registrieren und anmelden</h2>
+<p>Klicke oben auf <b>Registrieren</b>. Du gibst folgende Daten an:</p>
+<table>
+<tr><th>Feld</th><th>Was du eingibst</th></tr>
+<tr><td>Benutzername</td><td>Frei wählbar, 3 bis 24 Zeichen, wie bei sozialen Netzwerken. Er muss einmalig sein und lässt sich später nicht ändern</td></tr>
+<tr><td>Vorname und Nachname</td><td>Dein echter Name</td></tr>
+<tr><td>XV- oder XVG-Nummer</td><td>Zum Beispiel XV12345</td></tr>
+<tr><td>E-Mail-Adresse</td><td>Du kannst dich damit auch anmelden</td></tr>
+<tr><td>Passwort</td><td>Mindestens 10 Zeichen, nicht zu bekannt und ohne deinen Benutzernamen</td></tr>
+</table>
+<p><b>Öffentlich sichtbar ist nur dein Benutzername.</b> Echter Name, XV-Nummer und E-Mail-Adresse sehen nur du und die Administration.</p>
+{{FIGURE:registrieren|Die Registrierung: Benutzername, echter Name, XV-Nummer, E-Mail-Adresse und Passwort.}}
+<p>Danach bist du direkt angemeldet. Beim nächsten Mal klickst du auf <b>Anmelden</b> und gibst Benutzername oder E-Mail-Adresse und dein Passwort ein. Mit <b>Abmelden</b> beendest du die Sitzung. Nach acht Stunden meldet dich die Anwendung automatisch ab.</p>
+<div class="tip">Nach mehreren falschen Anmeldeversuchen sperrt die Anwendung die Anmeldung für fünf Minuten. Hast du dein Passwort vergessen, wende dich an die Administration. Sie vergibt ein vorläufiges Passwort, das du beim ersten Anmelden ersetzt.</div>
 
 <h2>Der Katalog</h2>
 <p>Der Katalog zeigt alle Veranstaltungen, die noch in der Zukunft liegen. Er ist wie eine Mediathek aufgebaut: Zu jedem Thema gibt es eine Reihe mit Kacheln, die du seitlich durchblättern kannst. Auf dem Computer erscheinen beim Darüberfahren Pfeile, auf dem Handy wischst du mit dem Finger.</p>
@@ -24,7 +40,7 @@
 <p>Die Bezeichnungen und Farben der beiden Bereiche, die Themen und die Arten legt die Administration fest. Sie können sich daher von dieser Anleitung unterscheiden.</p>
 <h3>Suchen und filtern</h3>
 <ul>
-<li><b>Suche:</b> Sie durchsucht Titel, Beschreibung, Thema und den Namen der anbietenden Person.</li>
+<li><b>Suche:</b> Sie durchsucht Titel, Beschreibung, Thema und den Benutzernamen der anbietenden Person.</li>
 <li><b>Thema:</b> Zeigt nur die Reihe des gewählten Themas. Mit „Alle“ siehst du wieder alle Reihen.</li>
 <li><b>Art:</b> Wähle eine oder mehrere Arten der Veranstaltung, standardmäßig Workshop, Austausch und Best Practice. Tippe erneut auf eine Art, um sie wieder abzuwählen.</li>
 <li><b>Dauer:</b> Mit „Alle“ siehst du jede Länge, sonst nur Veranstaltungen bis 30, 60, 90 Minuten oder bis 2 Stunden.</li>
@@ -32,62 +48,51 @@
 </ul>
 <p>Mit „Filter zurücksetzen“ siehst du wieder alles.</p>
 <h3>Eine Kachel lesen</h3>
-<p>Jede Kachel zeigt das Bild der Veranstaltung (oder ein Platzhalterbild), den Titel, den Tag, die Uhrzeit, die Dauer und die anbietende Person. Über dem Bild stehen Chips:</p>
+<p>Jede Kachel zeigt das Bild der Veranstaltung (oder ein Platzhalterbild), den Titel, den Tag, die Uhrzeit, die Dauer und den Benutzernamen der anbietenden Person mit ihren Abzeichen (siehe Kapitel „Abzeichen“). Über dem Bild stehen Chips:</p>
 <table>
 <tr><th>Chip</th><th>Bedeutung</th></tr>
 <tr><td><span class="chipdemo cd-biz">Dienstlich</span> <span class="chipdemo cd-priv">Privat</span></td><td>Ob die Veranstaltung dienstlich oder privat ist</td></tr>
 <tr><td><span class="chipdemo cd-type">Workshop</span></td><td>Die Art: Workshop, Austausch oder Best Practice</td></tr>
 <tr><td><span class="chipdemo cd-few">Fast ausgebucht</span></td><td>Es sind höchstens noch 5 Plätze frei</td></tr>
+<tr><td><span class="chipdemo cd-type">Du bist angemeldet</span></td><td>Du hast dich für diese Veranstaltung angemeldet. „Dein Angebot“ steht bei deinen eigenen Veranstaltungen</td></tr>
 <tr><td><span class="chipdemo cd-full">Ausgebucht</span></td><td>Alle Plätze sind vergeben. Die Kachel lässt sich nicht mehr öffnen</td></tr>
 </table>
 
 <h2>Für eine Veranstaltung anmelden</h2>
 <ol>
-<li>Klicke im Katalog auf eine Kachel. Ein Fenster mit allen Details öffnet sich: Datum, Uhrzeit, Dauer, anbietende Person, freie Plätze und die Beschreibung.</li>
-<li>Trage deinen <b>Namen</b> und deine <b>E-Mail-Adresse</b> ein.</li>
-<li>Klicke auf <b>Anmelden</b>.</li>
+<li>Klicke im Katalog auf eine Kachel. Ein Fenster zeigt Datum, Uhrzeit, Dauer, anbietende Person, freie Plätze und die Beschreibung.</li>
+<li>Bist du nicht angemeldet, wählst du <b>Anmelden</b> oder <b>Neu registrieren</b>.</li>
+<li>Klicke auf <b>Verbindlich anmelden</b>.</li>
 </ol>
-{{FIGURE:buchung|Das Anmeldefenster mit Beschreibung, Namen und E-Mail-Adresse.}}
+{{FIGURE:buchung|Das Anmeldefenster mit Beschreibung und dem Button „Verbindlich anmelden“.}}
 <p>Beim Anmelden wird zuerst geprüft, ob noch ein Platz frei ist. Danach gibt es zwei Möglichkeiten:</p>
 <ul>
-<li><b>Es war noch Platz:</b> Du siehst eine Erfolgsmeldung mit allen Angaben zur Veranstaltung, dem Teams-Link und deinem Buchungscode. Dein Platz ist reserviert.</li>
-<li><b>Der letzte Platz war inzwischen weg:</b> Du erhältst eine Meldung, dass die Anmeldung nicht möglich war. Es wird nichts gebucht. Schau im Katalog nach anderen Terminen.</li>
+<li><b>Es war noch Platz:</b> Du siehst eine Erfolgsmeldung mit Teams-Link und Kalenderdatei. Dein Platz ist reserviert.</li>
+<li><b>Der letzte Platz war inzwischen weg:</b> Du erhältst eine Meldung, dass die Anmeldung nicht möglich war. Es wird nichts gebucht.</li>
 </ul>
-<p>Mit derselben E-Mail-Adresse kannst du dich für eine Veranstaltung nur einmal anmelden. Für Veranstaltungen, die schon begonnen haben, ist keine Anmeldung mehr möglich.</p>
+<p>Du kannst dich für eine Veranstaltung nur einmal anmelden. Für deine eigenen Veranstaltungen und für Veranstaltungen, die schon begonnen haben, ist keine Anmeldung möglich.</p>
 
-<h2>Nach der Buchung: Buchungscode und Kalenderdatei</h2>
-<p>Nach dem Klick auf <b>Anmelden</b> zeigt das Fenster alles, was du für die Teilnahme brauchst:</p>
+<h2>Meine Anmeldungen</h2>
+<p>Unter <b>Meine Anmeldungen</b> findest du alle Veranstaltungen, für die du dich angemeldet hast. Die Liste gehört zu deinem Konto und ist auf jedem Gerät gleich.</p>
+{{FIGURE:meine-anmeldungen|Meine Anmeldungen: anstehende Veranstaltungen mit Teams-Link, Kalenderdatei und Abmeldung.}}
+<h3>Anstehend: Teams-Link, Kalenderdatei, Abmelden</h3>
 <ul>
-<li>Titel, Datum, Uhrzeit, Dauer und die anbietende Person</li>
-<li>den <b>Teams-Link</b> in einer eigenen Box, mit Button <b>Link kopieren</b> für die Zwischenablage</li>
-<li>den Button <b>Kalendereintrag (.ics) herunterladen</b></li>
-<li>deinen <b>Buchungscode</b> mit Kopier-Button</li>
+<li>Du siehst den <b>Teams-Link</b> mit Button <b>Link kopieren</b>.</li>
+<li>Mit <b>Kalendereintrag (.ics) herunterladen</b> übernimmst du den Termin in deinen Outlook-Kalender. Die Datei enthält Datum, Uhrzeit, Teams-Link, Beschreibung und eine Erinnerung 15 Minuten vor Beginn.</li>
+<li>Mit <b>Abmelden</b> und der Bestätigung <b>Wirklich abmelden?</b> gibst du deinen Platz zurück. Das geht bis zum Beginn der Veranstaltung.</li>
 </ul>
-<div class="tip"><b>Wichtig:</b> Es wird keine E-Mail verschickt. <b>Speichere deinen Buchungscode</b>, denn nur damit kannst du deine Buchung später aufrufen oder stornieren. <b>Trage den Termin am besten sofort über die Kalenderdatei in deinen Kalender ein.</b></div>
-{{FIGURE:angemeldet|Nach der Buchung: Termin, Teams-Link, Kalenderdatei und Buchungscode.}}
-<h3>Die Kalenderdatei (.ics)</h3>
-<p>Öffne die heruntergeladene Datei „LearnTogether_Buchungsbestätigung_Titel_Datum.ics“ mit einem Doppelklick, dann wird der Termin in deinen Outlook-Kalender übernommen. Der Kalendereintrag enthält alle Informationen in übersichtlicher Form: Datum, Uhrzeit, Dauer, Durchführung, den <b>Teams-Link</b>, eine kurze Beschreibung und deinen <b>Buchungscode</b>. Dazu kommt eine Erinnerung 15 Minuten vor Beginn. Je nach Programm wird der Eintrag mit farbigem Kopf in den Farben des Bereichs dargestellt oder als einfacher Text.</p>
-
-<h2>Meine Anmeldung: anzeigen und stornieren</h2>
-<p>Unter <b>Meine Anmeldung</b> findest du deine Buchung jederzeit wieder. Wenn du nicht teilnehmen kannst, gibst du hier auch deinen Platz zurück, damit andere nachrücken können.</p>
-<ol>
-<li>Wähle oben in der Navigation <b>Meine Anmeldung</b>. Buchungen, die du auf diesem Gerät vorgenommen hast, stehen dort unter „Auf diesem Gerät gespeichert“ und lassen sich mit <b>Öffnen</b> aufrufen.</li>
-<li>Andernfalls trägst du deinen <b>Buchungscode</b> ein und klickst auf <b>Anmeldung anzeigen</b>.</li>
-<li>Du siehst Termin und <b>Teams-Link</b> und kannst die <b>Kalenderdatei</b> erneut herunterladen. Zum Stornieren klickst du auf <b>Teilnahme stornieren</b> und bestätigst mit <b>Wirklich stornieren?</b>.</li>
-</ol>
-{{FIGURE:stornieren|Meine Anmeldung: Buchungscode eingeben und Anmeldung anzeigen.}}
-<p>Danach ist dein Platz sofort wieder frei. Ein Buchungscode gilt für genau eine Buchung. Nach Beginn der Veranstaltung kann nicht mehr storniert werden.</p>
-<h3>Wenn eine Veranstaltung abgesagt wird</h3>
-<p>Sagt die anbietende Person eine Veranstaltung ab, für die du dich angemeldet hast, siehst du das unter <b>Meine Anmeldung</b>. Dort steht oben ein Hinweis „Abgesagt“ mit dem Grund, falls die anbietende Person einen genannt hat. Die Plattform prüft das automatisch für alle Buchungen, die du auf diesem Gerät gespeichert hast. Hast du mit einem anderen Gerät gebucht, gibst du den Buchungscode ein. Teams-Link und Kalenderdatei werden dann nicht mehr angezeigt. Mit <b>Aus meinen Buchungen entfernen</b> räumst du die Liste auf. Es wird keine E-Mail verschickt.</p>
+<h3>Mitteilungen: wenn eine Veranstaltung abgesagt wird</h3>
+<p>Sagt die anbietende Person eine Veranstaltung ab, für die du angemeldet bist, erscheint oben unter <b>Mitteilungen</b> ein Hinweis mit dem Grund. In der Navigation zeigt ein orangefarbener Zähler neben „Meine Anmeldungen“, wie viele neue Mitteilungen es gibt. Mit <b>Alle als gelesen markieren</b> setzt du den Zähler zurück. Die abgesagte Veranstaltung entfernst du mit <b>Aus meiner Liste entfernen</b>. Es wird keine E-Mail verschickt. Entfernt die Administration eine Veranstaltung oder deine Anmeldung, erscheint ebenfalls eine Mitteilung.</p>
+<h3>Vergangen: Veranstaltungen bewerten</h3>
+<p>Nach dem Ende einer Veranstaltung kannst du sie unter <b>Vergangen</b> mit <b>einem bis fünf Sternen</b> bewerten. Wähle die Sterne und klicke auf <b>Bewertung abgeben</b>. Bestätige mit <b>Endgültig abgeben?</b>.</p>
+<div class="tip"><b>Wichtig:</b> Eine abgegebene Bewertung lässt sich nicht mehr ändern. Die anbietende Person sieht den Durchschnitt aller Bewertungen, nicht deine einzelne Bewertung mit Namen.</div>
 
 <h2>Eine Veranstaltung anbieten</h2>
-<p>Jede und jeder kann eine Veranstaltung anbieten. Öffne dazu <b>Veranstaltung anbieten</b> und fülle das Formular aus. Felder mit einem <span class="accent">*</span> sind Pflicht.</p>
+<p>Jede angemeldete Person kann eine Veranstaltung anbieten. Öffne dazu <b>Veranstaltung anbieten</b> und fülle das Formular aus. Als Anbieter erscheint automatisch dein Benutzername. Felder mit einem <span class="accent">*</span> sind Pflicht.</p>
 {{FIGURE:anbieten|Das Formular zum Anlegen einer Veranstaltung.}}
-<p>Das Formular ist in fünf Abschnitte gegliedert:</p>
+<p>Das Formular ist in vier Abschnitte gegliedert:</p>
 <table>
 <tr><th>Abschnitt und Feld</th><th>Was du eingibst</th></tr>
-<tr><td><b>Wer bietet es an?</b><br>Name</td><td>Dein Vor- und Nachname</td></tr>
-<tr><td>E-Mail-Adresse</td><td>Deine E-Mail-Adresse für Rückfragen der Administration. Sie erscheint nicht im Katalog</td></tr>
 <tr><td><b>Worum geht es?</b><br>Titel</td><td>Ein aussagekräftiger Name, bis zu 100 Zeichen</td></tr>
 <tr><td>Auswahl des Themenbereichs</td><td>Dienstlich oder privat. Davon hängen die Themen zur Auswahl ab</td></tr>
 <tr><td>Thema</td><td>Dienstlich: fachlich oder vertrieblich. Privat: Sport, Freizeit, Essen &amp; Trinken, Reisen oder Sonstiges</td></tr>
@@ -118,27 +123,59 @@
 </ol>
 {{FIGURE:zuschneiden|Im Fenster „Bild zuschneiden“ wählst du Ausschnitt und Zoom.}}
 <p>Mit „Ausschnitt anpassen“ änderst du den Zuschnitt später noch einmal, mit „Bild entfernen“ verzichtest du auf das Bild. Ohne Bild zeigt der Katalog ein farbiges Platzhalterbild passend zum Thema.</p>
-<h3>Nach dem Speichern: dein Veranstaltungscode</h3>
-<p>Nach einem Klick auf <b>Veranstaltung anbieten</b> ist der Termin sofort im Katalog sichtbar. Du erhältst einen <b>Veranstaltungscode</b>. <b>Speichere ihn</b>: Er wird nicht per E-Mail verschickt und lässt sich später nicht erneut anzeigen. Der Teams-Link wird nicht im Katalog angezeigt, sondern nur Personen, die sich angemeldet haben.</p>
-<p>Du kannst deine Veranstaltung nach dem Speichern nicht selbst ändern oder löschen. Wende dich dafür an die Administration deiner {{APP_TITLE}}-Plattform.</p>
+<h3>Nach dem Speichern</h3>
+<p>Nach einem Klick auf <b>Veranstaltung anbieten</b> ist der Termin sofort im Katalog sichtbar. Der Teams-Link steht nicht im Katalog, sondern nur bei Personen, die sich angemeldet haben.</p>
+<p>Du kannst deine Veranstaltung nach dem Speichern nicht selbst ändern oder löschen. Du kannst sie aber absagen. Änderungen übernimmt die Administration deiner {{APP_TITLE}}-Plattform.</p>
 
-<h2>Meine Veranstaltung: die Teilnehmerliste</h2>
-<p>Unter <b>Meine Veranstaltung</b> siehst du, wer sich für deine Veranstaltung angemeldet hat.</p>
-<ol>
-<li>Wähle oben in der Navigation <b>Meine Veranstaltung</b>. Veranstaltungen, die du auf diesem Gerät angelegt hast, stehen dort unter „Auf diesem Gerät gespeichert“.</li>
-<li>Andernfalls trägst du deinen <b>Veranstaltungscode</b> ein und klickst auf <b>Teilnehmerliste anzeigen</b>.</li>
-<li>Du siehst Termin, Belegung (z. B. „8 von 12 Plätzen“), den Teams-Link und die aktuelle Liste mit den Namen der angemeldeten Personen. Mit <b>Aktualisieren</b> lädst du den Stand neu, mit <b>Liste kopieren</b> übernimmst du die Namen.</li>
-</ol>
-<p>Die Liste zeigt nur Namen, keine E-Mail-Adressen.</p>
+<h2>Meine Veranstaltungen</h2>
+<p>Unter <b>Meine Veranstaltungen</b> findest du alle Veranstaltungen, die du angeboten hast, geordnet nach Anstehend, Vergangen und Abgesagt.</p>
+{{FIGURE:meine-veranstaltungen|Meine Veranstaltungen: Teilnehmende, Bewertung und der Bereich „Veranstaltung absagen“.}}
+<ul>
+<li>Du siehst die Belegung, zum Beispiel „8 von 12“, den Teams-Link und die <b>Benutzernamen der angemeldeten Personen</b>. Echte Namen und E-Mail-Adressen siehst du nicht.</li>
+<li>Bei vergangenen Veranstaltungen steht die <b>durchschnittliche Bewertung</b> der Teilnehmenden. Daneben siehst du, wie viele Personen bewertet haben.</li>
+</ul>
 <h3>Eine Veranstaltung absagen</h3>
-<p>Kannst du nicht anbieten, sagst du die Veranstaltung selbst ab. Das geht, solange sie noch nicht begonnen hat, auch wenn schon Personen angemeldet sind.</p>
+<p>Kannst du nicht anbieten, sagst du die Veranstaltung selbst ab. Das geht, solange sie noch nicht begonnen hat.</p>
 <ol>
-<li>Öffne <b>Meine Veranstaltung</b> mit deinem Veranstaltungscode.</li>
-<li>Scrolle zu <b>Veranstaltung absagen</b> und nenne, wenn du möchtest, einen Grund. Angemeldete Personen sehen ihn.</li>
+<li>Klappe bei der Veranstaltung <b>Veranstaltung absagen</b> auf und nenne, wenn du möchtest, einen Grund. Angemeldete Personen sehen ihn.</li>
 <li>Klicke auf <b>Veranstaltung absagen</b> und bestätige mit <b>Wirklich absagen?</b>.</li>
 </ol>
-{{FIGURE:absagen|Meine Veranstaltung: Teilnehmerliste und der Bereich „Veranstaltung absagen“.}}
-<p>Die Veranstaltung verschwindet danach aus dem Katalog. Angemeldete Personen sehen die Absage unter „Meine Anmeldung“. Die Plattform verschickt keine E-Mails. Eine Absage lässt sich nicht zurücknehmen. Du legst dann einfach einen neuen Termin an.</p>
+<p>Die Veranstaltung verschwindet aus dem Katalog. Angemeldete Personen erhalten eine Mitteilung unter „Meine Anmeldungen“. Eine Absage lässt sich nicht zurücknehmen. Du legst dann einfach einen neuen Termin an.</p>
+
+<h2>Dein Profil</h2>
+<p>Klicke oben auf deinen Benutzernamen. Dein Profil zeigt:</p>
+<ul>
+<li><b>Deine Daten:</b> Benutzername (nicht änderbar), echter Name, XV- oder XVG-Nummer und E-Mail-Adresse. Diese Daten sehen nur du und die Administration.</li>
+<li><b>Zähler:</b> angebotene Sessions, Teilnahmen, deine Bewertung als Anbieter, Zahl deiner Teilnehmenden, abgegebene Bewertungen und Expertenstatus.</li>
+<li><b>Abzeichen und Expertenstatus</b> mit dem Fortschritt zur nächsten Stufe.</li>
+<li><b>Archiv:</b> alle angebotenen Sessions mit Bewertung und alle besuchten Sessions mit deiner Bewertung.</li>
+<li><b>Passwort ändern:</b> Gib das aktuelle und zweimal das neue Passwort ein.</li>
+</ul>
+{{FIGURE:profil|Das Profil mit Abzeichen, Zählern, Expertenstatus und Archiv.}}
+<h3>Statistiken als Anbieter und als Teilnehmende</h3>
+<table>
+<tr><th>Kennzahl</th><th>Bedeutung</th></tr>
+<tr><td>Angebotene Sessions</td><td>Durchgeführte Veranstaltungen, dazu geplante und abgesagte</td></tr>
+<tr><td>Meine Bewertung als Anbieter</td><td>Durchschnitt aller Sterne über alle deine Sessions</td></tr>
+<tr><td>Teilnehmende bei mir</td><td>Summe der Anmeldungen, dazu der Durchschnitt je Session</td></tr>
+<tr><td>Teilgenommen</td><td>Besuchte Sessions, dazu die angemeldeten, noch anstehenden</td></tr>
+<tr><td>Meine Bewertungen</td><td>Wie viele besuchte Sessions du bewertet hast</td></tr>
+<tr><td>Expertenstatus</td><td>In wie vielen Themen du Experte bist</td></tr>
+</table>
+
+<h2>Abzeichen und Expertenstatus</h2>
+<p>Neben deinem Benutzernamen erscheint ein <b>Abzeichen</b>. Es richtet sich nach der Zahl deiner durchgeführten Sessions. Abgesagte Sessions zählen nicht. Es gibt sechs Stufen:</p>
+<table>
+<tr><th>Stufe</th><th>Abzeichen</th></tr>
+<tr><td>1</td><td>Bronzene Medaille</td></tr>
+<tr><td>2</td><td>Silberne Medaille</td></tr>
+<tr><td>3</td><td>Goldene Medaille</td></tr>
+<tr><td>4</td><td>Stern</td></tr>
+<tr><td>5</td><td>Krone</td></tr>
+<tr><td>6</td><td>Diamant</td></tr>
+</table>
+<p>Ab wie vielen Sessions welche Stufe gilt, legt die Administration fest. Die Grenzen siehst du in deinem Profil.</p>
+<p>Wer in einem Thema viele Sessions angeboten hat, wird dort zum <b>Experten</b>. Dann erscheint eine kleine <b>Rakete</b> neben dem Namen auf der Kachel der Veranstaltung. Die Mindestzahl je Thema legt ebenfalls die Administration fest. In deinem Profil siehst du, wie viele Sessions du je Thema angeboten hast und in welchen Themen du Experte bist.</p>
 
 <h2>Arbeitszeit, IDD und Datenschutz</h2>
 <h3>Zählt die Teilnahme als Arbeitszeit?</h3>
@@ -151,10 +188,12 @@
 <p>Die Anrechnung dienstlicher Sessions auf die IDD-Weiterbildung <b>funktioniert heute noch nicht</b>. Sie ist in Planung. Bis dahin erhältst du keine IDD-Bestätigung für die Teilnahme.</p>
 <h3>Was passiert mit deinen Daten?</h3>
 <ul>
-<li><b>Private Sessions:</b> Name und E-Mail-Adresse von Anbietenden und Teilnehmenden werden am Tag nach der Veranstaltung anonymisiert. Es bleibt nur die Zahl der Anmeldungen für die Statistik.</li>
-<li><b>Dienstliche Sessions:</b> Die Daten bleiben fünf Jahre gespeichert, ausschließlich für den Nachweis und die spätere Anrechnung. Danach werden sie ebenfalls anonymisiert.</li>
+<li><b>Öffentlich sichtbar</b> ist nur dein Benutzername mit Abzeichen.</li>
+<li>Echter Name, XV-Nummer und E-Mail-Adresse sehen nur du und die Administration.</li>
+<li>Die Daten einer Veranstaltung bleiben <b>fünf Jahre nach ihrem Ende</b> gespeichert, bei privaten und dienstlichen Sessions gleichermaßen. Das gilt auch für abgesagte Veranstaltungen. Danach werden sie anonymisiert.</li>
+<li>Bei der Anonymisierung entfällt der Bezug zu Personen. Es bleiben die Zählung für Statistik und Abzeichen sowie die Bewertungen als Durchschnitt.</li>
 <li>Zugriff auf diese Daten haben nur die Administratoren aus VH-VP-TV. Sie werden nicht veröffentlicht.</li>
-<li>Abgesagte Veranstaltungen werden am Tag nach dem geplanten Termin anonymisiert.</li>
+<li>Dein Konto bleibt bestehen, bis die Administration es entfernt.</li>
 </ul>
 
 <h2>Spielregeln</h2>
@@ -173,19 +212,21 @@
 <h3>Kann ich mir eine Session auf die IDD anrechnen lassen?</h3>
 <p>Noch nicht. Die Anrechnung ist in Planung.</p>
 <h3>Was passiert, wenn eine Veranstaltung abgesagt wird?</h3>
-<p>Du siehst die Absage unter „Meine Anmeldung“, mit dem Grund. Es wird keine E-Mail verschickt.</p>
-<h3>Muss ich mich registrieren oder anmelden?</h3>
-<p>Nein. Der Katalog, das Anlegen von Veranstaltungen und die Anmeldung funktionieren ohne Benutzerkonto und ohne Passwort.</p>
+<p>Du siehst die Absage als Mitteilung unter „Meine Anmeldungen“, mit dem Grund. Es wird keine E-Mail verschickt.</p>
+<h3>Muss ich mich registrieren?</h3>
+<p>Zum Ansehen des Katalogs nicht. Zum Anmelden und zum Anbieten brauchst du ein Konto.</p>
 <h3>Wer sieht meine Angaben?</h3>
-<p>Dein Name und deine E-Mail-Adresse werden nur für die Anmeldung gespeichert. Die Administration der Plattform sieht beides. Wer eine Veranstaltung angeboten hat, sieht in der Teilnehmerliste nur die Namen.</p>
+<p>Andere sehen nur deinen Benutzernamen und dein Abzeichen. Name, XV-Nummer und E-Mail-Adresse sieht nur die Administration.</p>
+<h3>Kann ich meinen Benutzernamen ändern?</h3>
+<p>Nein. Der Benutzername ist einmalig und bleibt bestehen. Wähle ihn deshalb mit Bedacht.</p>
+<h3>Ich habe mein Passwort vergessen.</h3>
+<p>Wende dich an die Administration. Sie vergibt ein vorläufiges Passwort. Du ersetzt es beim nächsten Anmelden durch ein eigenes.</p>
+<h3>Kann ich eine Bewertung ändern?</h3>
+<p>Nein. Eine abgegebene Bewertung ist endgültig. Prüfe deine Sterne vor dem Absenden.</p>
 <h3>Warum kann ich eine Kachel nicht öffnen?</h3>
-<p>Die Veranstaltung ist ausgebucht. Vielleicht werden Plätze durch Stornierungen wieder frei. Schau später noch einmal nach.</p>
-<h3>Ich habe meinen Buchungscode verloren.</h3>
-<p>Öffne <b>Meine Anmeldung</b>: Hast du dich mit diesem Gerät und Browser angemeldet, steht die Buchung dort unter „Auf diesem Gerät gespeichert“. Sonst wende dich an die Administration. Sie kann deine Buchung sehen.</p>
-<h3>Ich habe meinen Veranstaltungscode verloren.</h3>
-<p>Öffne <b>Meine Veranstaltung</b>. Dort steht die Veranstaltung unter „Auf diesem Gerät gespeichert“, wenn du sie mit diesem Browser angelegt hast. Sonst wende dich an die Administration. Sie kennt die Codes aller Veranstaltungen.</p>
+<p>Die Veranstaltung ist ausgebucht. Vielleicht werden Plätze durch Abmeldungen wieder frei. Schau später noch einmal nach.</p>
 <h3>Bekomme ich eine E-Mail?</h3>
-<p>Nein. Die Anwendung verschickt keine E-Mails. Teams-Link, Kalenderdatei und Buchungscode siehst du direkt nach der Buchung und später unter „Meine Anmeldung“.</p>
+<p>Nein. Die Anwendung verschickt keine E-Mails. Mitteilungen siehst du unter „Meine Anmeldungen“.</p>
 <h3>Welche Startzeiten sind möglich?</h3>
 <p>Veranstaltungen laufen nur zwischen 06:00 und 09:00 Uhr oder zwischen 17:00 und 20:00 Uhr und müssen zum Ende des Zeitfensters beendet sein.</p>
 <h3>Das Bild lässt sich nicht hochladen.</h3>

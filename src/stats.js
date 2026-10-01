@@ -11,7 +11,7 @@
   function stDec(n) { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
 
   /* Berechnet alle Kennzahlen und Auswertungen aus Veranstaltungen (mit Anmeldungen) */
-  function computeStats(all, F) {
+  function computeStats(all, F, users) {
     var cancelledN = 0;
     var evs = all.filter(function (e) {
       if (F.cat && e.category !== F.cat) return false;
@@ -21,16 +21,18 @@
       if (e.cancelled) { cancelledN++; return false; }
       return true;
     }).map(function (e) { return { e: e, c: e.category === 'privat' ? 1 : 0, n: e.bookings ? e.bookings.length : e.booked, cap: e.capacity }; });
-    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [];
+    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]] };
+    var inRange = (users || []).filter(function (u) { var d = (u.created || '').slice(0, 10); return (!F.from || d >= F.from) && (!F.to || d <= F.to) && !(F.noTest && u.isTest); });
     evs.forEach(function (x) {
       tot.pt += x.n; tot.cap += x.cap; if (!x.n) tot.zero++; if (x.n >= x.cap) tot.full++;
-      if (!x.e.anonymized) { var hk = (x.e.hostEmail || x.e.host).toLowerCase(); hosts[hk] = 1; }
+      if (!x.e.anonymized) hosts[x.e.host.toLowerCase()] = 1;
+      (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { rt.sum += b.rating; rt.n++; rt.d[b.rating - 1][x.c]++; } });
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
     var kpis = [
       { label: 'Veranstaltungen', value: stNum(tot.ev) }, { label: 'Anmeldungen', value: stNum(tot.pt) },
       { label: 'Ø Anmeldungen je Veranstaltung', value: tot.ev ? stDec(tot.pt / tot.ev) : '–' }, { label: 'Ø Auslastung', value: tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–' },
-      { label: 'Anbietende (nicht anonymisiert)', value: stNum(Object.keys(hosts).length) }, { label: 'Ohne Anmeldung', value: stNum(tot.zero) },
+      { label: 'Anbietende (nicht anonymisiert)', value: stNum(Object.keys(hosts).length) }, { label: 'Registrierte Nutzer', value: stNum(inRange.length) }, { label: 'Ø Bewertung', value: rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–' }, { label: 'Abgegebene Bewertungen', value: stNum(rt.n) }, { label: 'Ohne Anmeldung', value: stNum(tot.zero) },
       { label: 'Ausgebucht', value: stNum(tot.full) }, { label: 'Abgesagt', value: stNum(cancelledN) }, { label: 'Ø Vorlauf der Anmeldung', value: lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–' }];
     var names = stSeriesNames(), stats = [];
     /* Monate lueckenlos */
@@ -50,6 +52,13 @@
     stats.push({ id: 'monatsuebersicht', title: 'Monatsübersicht', hint: 'Alle Monatszahlen im Überblick.', type: 'table', wide: true,
       head: ['Monat', 'Veranst. gesamt', names[0], names[1], 'Teiln. gesamt', names[0], names[1], 'Auslastung'], widths: [1.3, 1, 1, 1, 1, 1, 1, 1], align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'],
       rows: months.map(function (k) { var r = M[k]; return [stMonthLong(k), r.ev[0] + r.ev[1], r.ev[0], r.ev[1], r.pt[0] + r.pt[1], r.pt[0], r.pt[1], stPct(r.pt[0] + r.pt[1], r.cap) + ' %']; }) });
+    /* Registrierungen je Monat (alle Konten, ohne Bezug zu einer Veranstaltung) */
+    if (inRange.length) {
+      var RK = {}; inRange.forEach(function (u) { var k = stMonthKey((u.created || '').slice(0, 10)); if (k.length === 7) RK[k] = (RK[k] || 0) + 1; });
+      var rk = Object.keys(RK).sort().slice(-24);
+      stats.push({ id: 'monat-registrierungen', title: 'Neue Registrierungen pro Monat', hint: 'Angelegte Konten nach Monat der Registrierung.', type: 'columns', labels: rk.map(stMonthShort), series: [{ name: 'Registrierungen', values: rk.map(function (k) { return RK[k]; }) }], wide: false });
+    }
+    stats.push({ id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Eine Bewertung gilt für eine besuchte Veranstaltung.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }), wide: false });
     /* Gruppierungen */
     function groupBars(keyFn, order) {
       var G = {}, ks = [];
@@ -72,17 +81,17 @@
     stats.push({ id: 'auslastung', title: 'Auslastung der Veranstaltungen', hint: 'Wie viele Termine sind wie stark belegt? (Anzahl Veranstaltungen)', type: 'bars', series: names, countUnit: 'Veranst.', rows: ['Keine Anmeldung', 'unter 50 %', '50 bis 89 %', '90 bis 99 %', 'Ausgebucht'].map(function (k) { return { label: k, sub: '', v: (U[k] || { v: [0, 0] }).v }; }), wide: false });
     var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
     evs.forEach(function (x) { DS[x.e.anonymized ? 'Anonymisiert' : 'Personenbezogen gespeichert'][x.c]++; });
-    stats.push({ id: 'datenstatus', title: 'Personenbezogene Daten', hint: 'Private Veranstaltungen werden am Tag danach anonymisiert, dienstliche nach fünf Jahren. (Anzahl Veranstaltungen)', type: 'bars', series: names, rows: Object.keys(DS).map(function (k) { return { label: k, sub: '', v: DS[k] }; }), wide: false });
+    stats.push({ id: 'datenstatus', title: 'Personenbezogene Daten', hint: 'Alle Veranstaltungen werden fünf Jahre nach dem Ende anonymisiert. (Anzahl Veranstaltungen)', type: 'bars', series: names, rows: Object.keys(DS).map(function (k) { return { label: k, sub: '', v: DS[k] }; }), wide: false });
     /* Tabellen */
     var top = evs.slice().sort(function (a, b) { return b.n - a.n || (b.n / b.cap) - (a.n / a.cap); }).slice(0, 10);
     stats.push({ id: 'top-veranstaltungen', title: 'Die zehn gefragtesten Veranstaltungen', hint: 'Nach Anzahl der Anmeldungen.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Anmeldungen', 'Auslastung'], widths: [4, 1.6, 1.2, 1.3, 1.2], align: ['l', 'l', 'l', 'r', 'r'],
       rows: top.map(function (x) { return [x.e.title, dateFull(x.e.date), CAT_LABEL[x.e.category], x.n + ' / ' + x.cap, stPct(x.n, x.cap) + ' %']; }) });
-    var HS = {}; evs.forEach(function (x) { if (x.e.anonymized) return; var k = (x.e.hostEmail || x.e.host).toLowerCase(); if (!HS[k]) HS[k] = { name: x.e.host, ev: 0, pt: 0 }; HS[k].ev++; HS[k].pt += x.n; });
+    var HS = {}; evs.forEach(function (x) { if (x.e.anonymized) return; var k = x.e.host.toLowerCase(); if (!HS[k]) HS[k] = { name: x.e.host, ev: 0, pt: 0, rs: 0, rn: 0 }; HS[k].ev++; HS[k].pt += x.n; (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { HS[k].rs += b.rating; HS[k].rn++; } }); });
     var hl = Object.keys(HS).map(function (k) { return HS[k]; }).sort(function (a, b) { return b.pt - a.pt || b.ev - a.ev || a.name.localeCompare(b.name, 'de'); }).slice(0, 10);
-    stats.push({ id: 'top-anbieter', title: 'Die aktivsten Anbietenden', hint: 'Nach Anzahl der Teilnehmenden. Anonymisierte Veranstaltungen sind nicht enthalten.', type: 'table', wide: true, head: ['Angeboten von', 'Veranstaltungen', 'Teilnehmende', 'Ø je Veranstaltung'], widths: [4, 1.5, 1.5, 1.8], align: ['l', 'r', 'r', 'r'],
-      rows: hl.map(function (r) { return [r.name, r.ev, r.pt, stDec(r.pt / r.ev)]; }) });
+    stats.push({ id: 'top-anbieter', title: 'Die aktivsten Anbietenden', hint: 'Nach Anzahl der Teilnehmenden. Anonymisierte Veranstaltungen sind nicht enthalten.', type: 'table', wide: true, head: ['Benutzername', 'Veranstaltungen', 'Teilnehmende', 'Ø je Veranstaltung', 'Ø Bewertung'], widths: [3.2, 1.5, 1.5, 1.8, 1.5], align: ['l', 'r', 'r', 'r', 'r'],
+      rows: hl.map(function (r) { return [r.name, r.ev, r.pt, stDec(r.pt / r.ev), r.rn ? stDec(r.rs / r.rn) : '–']; }) });
     var nr = evs.filter(function (x) { return !x.n; }).sort(function (a, b) { return a.e.date < b.e.date ? -1 : 1; });
-    stats.push({ id: 'ohne-anmeldung', title: 'Veranstaltungen ohne Anmeldung', hint: nr.length > 15 ? 'Die ersten 15 von ' + nr.length + ' Terminen, nach Datum.' : 'Termine, zu denen sich noch niemand angemeldet hat.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Angeboten von'], widths: [4, 1.6, 1.2, 2.2], align: ['l', 'l', 'l', 'l'],
+    stats.push({ id: 'ohne-anmeldung', title: 'Veranstaltungen ohne Anmeldung', hint: nr.length > 15 ? 'Die ersten 15 von ' + nr.length + ' Terminen, nach Datum.' : 'Termine, zu denen sich noch niemand angemeldet hat.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Benutzername'], widths: [4, 1.6, 1.2, 2.2], align: ['l', 'l', 'l', 'l'],
       rows: nr.slice(0, 15).map(function (x) { return [x.e.title, dateFull(x.e.date), CAT_LABEL[x.e.category], x.e.host]; }) });
     return { kpis: kpis, stats: stats, count: evs.length };
   }
@@ -250,12 +259,13 @@
 
   /* ---- Statistik-Seite ---- */
   function adminStats() {
-    return Api.adminEvents().then(function (list) {
+    return Promise.all([Api.adminEvents(), Api.adminUsers()]).then(function (res) {
+      var list = res[0], users = res[1];
       var F = { from: '', to: '', cat: '', noTest: false }, host = h('div');
       var from = h('input', { type: 'date', id: 'sf-from', 'aria-label': 'Zeitraum von' }), to = h('input', { type: 'date', id: 'sf-to', 'aria-label': 'Zeitraum bis' });
       var cat = h('select', { id: 'sf-cat', 'aria-label': 'Bereich' }, [h('option', { value: '', text: 'Alle' }), h('option', { value: 'dienstlich', text: CAT_LABEL.dienstlich }), h('option', { value: 'privat', text: CAT_LABEL.privat })]);
       var noTest = h('input', { type: 'checkbox', id: 'sf-notest' });
-      var hasTest = list.some(function (e) { return e.isTest; });
+      var hasTest = list.some(function (e) { return e.isTest; }) || users.some(function (u) { return u.isTest; });
       var cur = null;
       function filterText() {
         var p = [F.from || F.to ? 'Zeitraum: ' + (F.from ? dateFull(F.from) : 'Beginn') + ' bis ' + (F.to ? dateFull(F.to) : 'Ende') : 'Zeitraum: alle Veranstaltungen', 'Bereich: ' + (F.cat ? CAT_LABEL[F.cat] : 'alle')];
@@ -264,8 +274,8 @@
       }
       function pdf(title, kp, st, name) { try { saveBlob(buildPdf(title, filterText(), kp, st, state.settings.appTitle), 'LearnTogether_Statistik_' + name + '_' + todayYmd() + '.pdf'); } catch (er) { toast('Das PDF konnte nicht erstellt werden: ' + er.message, true); } }
       function render() {
-        clear(host); cur = computeStats(list, F);
-        if (!cur.count) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Daten' }), h('p', { text: 'Für diese Auswahl gibt es keine Veranstaltungen. Passe den Zeitraum an oder lade Testdaten.' })])); return; }
+        clear(host); cur = computeStats(list, F, users);
+        if (!cur.count && !cur.stats.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Daten' }), h('p', { text: 'Für diese Auswahl gibt es keine Veranstaltungen. Passe den Zeitraum an oder lade Testdaten.' })])); return; }
         host.appendChild(h('div', { class: 'st-kpis' }, cur.kpis.map(function (k) { return h('div', { class: 'st-kpi' }, [h('b', { text: k.value }), h('span', { text: k.label })]); })));
         var grid = h('div', { class: 'st-grid-wrap' });
         cur.stats.forEach(function (s) { grid.appendChild(stCard(s, function () { pdf(s.title, null, [s], s.id); })); });
@@ -301,7 +311,7 @@
       var list = all.filter(eventEnded);
       var host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
       var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Bereich' });
-      var search = h('input', { type: 'search', id: 'ar-q', placeholder: 'Titel, Person, Thema …', 'aria-label': 'Archiv durchsuchen' });
+      var search = h('input', { type: 'search', id: 'ar-q', placeholder: 'Titel, Benutzername, Name, Thema …', 'aria-label': 'Archiv durchsuchen' });
       var typeSel = h('select', { id: 'ar-type', 'aria-label': 'Art' }), topicSel = h('select', { id: 'ar-topic', 'aria-label': 'Thema' });
       var from = h('input', { type: 'date', id: 'ar-from', 'aria-label': 'Zeitraum von' }), to = h('input', { type: 'date', id: 'ar-to', 'aria-label': 'Zeitraum bis' });
       function opt(v, t) { return h('option', { value: v, text: t }); }
@@ -323,7 +333,7 @@
       var resetBtn = h('button', { type: 'button', class: 'linkbtn', text: 'Filter zurücksetzen', hidden: true, onclick: function () { F.q = ''; F.type = ''; F.topic = ''; F.from = ''; F.to = ''; search.value = ''; from.value = ''; to.value = ''; fillSelects(); render(); } });
       function matches(e) {
         if (e.category !== F.cat) return false;
-        if (F.q && (e.title + ' ' + e.host + ' ' + (e.hostEmail || '') + ' ' + e.topic + ' ' + e.type).toLowerCase().indexOf(F.q) < 0) return false;
+        if (F.q && (e.title + ' ' + e.host + ' ' + (e.owner ? e.owner.firstName + ' ' + e.owner.lastName : '') + ' ' + e.topic + ' ' + e.type).toLowerCase().indexOf(F.q) < 0) return false;
         if (F.type && e.type !== F.type) return false;
         if (F.topic && e.topic !== F.topic) return false;
         if (F.from && e.date < F.from) return false;
@@ -338,15 +348,15 @@
       }
       function people(e) {
         var body = h('div', { class: 'modal-body people' });
-        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host })]));
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host + (e.ratingCount ? ' \u00b7 \u00d8 ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
         if (e.cancelled) body.appendChild(h('div', { class: 'notice warn' }, h('div', { class: 'n-body' }, [h('b', { text: 'Abgesagt' }), h('div', { text: e.cancelReason || 'Die Veranstaltung hat nicht stattgefunden.' })])));
         if (e.anonymized) body.appendChild(h('div', { class: 'notice' }, 'Die personenbezogenen Daten dieser Veranstaltung wurden anonymisiert. Es bleibt die Zahl der Anmeldungen.'));
         if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Es gab keine Anmeldungen.' })));
         else {
           var tb = h('tbody');
-          e.bookings.forEach(function (b, i) { tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.name })), h('td', { text: b.email || '\u2013', style: 'overflow-wrap:anywhere' }), h('td', null, e.anonymized ? '\u2013' : h('code', { text: b.code }))])); });
-          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Name', 'E-Mail', 'Buchungscode'].map(function (t) { return h('th', { text: t }); }))), tb])));
-          if (!e.anonymized) body.appendChild(h('div', { class: 'people-foot' }, h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).join('; ')); } })));
+          e.bookings.forEach(function (b, i) { tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '\u2013' }), h('td', { text: b.xv || '\u2013' }), h('td', { text: b.email || '\u2013', style: 'overflow-wrap:anywhere' }), h('td', null, b.rating ? ratingNode(b.rating, 1) : '\u2013')])); });
+          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail', 'Bewertung'].map(function (t) { return h('th', { text: t }); }))), tb])));
+          if (!e.anonymized) body.appendChild(h('div', { class: 'people-foot' }, h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).filter(Boolean).join('; ')); } })));
         }
         return body;
       }
@@ -366,17 +376,18 @@
           tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [
             h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { text: e.type + ' \u00b7 ' + capFirst(e.topic) }), e.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : null, e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null])]),
             h('td', { class: 'c-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '\u2013' + endHm(e) + ' Uhr' })]),
-            h('td', { class: 'c-host' }, [e.host, e.hostEmail ? h('div', { class: 'hint', text: e.hostEmail }) : null]),
+            h('td', { class: 'c-host' }, [userTag(e.host, e.hostLevel, e.hostExpert), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName + ' \u00b7 ' + e.owner.xv }) : null]),
             h('td', { class: 'c-occ' }, [h('b', { text: e.bookings.length + ' / ' + e.capacity })]),
+            h('td', { class: 'c-rate' }, e.cancelled ? '\u2013' : ratingNode(e.ratingAvg, e.ratingCount)),
             h('td', { class: 'c-data' }, dataState(e)),
             h('td', { class: 'c-act' }, h('div', { class: 'acts' }, [h('button', { class: 'btn btn-primary btn-sm', type: 'button', text: 'Teilnehmende (' + e.bookings.length + ')', onclick: function () { openModal(people(e), { wide: true, label: 'Teilnehmende' }); } }), del]))]));
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Angeboten von', 'Teilnehmende', 'Personenbezogene Daten', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Angeboten von', 'Teilnehmende', 'Ø Bewertung', 'Personenbezogene Daten', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       function fld(label, ctl, cls) { return h('div', { class: 'afld' + (cls ? ' ' + cls : '') }, [h('label', { text: label }), ctl]); }
       drawSeg(); fillSelects(); render();
       return h('div', null, [
-        h('p', { class: 'lead', text: 'Beendete Veranstaltungen wandern automatisch ins Archiv. Private Veranstaltungen werden am Tag danach anonymisiert, dienstliche nach fünf Jahren. Bis dahin sind die Daten nur hier und nur für die Administration sichtbar.' }),
+        h('p', { class: 'lead', text: 'Beendete Veranstaltungen wandern automatisch ins Archiv. Alle Veranstaltungen werden fünf Jahre nach dem Ende anonymisiert, private wie dienstliche. Bis dahin sind die Daten nur hier und nur für die Administration sichtbar. Die Spalte „Ø Bewertung“ zeigt den Durchschnitt der Sterne.' }),
         h('div', { style: 'margin:16px 0' }, seg),
         h('div', { class: 'afilter' }, [fld('Suche', search, 'wide'), fld('Art', typeSel), fld('Thema', topicSel), fld('Von', from), fld('Bis', to)]),
         h('div', { class: 'toolrow' }, [count, resetBtn]), host]);

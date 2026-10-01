@@ -1,5 +1,17 @@
 # Änderungen
 
+## 0.21.0 (01.10.2026)
+- **Registrierung und Anmeldung:** Konto mit frei wählbarem, einmaligem Benutzernamen, echtem Vor- und Nachnamen, XV-/XVG-Nummer, E-Mail-Adresse und Passwort. Anmeldung mit Benutzername oder E-Mail-Adresse. Öffentlich erscheint nur der Benutzername. Sicherheit: PBKDF2-SHA256 (100.000 Runden), signiertes HttpOnly-Cookie (SameSite=Strict, Secure bei HTTPS), CSRF-Header, Sperre nach fünf Fehlversuchen, Passwortregeln (mindestens 10 Zeichen, keine bekannten Passwörter), Sitzungsende bei Passwortwechsel. Ohne HTTPS bleibt die Übertragung unverschlüsselt (Hinweis in den Handbüchern).
+- **Entfernt:** Buchungscodes, Veranstaltungscodes, Name und E-Mail im Buchungs- und Anbieteformular, Hinweis nach der Buchung, gemeinsames Admin-Passwort.
+- **Meine Anmeldungen / Meine Veranstaltungen:** Eigene Listen je Konto. Abmelden, Absagen mit Grund, Mitteilungen bei Absage, Löschung oder Entfernung durch die Administration (Zähler in der Navigation).
+- **Bewertung:** Nach dem Termin 1 bis 5 Sterne, endgültig und nicht änderbar. Anbieter sehen den Durchschnitt je Session, die Administration im Archiv die Ø Bewertung.
+- **Profil:** Daten, Passwort ändern, Statistiken als Anbieter und Teilnehmende, Archiv, Themenzähler und Expertenstatus.
+- **Abzeichen:** Sechs Stufen (Bronze, Silber, Gold, Stern, Krone, Diamant) nach Zahl durchgeführter Sessions, Grenzen im Admin-Bereich einstellbar. Rakete für den Expertenstatus je Thema (Mindestzahl einstellbar) auf Kachel und im Profil.
+- **Admin:** Standardkonto `admin` / `RuVTest1234` mit erzwungenem Passwortwechsel, neue Seite „Nutzer“ (Admin-Rechte vergeben, Passwort zurücksetzen, sperren), „Abzeichen“, Statistik mit Registrierungen und Bewertungen.
+- **Anonymisierung:** einheitlich fünf Jahre nach dem Ende jeder Veranstaltung (privat, dienstlich, abgesagt). Zähler für Abzeichen und Teilnahmen bleiben im Konto erhalten.
+- **Testdaten:** 20 Beispielnutzer (Passwort Test-Passwort-2026), Verlauf für Abzeichen und Bewertungen, abgesagte Veranstaltung mit Mitteilung.
+- Beide Handbücher und die Präsentation aktualisiert.
+
 ## 0.20.0 (01.10.2026)
 - **Automatische Anonymisierung:** Private Veranstaltungen werden am Tag nach der Veranstaltung anonymisiert (Name und E-Mail von Anbietenden und Teilnehmenden, Veranstaltungs- und Buchungscodes, Teams-Link). Dienstliche Veranstaltungen bleiben fünf Jahre nach ihrem Ende gespeichert, ausschließlich für Nachweis und Anrechnung, danach werden sie ebenfalls anonymisiert. Abgesagte Veranstaltungen werden am Tag nach dem geplanten Termin anonymisiert. Die Zahl der Anmeldungen bleibt für die Statistik erhalten. Die Prüfung läuft bei jedem Datenzugriff, ein Zeitplan auf dem Server ist nicht nötig.
 - **Absage durch Anbietende:** Unter „Meine Veranstaltung“ lässt sich eine Veranstaltung mit Veranstaltungscode absagen (mit optionalem Grund), auch wenn schon Anmeldungen bestehen. Sie verschwindet aus dem Katalog. Angemeldete sehen die Absage unter „Meine Anmeldung“ (Hinweis oben, Grund, kein Teams-Link und keine Kalenderdatei). Gemerkte Buchungen werden beim Öffnen der Seite automatisch geprüft.

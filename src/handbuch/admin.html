@@ -1,37 +1,45 @@
 <h2>Worum es geht</h2>
 <p>Dieses Handbuch richtet sich an die <b>Administration</b> von {{APP_TITLE}}. Es erklärt, wie du Veranstaltungen und Anmeldungen verwaltest, Texte, Themen und Arten pflegst, Statistiken auswertest und die Anwendung auf einem IIS-Server einrichtest und betreibst. Wie Mitarbeitende die Anwendung nutzen, steht im Nutzerhandbuch.</p>
-<p>Der Admin-Bereich ist passwortgeschützt. Du erreichst ihn über <b>Admin</b> rechts in der Navigation. Links siehst du die Bereiche der Administration in drei Gruppen:</p>
+<p>Der Admin-Bereich steht Konten mit Admin-Rechten offen. Du erreichst ihn über <b>Admin</b> in der Navigation, die nur Administrierende sehen. Links siehst du die Bereiche in drei Gruppen:</p>
 <table>
 <tr><th>Gruppe</th><th>Bereich</th><th>Wofür du ihn brauchst</th></tr>
 <tr><td>Übersicht</td><td>Veranstaltungen</td><td>Alle Termine und Anmeldungen ansehen, bearbeiten, löschen</td></tr>
-<tr><td>Übersicht</td><td>Archiv</td><td>Beendete Veranstaltungen, getrennt nach dienstlich und privat</td></tr>
+<tr><td>Übersicht</td><td>Nutzer</td><td>Konten ansehen, Admin-Rechte vergeben, Passwörter zurücksetzen, Konten sperren</td></tr>
+<tr><td>Übersicht</td><td>Archiv</td><td>Beendete Veranstaltungen mit Bewertung, getrennt nach dienstlich und privat</td></tr>
 <tr><td>Übersicht</td><td>Statistik</td><td>Kennzahlen und Auswertungen, PDF-Berichte</td></tr>
-<tr><td>Katalog</td><td>Texte</td><td>Überschrift und Hinweistexte</td></tr>
+<tr><td>Katalog</td><td>Texte</td><td>Überschrift und Hinweistext</td></tr>
 <tr><td>Katalog</td><td>Themen</td><td>Bezeichnung, Farben und Themen der beiden Bereiche</td></tr>
 <tr><td>Katalog</td><td>Arten</td><td>Arten der Veranstaltung (Workshop, Austausch …)</td></tr>
+<tr><td>Katalog</td><td>Abzeichen</td><td>Grenzen der sechs Stufen und Mindestzahl für den Expertenstatus</td></tr>
 <tr><td>System</td><td>Allgemein</td><td>Titel der Anwendung</td></tr>
-<tr><td>System</td><td>Passwort</td><td>Admin-Passwort ändern</td></tr>
 <tr><td>System</td><td>Testdaten</td><td>Beispieldaten laden und entfernen</td></tr>
 <tr><td>System</td><td>Handbuch</td><td>Dieses Handbuch</td></tr>
 </table>
 
-<h2>Anmelden und Passwort</h2>
+<h2>Konten, Anmeldung und Passwort</h2>
+<p>Jede Person registriert sich selbst mit Benutzername, echtem Vor- und Nachnamen, XV- oder XVG-Nummer, E-Mail-Adresse und Passwort. Öffentlich erscheint nur der Benutzername. Als Administration siehst du alle Angaben.</p>
+<h3>Das Hauptadmin-Konto</h3>
 <ol>
-<li>Öffne <b>Admin</b> und gib das Admin-Passwort ein. Das Standardpasswort aus der Installation lautet <b>RuVTest1234</b>. Ändere es sofort.</li>
-<li>Die Anmeldung gilt etwa <b>8 Stunden</b>. Danach fragt die Anwendung erneut nach dem Passwort. Mit <b>Abmelden</b> beendest du die Sitzung sofort.</li>
-<li>Nach <b>fünf falschen Eingaben</b> sperrt die Anwendung die Anmeldung für fünf Minuten.</li>
+<li>Bei der ersten Nutzung legt die Anwendung das Konto <b>admin</b> an (Hauptadministration). Das Standardpasswort lautet <b>RuVTest1234</b>.</li>
+<li>Melde dich über <b>Anmelden</b> mit Benutzername oder E-Mail-Adresse an. Beim ersten Anmelden verlangt die Anwendung ein neues Passwort.</li>
+<li>Die Anmeldung gilt <b>8 Stunden</b>. Mit <b>Abmelden</b> in der Navigation beendest du sie sofort.</li>
 </ol>
-<h3>Passwort ändern</h3>
-<p>Unter <b>System › Passwort</b> gibst du das aktuelle und zweimal das neue Passwort ein. Das neue Passwort muss mindestens <b>8 Zeichen</b> lang sein. Auf dem Server wird nur ein Hash gespeichert, nie das Passwort selbst.</p>
-<div class="tip">Es gibt ein gemeinsames Passwort für die Administration. Gib es nur an Personen weiter, die Teilnehmerlisten mit E-Mail-Adressen sehen dürfen.</div>
+<h3>Sicherheit der Anmeldung</h3>
+<ul>
+<li>Passwörter werden mit PBKDF2-SHA256 (100.000 Runden, eigener Salt) gespeichert, nie im Klartext.</li>
+<li>Die Sitzung liegt in einem signierten Cookie, das für Skripte nicht lesbar ist (HttpOnly, SameSite=Strict). Schreibende Aufrufe verlangen einen Zusatz-Header gegen Fremdaufrufe (CSRF-Schutz).</li>
+<li>Nach <b>fünf falschen Versuchen</b> sperrt die Anwendung die Anmeldung für fünf Minuten, je Benutzername und je Rechner. Auch die Registrierung ist begrenzt.</li>
+<li>Passwörter brauchen mindestens 10 Zeichen. Bekannte Passwörter und Passwörter mit Benutzername oder Teilen der E-Mail-Adresse lehnt die Anwendung ab. Ein neues Passwort beendet alle anderen Sitzungen des Kontos.</li>
+</ul>
+<div class="tip"><b>Wichtig:</b> Läuft die Anwendung nur über HTTP, laufen Passwörter unverschlüsselt durch das Netz. Das Cookie erhält dann kein Secure-Merkmal. Schalte HTTPS ein, sobald es technisch möglich ist. Die Anwendung erkennt HTTPS selbst und setzt dann das Secure-Merkmal.</div>
 
 <h2>Veranstaltungen und Anmeldungen</h2>
-<p>Unter <b>Übersicht › Veranstaltungen</b> siehst du alle Termine, die noch nicht beendet sind. Sobald eine Veranstaltung endet, wandert sie automatisch ins Archiv. Abgesagte Termine bleiben bis zu ihrem Ende in der Liste (grau, mit dem Hinweis „abgesagt“). Pro Zeile erscheinen Titel, Bereich, Art, Thema, Termin, die anbietende Person mit E-Mail-Adresse, der Veranstaltungscode und die Belegung als Balken.</p>
+<p>Unter <b>Übersicht › Veranstaltungen</b> siehst du alle Termine, die noch nicht beendet sind. Sobald eine Veranstaltung endet, wandert sie automatisch ins Archiv. Abgesagte Termine bleiben bis zu ihrem Ende in der Liste (grau, mit dem Hinweis „abgesagt“). Pro Zeile erscheinen Titel, Bereich, Art, Thema, Termin, die anbietende Person (Benutzername mit Abzeichen, echter Name, XV-Nummer, E-Mail-Adresse), die durchschnittliche Bewertung und die Belegung als Balken.</p>
 {{FIGURE:adm-events|Die Veranstaltungsübersicht mit Filtern und Aktionen.}}
 <h3>Suchen und filtern</h3>
-<p>Die Filter wirken sofort beim Tippen: Suche (Titel, Person, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
+<p>Die Filter wirken sofort beim Tippen: Suche (Titel, Benutzername, Name, XV-Nummer, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
 <h3>Teilnehmende ansehen</h3>
-<p>Mit <b>Teilnehmende (n)</b> öffnest du ein Fenster mit Belegungsbalken und einer Tabelle aus Name, E-Mail-Adresse und Buchungscode.</p>
+<p>Mit <b>Teilnehmende (n)</b> öffnest du ein Fenster mit Belegungsbalken und einer Tabelle aus Benutzername, echtem Namen, XV-Nummer, E-Mail-Adresse und Bewertung.</p>
 {{FIGURE:adm-teilnehmende|Das Fenster mit den Teilnehmenden einer Veranstaltung.}}
 <ul>
 <li><b>E-Mail-Adressen kopieren</b> legt alle Adressen getrennt durch Semikolon in die Zwischenablage, praktisch für eine Nachricht an alle.</li>
@@ -49,30 +57,34 @@
 <p>Unter <b>Übersicht › Archiv</b> stehen alle Veranstaltungen, die stattgefunden haben. Auch abgesagte Veranstaltungen kommen nach ihrem geplanten Ende hierher, mit dem Hinweis „abgesagt“. Das Archiv trennt zwischen <b>Dienstlich</b> und <b>Privat</b>. Oben wechselst du mit dem Schalter, in Klammern steht die Zahl der Einträge.</p>
 {{FIGURE:adm-archiv|Das Archiv mit Bereichsschalter, Suche und Filtern.}}
 <ul>
-<li><b>Suche:</b> Titel, Person, Thema und Art, sofort beim Tippen.</li>
+<li><b>Suche:</b> Titel, Benutzername, Name, Thema und Art, sofort beim Tippen.</li>
 <li><b>Filter:</b> Art, Thema und ein Zeitraum mit Start- und Enddatum. <b>Filter zurücksetzen</b> zeigt wieder alles.</li>
 <li><b>Spalte „Personenbezogene Daten“:</b> zeigt „Personenbezogen“ mit dem Datum der geplanten Anonymisierung oder „Anonymisiert“ mit dem Datum der Anonymisierung.</li>
-<li><b>Teilnehmende:</b> öffnet die Liste mit Name, E-Mail und Buchungscode. Bei anonymisierten Veranstaltungen steht dort „Anonymisiert“.</li>
+<li><b>Spalte „Ø Bewertung“:</b> zeigt den Durchschnitt der Sterne, die Teilnehmende vergeben haben, bei mehreren Bewertungen mit deren Zahl.</li>
+<li><b>Teilnehmende:</b> öffnet die Liste mit Benutzername, Name, XV-Nummer, E-Mail und Bewertung. Bei anonymisierten Veranstaltungen steht dort „Anonymisiert“.</li>
 <li><b>Löschen:</b> entfernt eine archivierte Veranstaltung samt Anmeldungen endgültig, zum Beispiel auf Wunsch einer betroffenen Person.</li>
 </ul>
 <h3>Aufbewahrung und Anonymisierung</h3>
-<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie ersetzt Name und E-Mail-Adresse der anbietenden und der angemeldeten Personen durch „Anonymisiert“ und macht Veranstaltungs- und Buchungscodes ungültig. Die Zahl der Anmeldungen bleibt für die Statistik erhalten.</p>
-<table>
-<tr><th>Art der Veranstaltung</th><th>Anonymisierung</th></tr>
-<tr><td>Privat</td><td>Am Tag nach der Veranstaltung</td></tr>
-<tr><td>Dienstlich</td><td>Fünf Jahre nach dem Ende. Bis dahin bleiben die Daten gespeichert, ausschließlich für Nachweis und Anrechnung (IDD).</td></tr>
-<tr><td>Abgesagt (dienstlich oder privat)</td><td>Am Tag nach dem geplanten Termin, weil es keine Teilnahme zum Nachweisen gibt</td></tr>
-</table>
-<div class="tip">Zugriff auf die personenbezogenen Daten haben nur die Administratoren aus VH-VP-TV. Die Daten werden nicht veröffentlicht. Die Anonymisierung läuft auf dem Server und wird bei jedem Zugriff auf die Daten geprüft, es ist kein Zeitplan auf dem Server nötig.</div>
+<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie greift <b>fünf Jahre nach dem Ende</b> einer Veranstaltung, <b>unabhängig davon, ob sie privat oder dienstlich war</b>. Auch abgesagte Veranstaltungen gehören dazu. Bis dahin bleiben die Daten gespeichert, ausschließlich für Nachweis und Anrechnung (IDD).</p>
+<p>Bei der Anonymisierung passiert Folgendes:</p>
+<ul>
+<li>Der Bezug zu Anbieter und Teilnehmenden entfällt. Es steht „Anonymisiert“ statt Benutzername und Name.</li>
+<li>Die Zahl der durchgeführten Sessions und die Bewertungen bleiben im Konto der anbietenden Person als Zähler erhalten. Abzeichen und Expertenstatus gehen deshalb nicht verloren. Die Teilnahme zählt im Konto der teilnehmenden Person weiter.</li>
+<li>Mitteilungen zur Veranstaltung und der Teams-Link werden entfernt.</li>
+<li>Die Zahl der Anmeldungen bleibt für die Statistik erhalten.</li>
+</ul>
+<div class="tip">Zugriff auf die personenbezogenen Daten haben nur die Administratoren aus VH-VP-TV. Die Daten werden nicht veröffentlicht. Die Anonymisierung läuft auf dem Server und wird bei jedem Zugriff auf die Daten geprüft. Ein Zeitplan auf dem Server ist nicht nötig.</div>
 
 <h2>Statistik und Berichte</h2>
 <p>Unter <b>Übersicht › Statistik</b> findest du Auswertungen zu allen Veranstaltungen und Anmeldungen. Oben grenzt du sie ein: Zeitraum von/bis, Bereich und, falls Testdaten vorhanden sind, <b>Testdaten ausblenden</b>.</p>
 {{FIGURE:adm-statistik|Kennzahlen und Auswertungen im Statistikbereich.}}
 <h3>Kennzahlen</h3>
-<p>Neun Kacheln fassen die Auswahl zusammen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen (ohne anonymisierte), Veranstaltungen ohne Anmeldung, ausgebuchte und abgesagte Veranstaltungen sowie der Ø Vorlauf der Anmeldung (Tage vor Beginn). Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in die Kachel „Abgesagt“. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
+<p>Zwölf Kacheln fassen die Auswahl zusammen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen (ohne anonymisierte), registrierte Nutzer, Ø Bewertung, abgegebene Bewertungen, Veranstaltungen ohne Anmeldung, ausgebuchte und abgesagte Veranstaltungen sowie der Ø Vorlauf der Anmeldung (Tage vor Beginn). Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in die Kachel „Abgesagt“. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
 <h3>Auswertungen</h3>
 <table>
 <tr><th>Auswertung</th><th>Was sie zeigt</th></tr>
+<tr><td>Neue Registrierungen pro Monat</td><td>Angelegte Konten je Monat</td></tr>
+<tr><td>Verteilung der Bewertungen</td><td>Wie oft 1 bis 5 Sterne vergeben wurden, getrennt nach Bereich</td></tr>
 <tr><td>Veranstaltungen pro Monat</td><td>Anzahl der Termine je Monat, getrennt nach Dienstlich und Privat</td></tr>
 <tr><td>Teilnehmende pro Monat</td><td>Anmeldungen je Monat, getrennt nach Bereich</td></tr>
 <tr><td>Auslastung pro Monat</td><td>Anmeldungen im Verhältnis zu den angebotenen Plätzen</td></tr>
@@ -82,8 +94,8 @@
 <tr><td>Teilnehmende nach Tageszeit und Dauer</td><td>Morgens oder nachmittags, kurze oder lange Formate</td></tr>
 <tr><td>Auslastung der Veranstaltungen</td><td>Wie viele Termine leer, halb voll oder ausgebucht sind</td></tr>
 <tr><td>Gefragteste Veranstaltungen</td><td>Top 10 nach Anmeldungen</td></tr>
-<tr><td>Aktivste Anbietende</td><td>Top 10 nach Teilnehmenden</td></tr>
-<tr><td>Personenbezogene Daten</td><td>Wie viele Veranstaltungen noch personenbezogen gespeichert oder schon anonymisiert sind</td></tr>
+<tr><td>Aktivste Anbietende</td><td>Top 10 nach Teilnehmenden, mit Ø Bewertung</td></tr>
+<tr><td>Personenbezogene Daten</td><td>Wie viele Veranstaltungen noch personenbezogen gespeichert oder schon anonymisiert sind (fünf Jahre nach dem Ende)</td></tr>
 <tr><td>Veranstaltungen ohne Anmeldung</td><td>Termine, bei denen Werbung oder Nacharbeit lohnt</td></tr>
 </table>
 <p>Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet, nicht in dem der Buchung.</p>
@@ -91,12 +103,10 @@
 <p>Jede Auswertung hat oben rechts einen Button <b>PDF</b>. Der <b>Gesamtbericht als PDF</b> enthält alle Kennzahlen und Auswertungen der aktuellen Auswahl, mit Filterangaben, Datum und Seitenzahlen. Das PDF entsteht im Browser, die Daten verlassen den Rechner nicht.</p>
 
 <h2>Texte im Katalog</h2>
-<p>Unter <b>Katalog › Texte</b> pflegst du, was Besucherinnen und Besucher lesen.</p>
+<p>Unter <b>Katalog › Texte</b> pflegst du, was alle Besucher oben im Katalog lesen.</p>
 <h3>Überschrift und Hinweistext</h3>
 <p>Beides steht oben im Katalog. Die Überschrift darf bis zu 80, der Hinweistext bis zu 500 Zeichen haben. Mit <b>*Sternchen*</b> markierte Wörter erscheinen orange, zum Beispiel <code>Voneinander lernen. *Miteinander wachsen.*</code>. Ohne Markierung ist alles nach dem ersten Satz orange. Die Vorschau zeigt das Ergebnis sofort, <b>Standardtexte einsetzen</b> stellt den Originaltext wieder her.</p>
-{{FIGURE:adm-texte|Texte im Katalog mit Vorschau und dem Hinweis nach der Buchung.}}
-<h3>Hinweis nach der Buchung</h3>
-<p>Direkt nach einer Anmeldung erscheint eine Hinweisbox, standardmäßig „Wichtig: Speichere deinen Buchungscode!“. Überschrift (bis 80 Zeichen) und Text (bis 600 Zeichen) kannst du hier ändern.</p>
+{{FIGURE:adm-texte|Texte im Katalog mit Vorschau.}}
 
 <h2>Themenbereiche, Themen und Farben</h2>
 <p>Unter <b>Katalog › Themen</b> stellst du mit dem Schalter oben zwischen den beiden Bereichen um (standardmäßig Dienstlich und Privat).</p>
@@ -116,11 +126,36 @@
 <li>Umbenennen passt bestehende Veranstaltungen an. Eine Art, die noch verwendet wird, lässt sich nicht löschen.</li>
 </ul>
 
+<h2>Nutzer und Rechte</h2>
+<p>Unter <b>Übersicht › Nutzer</b> siehst du alle Konten mit Benutzername und Abzeichen, echtem Namen, XV-Nummer, E-Mail-Adresse, Zahl der angebotenen und besuchten Sessions und letzter Anmeldung. Die Suche findet Benutzername, Name, XV-Nummer und E-Mail-Adresse.</p>
+{{FIGURE:adm-nutzer|Die Nutzerliste mit Rollen und Aktionen.}}
+<table>
+<tr><th>Aktion</th><th>Wirkung</th></tr>
+<tr><td>Zum Admin machen / Admin-Rechte entziehen</td><td>Nur die Hauptadministration kann das. Das Konto sieht danach den Bereich Admin in der Navigation</td></tr>
+<tr><td>Passwort zurücksetzen</td><td>Erzeugt ein vorläufiges Passwort und zeigt es einmal an. Gib es der Person weiter. Beim nächsten Anmelden muss sie ein eigenes vergeben. Alle laufenden Sitzungen enden</td></tr>
+<tr><td>Sperren / Entsperren</td><td>Ein gesperrtes Konto kann sich nicht anmelden. Das Hauptadmin-Konto und dein eigenes Konto lassen sich nicht sperren</td></tr>
+</table>
+<div class="tip">Es gibt keinen Passwort-Versand per E-Mail. Hat die Hauptadministration ihr Passwort vergessen, entfernst du im Ordner Data in der Datei data.json bei <code>users</code> den Eintrag mit dem Benutzernamen <code>admin</code> (Dienst vorher anhalten). Beim nächsten Zugriff legt die Anwendung <b>admin</b> mit dem Standardpasswort neu an.</div>
+
+<h2>Abzeichen und Expertenstatus</h2>
+<p>Unter <b>Katalog › Abzeichen</b> legst du fest, ab wie vielen durchgeführten Sessions welche Stufe gilt. Abgesagte Sessions zählen nicht. Die Grenzen müssen von Stufe zu Stufe ansteigen.</p>
+{{FIGURE:adm-abzeichen|Die Grenzen der sechs Stufen und die Mindestzahl für den Expertenstatus.}}
+<table>
+<tr><th>Stufe</th><th>Abzeichen</th><th>Standardgrenze</th></tr>
+<tr><td>1</td><td>Bronzene Medaille</td><td>ab 1 Session</td></tr>
+<tr><td>2</td><td>Silberne Medaille</td><td>ab 5 Sessions</td></tr>
+<tr><td>3</td><td>Goldene Medaille</td><td>ab 10 Sessions</td></tr>
+<tr><td>4</td><td>Stern</td><td>ab 20 Sessions</td></tr>
+<tr><td>5</td><td>Krone</td><td>ab 40 Sessions</td></tr>
+<tr><td>6</td><td>Diamant</td><td>ab 80 Sessions</td></tr>
+</table>
+<p>Das Abzeichen erscheint neben dem Benutzernamen, überall in der Anwendung. Zusätzlich gibt es die <b>Rakete</b> für den Expertenstatus. Sie erscheint nur auf der Kachel einer Veranstaltung und im Profil. Wer mindestens so viele Sessions in einem Thema angeboten hat wie unter „Mindestzahl an Sessions je Thema“ (Standard 5), erhält sie bei Veranstaltungen zu diesem Thema. Neue Grenzen gelten sofort für alle.</p>
+
 <h2>Titel der Anwendung</h2>
 <p>Unter <b>System › Allgemein</b> änderst du den Titel (2 bis 60 Zeichen), etwa von „LearnTogether@AD“ zu „LearnTogether@R+V“. Er erscheint im Seitenkopf, im Browser-Tab, im Betreff der Kalenderdatei und in den PDF-Berichten.</p>
 
 <h2>Testdaten</h2>
-<p>Unter <b>System › Testdaten</b> füllst du die Anwendung mit Beispielveranstaltungen und Anmeldungen, damit du alle Fälle ausprobieren kannst, etwa ausgebuchte, fast ausgebuchte und vergangene Termine. Die Testdaten richten sich nach den eingestellten Themen und Arten und ändern diese nicht. Sie sind mit „Testdaten“ markiert.</p>
+<p>Unter <b>System › Testdaten</b> füllst du die Anwendung mit Beispielveranstaltungen und Anmeldungen, damit du alle Fälle ausprobieren kannst, etwa ausgebuchte, fast ausgebuchte und vergangene Termine. Die Testdaten richten sich nach den eingestellten Themen und Arten und ändern diese nicht. Sie sind mit „Testdaten“ markiert. Dazu gehören 20 Beispielnutzer (zum Beispiel <code>anna.b</code>, <code>paul_r</code>) mit dem Passwort <b>Test-Passwort-2026</b>, ein Verlauf vergangener Veranstaltungen für alle Abzeichen und den Expertenstatus, Bewertungen und eine abgesagte Veranstaltung mit Mitteilung.</p>
 <ul>
 <li><b>Testdaten laden</b> oder <b>neu laden</b> legt die Beispiele an.</li>
 <li><b>Testdaten entfernen</b> löscht nur die Beispiele. Echte Veranstaltungen und Anmeldungen bleiben.</li>
@@ -140,7 +175,7 @@
 <li>Kopiere den Inhalt des Ordners <code>IIS</code> in ein Verzeichnis des Webservers, als Site oder als Anwendung.</li>
 <li>Gib dem Benutzer des Anwendungspools (zum Beispiel <code>IIS AppPool\&lt;Pool&gt;</code>) <b>Ändern-Rechte</b> auf den Ordner <code>AppData\Data</code>. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder.</li>
 <li>Rufe <code>index.html</code> auf. Erscheint oben ein gelbes Banner „Demo-Modus“, erreicht die Seite den Server nicht, siehe Fehlersuche.</li>
-<li>Melde dich im Admin-Bereich an und ändere das Standardpasswort.</li>
+<li>Melde dich als <b>admin</b> mit dem Standardpasswort an und vergib ein eigenes Passwort. Schalte nach Möglichkeit HTTPS ein.</li>
 </ol>
 <h3>Aufbau</h3>
 <table>
@@ -148,7 +183,7 @@
 <tr><td><code>index.html</code></td><td>Die Anwendung</td></tr>
 <tr><td><code>web.config</code></td><td>IIS-Einstellungen, schützt <code>Data</code> und <code>Private</code> vor direktem Abruf</td></tr>
 <tr><td><code>AppData\api.ashx</code></td><td>Server-Logik (Speichern, Anmelden, Admin)</td></tr>
-<tr><td><code>AppData\Data</code></td><td>Alle Daten (data.json, settings.json, Bilder, error.log)</td></tr>
+<tr><td><code>AppData\Data</code></td><td>Alle Daten (data.json mit Konten, Veranstaltungen, Anmeldungen und Mitteilungen, settings.json, Bilder, error.log)</td></tr>
 <tr><td><code>AppData\Private</code></td><td>Dieses Handbuch, nur nach Admin-Anmeldung abrufbar</td></tr>
 <tr><td><code>AppData\fonts</code>, <code>assets</code></td><td>Schriften und Logos</td></tr>
 <tr><td><code>AppData\Handbuch.html</code>, <code>Nutzerhandbuch.pdf</code></td><td>Nutzerhandbuch</td></tr>
@@ -157,7 +192,7 @@
 <h3>Update</h3>
 <p>Überschreibe alle Dateien außer <code>AppData\Data</code>. Die Daten bleiben erhalten. Danach lädst du die Seite mit <kbd>Strg</kbd>+<kbd>F5</kbd> neu, um den Browser-Cache zu umgehen.</p>
 <h3>Datensicherung</h3>
-<p>Sichere regelmäßig den Ordner <code>AppData\Data</code>. Er enthält alles, was die Anwendung speichert. <code>settings.json</code> enthält den Hash des Admin-Passworts, vergib deshalb Zugriffsrechte auf den Ordner nur an Betriebspersonal.</p>
+<p>Sichere regelmäßig den Ordner <code>AppData\Data</code>. Er enthält alles, was die Anwendung speichert. <code>data.json</code> enthält Passwort-Hashes und personenbezogene Daten, <code>settings.json</code> den Schlüssel für die Sitzungen. Vergib Zugriffsrechte auf den Ordner nur an Betriebspersonal.</p>
 
 <h2>Fehlersuche</h2>
 <table>
@@ -167,16 +202,18 @@
 <tr><td>HTTP 500 beim Aufruf von api.ashx</td><td>Öffne <code>AppData/selftest.ashx</code>. Die Seite zeigt .NET-Version, Pool-Benutzer und Schreibrechte. Fehlermeldungen des Servers stehen in <code>AppData\Data\error.log</code>.</td></tr>
 <tr><td>Änderungen erscheinen nicht</td><td>Browser-Cache mit <kbd>Strg</kbd>+<kbd>F5</kbd> umgehen.</td></tr>
 <tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten.</td></tr>
-<tr><td>Passwort vergessen</td><td>Setze in <code>AppData\Data\settings.json</code> den Wert von <code>passwordHash</code> auf einen leeren Text (Dienst vorher anhalten). Danach gilt wieder das Standardpasswort, das du sofort ändern solltest.</td></tr>
+<tr><td>Nach der Anmeldung folgt sofort wieder die Anmeldeseite</td><td>Das Sitzungs-Cookie kommt nicht an. Prüfe, ob die Adresse im Browser immer gleich lautet (gleicher Servername, gleiches Protokoll) und ob Cookies erlaubt sind.</td></tr>
+<tr><td>Passwort der Hauptadministration vergessen</td><td>Siehe Kapitel „Nutzer und Rechte“. Andere Konten setzt die Administration über „Passwort zurücksetzen“ zurück.</td></tr>
 </table>
 
 <h2>Datenschutz und Spielregeln</h2>
 <ul>
-<li>Die Anwendung speichert Name und E-Mail-Adresse der Anbietenden und der angemeldeten Personen sowie die Veranstaltungsdaten. Sie verschickt keine E-Mails und setzt keine Benutzerkonten ein.</li>
-<li>Der Teams-Link wird nur Personen mit Buchungscode angezeigt und steht nicht im Katalog.</li>
-<li>Die Teilnehmerliste sehen nur die Administration und Anbietende mit Veranstaltungscode, und zwar ohne E-Mail-Adressen.</li>
-<li>Private Veranstaltungen werden am Tag danach anonymisiert, dienstliche nach fünf Jahren (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
-<li>Anbietende können ihre Veranstaltung über „Meine Veranstaltung“ selbst absagen, auch mit bestehenden Anmeldungen. Die Absage sehen Angemeldete unter „Meine Anmeldung“.</li>
+<li>Die Anwendung speichert Konten (Benutzername, echter Name, XV-Nummer, E-Mail-Adresse, Passwort-Hash), Veranstaltungen, Anmeldungen, Bewertungen und Mitteilungen. Sie verschickt keine E-Mails.</li>
+<li>Öffentlich sichtbar ist nur der Benutzername mit Abzeichen. Echter Name, XV-Nummer und E-Mail-Adresse sehen die betroffene Person und die Administration.</li>
+<li>Der Teams-Link wird nur angemeldeten Personen angezeigt und steht nicht im Katalog.</li>
+<li>Anbietende sehen Teilnehmende nur mit Benutzernamen. Bewertungen sehen sie als Durchschnitt je Session.</li>
+<li>Alle Veranstaltungen werden fünf Jahre nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
+<li>Anbietende können ihre Veranstaltung unter „Meine Veranstaltungen“ selbst absagen, auch mit bestehenden Anmeldungen. Angemeldete sehen die Absage als Mitteilung unter „Meine Anmeldungen“.</li>
 <li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. Eine IDD-Anrechnung ist noch nicht möglich und in Planung.</li>
 <li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
 <li>Der Betrieb gilt als Proof of Concept. Prüfe vor einem breiten Einsatz Datenschutz, Betriebsrat und Berechtigungskonzept.</li>
@@ -184,7 +221,9 @@
 
 <h2>Häufige Fragen</h2>
 <h3>Kann ich Anmeldungen für andere Personen vornehmen?</h3>
-<p>Nein, Anmeldungen entstehen nur über den Katalog. Du kannst Anmeldungen aber entfernen und die Platzzahl einer Veranstaltung erhöhen.</p>
+<p>Nein, Anmeldungen entstehen nur über den Katalog durch die Nutzenden selbst. Du kannst Anmeldungen aber entfernen und die Platzzahl einer Veranstaltung erhöhen. Entfernte Personen sehen eine Mitteilung.</p>
+<h3>Kann ich Veranstaltungen absagen?</h3>
+<p>Anbietende sagen ihre Veranstaltungen selbst ab. Im Admin-Bereich kannst du Veranstaltungen bearbeiten und löschen. Beim Löschen sehen angemeldete Personen eine Mitteilung.</p>
 <h3>Wie viele Daten verträgt die Anwendung?</h3>
 <p>Alle Daten liegen in einer JSON-Datei, geeignet für einige hundert Veranstaltungen und einige tausend Anmeldungen. Für größeren Betrieb empfiehlt sich eine Datenbank.</p>
 <h3>Wo ändere ich die Farben der Anwendung?</h3>
