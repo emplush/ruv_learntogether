@@ -58,7 +58,10 @@ var ICONS = {
   globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/>',
   star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3L7 14.2 2 9.3l6.9-1z"/>'
 };
-function ico(n) { return ICONS[n] ? svg(ICONS[n]) : ''; }
+/* Symbole aus dem R+V-Iconfont (RuV-Icons-v3); die SVG-Zeichnungen oben sind nur noch Rueckfall */
+var GLYPH = { search: 'E972', left: 'E979', right: 'E97A', lock: 'E956', link: 'E9AD', plus: 'E97C', minus: 'E96C', copy: 'E9CE', download: 'E96F', ext: 'E973', list: 'E96B', olist: 'E96B', undo: 'E96D', redo: 'E96D',
+  book: 'E9DA', trend: 'E983', pulse: 'E9C9', sun: 'E946', cup: 'E9CD', globe: 'E92E', star: 'E9AE', info: 'E900', warn: 'E903', check: 'E931', cross: 'E985', calendar: 'E94E', pdf: 'E936', chart: 'E91E' };
+function ico(n) { return GLYPH[n] ? '<i class="ruv-i' + (n === 'undo' ? ' flip' : '') + '" aria-hidden="true">&#x' + GLYPH[n] + ';</i>' : ICONS[n] ? svg(ICONS[n]) : ''; }
 
 /* Speicher (localStorage kann in Vorschau/Privatmodus fehlen) */
 var mem = {};
@@ -77,7 +80,7 @@ var sess = {
 var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
 var MAX_CAP = 50;
 var MAX_TYPES = 50;
-var DEFAULT_HERO = { title: 'Voneinander lernen. Miteinander wachsen.', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
+var DEFAULT_HERO = { title: 'Voneinander lernen. *Miteinander wachsen.*', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
 var DEFAULT_NOTICE = { title: 'Wichtig: Speichere deinen Buchungscode!', text: 'Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt über die Kalenderdatei (.ics) in deinen Kalender ein: Sie enthält alle Informationen, den Teams-Link und den Buchungscode.' };
 var NOTICE = { title: DEFAULT_NOTICE.title, text: DEFAULT_NOTICE.text };
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
@@ -102,6 +105,13 @@ function applyTaxonomy(t) {
 }
 /* alphabetisch, "Sonstiges" immer zuletzt */
 function sortTopics(l) { return l.slice().sort(function (a, b) { var sa = a.toLowerCase() === 'sonstiges', sb = b.toLowerCase() === 'sonstiges'; if (sa !== sb) return sa ? 1 : -1; return a.localeCompare(b, 'de'); }); }
+function topline(t) { return h('div', { class: 'topline', text: t }); }
+/* Ueberschrift mit Highlight: *Wort* wird orange; ohne Markierung alles nach dem ersten Satz */
+function hlHtml(t) {
+  var s = esc(String(t));
+  if (/\*[^*]+\*/.test(s)) return s.replace(/\*([^*]+)\*/g, '<span class="hl">$1</span>');
+  var m = s.match(/^(.+?[.!?])\s+(.+)$/); return m ? m[1] + ' <span class="hl">' + m[2] + '</span>' : s;
+}
 function capFirst(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 function hexRgb(x) { return [1, 3, 5].map(function (i) { return parseInt(x.substr(i, 2), 16); }); }
 function lum(x) { var c = hexRgb(x).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
@@ -305,7 +315,7 @@ function mailHtml(m) {
       '<tr><td bgcolor="' + orange + '" height="6" style="height:6px;line-height:6px;font-size:1px;background:' + orange + '">&nbsp;</td></tr>') +
     /* Inhalt */
     tbl('100%', '<tr><td style="padding:30px 32px 6px;' + F + 'color:' + ink + '">' +
-      '<div style="font-size:12px;font-weight:bold;letter-spacing:1.5px;color:#eb6504;text-transform:uppercase">Buchungsbestätigung</div>' +
+      '<div style="font-family:Georgia,\'Times New Roman\',serif;font-size:19px;line-height:24px;font-weight:bold;color:#eb6504">Buchungsbestätigung</div>' +
       '<div style="font-size:28px;line-height:34px;font-weight:bold;color:' + ink + ';margin:4px 0 4px">Deine Buchung ist bestätigt</div>' +
       '<div style="font-size:15px;line-height:22px;color:' + grey + '">Schön, dass du dabei bist. Alle Informationen findest du hier.</div>' + gap(22) +
       tbl('', '<tr>' + chip(m.area, areaBg, areaFg) + spacer() + chip(m.type, mint, ink) + spacer() + chip(m.topic, '#e3e8f3', ink) + '</tr>') + gap(16) +
@@ -313,9 +323,9 @@ function mailHtml(m) {
       tbl('100%', row('Datum', esc(m.date)) + row('Uhrzeit', esc(m.time)) + row('Dauer', m.duration + ' Minuten') + row('Angeboten von', esc(m.host))) +
       (m.desc ? gap(14) + '<div style="font-size:15px;line-height:22px;color:' + ink + '"><b>Worum geht es?</b><br>' + esc(m.desc).replace(/\n/g, '<br>') + '</div>' : '') + gap(24) +
       /* Teams */
-      tbl('100%', '<tr>' + td('#e6fbfb', 'padding:20px 22px;border-left:5px solid ' + mint, '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#0c7f89;text-transform:uppercase">Teams-Sitzung</div>' + gap(10) + btn(m.teams, 'An der Teams-Sitzung teilnehmen', mint, ink) + gap(10) + '<div style="font-size:12px;line-height:17px;color:' + grey + '">Oder Link kopieren:<br><a href="' + esc(m.teams) + '" style="color:#0c7f89;word-break:break-all">' + esc(m.teams) + '</a></div>') + '</tr>') + gap(18) +
+      tbl('100%', '<tr>' + td('#e6fbfb', 'padding:20px 22px;border:1px solid ' + mint, '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#0c7f89;text-transform:uppercase">Teams-Sitzung</div>' + gap(10) + btn(m.teams, 'An der Teams-Sitzung teilnehmen', mint, ink) + gap(10) + '<div style="font-size:12px;line-height:17px;color:' + grey + '">Oder Link kopieren:<br><a href="' + esc(m.teams) + '" style="color:#0c7f89;word-break:break-all">' + esc(m.teams) + '</a></div>') + '</tr>') + gap(18) +
       /* Code */
-      tbl('100%', '<tr>' + td('#fff3df', 'padding:20px 22px;border-left:5px solid #eb6504', '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:#a04400;text-transform:uppercase">Dein Buchungscode</div><div style="font-family:Consolas,\'Courier New\',monospace;font-size:28px;line-height:36px;font-weight:bold;letter-spacing:3px;color:' + ink + ';margin:4px 0 8px">' + esc(m.code) + '</div><div style="font-size:14px;line-height:20px;color:' + ink + '">Mit dem Code kannst du deine Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:bold">Meine Anmeldung</a></div>') + '</tr>') +
+      tbl('100%', '<tr>' + td('#fff3df', 'padding:20px 22px;border:1px solid ' + orange, '<div style="font-size:12px;font-weight:bold;letter-spacing:1.3px;color:' + ink + ';text-transform:uppercase">Dein Buchungscode</div><div style="font-family:Consolas,\'Courier New\',monospace;font-size:28px;line-height:36px;font-weight:bold;letter-spacing:3px;color:' + ink + ';margin:4px 0 8px">' + esc(m.code) + '</div><div style="font-size:14px;line-height:20px;color:' + ink + '">Mit dem Code kannst du deine Buchung ansehen oder stornieren: <a href="' + esc(m.cancel) + '" style="color:#0c7f89;font-weight:bold">Meine Anmeldung</a></div>') + '</tr>') +
     '</td></tr>') +
     /* Fuss */
     tbl('100%', '<tr>' + td('#f3f5f9', 'padding:18px 32px;font-size:12px;line-height:18px;color:' + grey, esc(m.appTitle) + '<br>Dieser Kalendereintrag wurde automatisch erstellt. Bewahre ihn und den Buchungscode auf.') + '</tr>' +
@@ -365,6 +375,13 @@ var Server = {
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
   },
   settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, notice: j.notice }; }); },
+  adminManual: function () { return this.call('adminManual', null, true).then(function (j) { return j.html; }); },
+  adminManualPdf: function () {
+    return fetch(API + '?action=adminManualPdf', { headers: { 'X-Admin-Token': adminToken }, cache: 'no-store' }).then(function (r) {
+      if (!r.ok || /json/.test(r.headers.get('content-type') || '')) return r.json().then(function (j) { throw ApiErr(j.error, j.message, j.error === 'auth' ? 401 : r.status); });
+      return r.blob();
+    }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe deine Verbindung.'); });
+  },
   adminSaveTaxonomy: function (p) { return this.call('adminSaveTaxonomy', p, true).then(function (j) { return { labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types }; }); },
   events: function () { return this.call('events').then(function (j) { return j.events; }); },
   createEvent: function (ev) { return this.call('createEvent', { event: ev }); },
@@ -549,6 +566,8 @@ var Local = (function () {
       });
     },
     adminChangePassword: function (c, n) { return wrap(function () { if (c !== cfg.pw) throw ApiErr('password', 'Das aktuelle Passwort ist nicht korrekt.'); if (n.length < 8) throw ApiErr('invalid', 'Das neue Passwort muss mindestens 8 Zeichen lang sein.'); cfg.pw = n; save(); }); },
+    adminManual: function () { return wrap(function () { if (!CFG.adminManualHtml) throw ApiErr('notfound', 'Das Administrationshandbuch ist in dieser Version nicht enthalten.'); return CFG.adminManualHtml; }); },
+    adminManualPdf: function () { if (!CFG.adminPdfUrl) return Promise.reject(ApiErr('notfound', 'Das PDF ist in dieser Version nicht enthalten.')); return fetch(CFG.adminPdfUrl).then(function (r) { return r.blob(); }); },
     adminTestData: function (m) { return wrap(function () { data.events = data.events.filter(function (e) { return !e.isTest; }); data.bookings = data.bookings.filter(function (b) { return !b.isTest; }); var r = { events: 0, bookings: 0 }; if (m === 'load') { var t = insertTest(); r.events = t.events.length; r.bookings = t.bookings.length; } save(); return r; }); },
     reset: function () { ['lt_data', 'lt_cfg', 'lt_mail', 'lt_seeded', 'lt_mine'].forEach(store.del); data = cfg = null; }
   };
@@ -602,7 +621,7 @@ var TOPIC_STYLE = {
 function placeholder(topic) {
   var s = TOPIC_STYLE[topic];
   if (!s) { var keys = Object.keys(TOPIC_STYLE), hsh = 0; for (var i = 0; i < topic.length; i++) hsh = (hsh * 31 + topic.charCodeAt(i)) % 9973; s = TOPIC_STYLE[keys[hsh % keys.length]]; }
-  return h('div', { class: 'ph', style: 'background:linear-gradient(135deg,' + s[0] + ',' + s[1] + ')', 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24">' + ICONS[s[2]] + '</svg>' });
+  return h('div', { class: 'ph', style: 'background:' + s[0], 'aria-hidden': 'true', html: ico(s[2]) });
 }
 function cover(e) { return e.image ? h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }) : placeholder(e.topic); }
 
@@ -628,8 +647,8 @@ function makeRte(initial) {
   tb('S', 'Durchgestrichen', '<s>S</s>', function () { exec('strikeThrough'); }, 'strikeThrough');
   sep();
   tb('H', 'Zwischenüberschrift', 'H<small style="font-size:.6em">3</small>', function () { var on = document.queryCommandValue('formatBlock').toLowerCase() === 'h3'; exec('formatBlock', on ? 'p' : 'h3'); });
-  tb('ul', 'Aufzählung', svg(ICONS.list), function () { exec('insertUnorderedList'); }, 'insertUnorderedList');
-  tb('ol', 'Nummerierte Liste', svg(ICONS.olist), function () { exec('insertOrderedList'); }, 'insertOrderedList');
+  tb('ul', 'Aufzählung', ico('list'), function () { exec('insertUnorderedList'); }, 'insertUnorderedList');
+  tb('ol', 'Nummerierte Liste', ico('olist'), function () { exec('insertOrderedList'); }, 'insertOrderedList');
   tb('q', 'Zitat', '\u201C', function () { var on = document.queryCommandValue('formatBlock').toLowerCase() === 'blockquote'; exec('formatBlock', on ? 'p' : 'blockquote'); });
   sep();
   var linkIn = h('input', { type: 'url', placeholder: 'https://…', 'aria-label': 'Adresse des Links' });
@@ -640,12 +659,12 @@ function makeRte(initial) {
     linkIn.value = ''; refresh();
   }
   function restore() { var s = window.getSelection(); if (saved) { s.removeAllRanges(); s.addRange(saved); } }
-  tb('link', 'Link einfügen', svg(ICONS.link), function () { var s = window.getSelection(); if (s.rangeCount && area.contains(s.anchorNode)) saved = s.getRangeAt(0).cloneRange(); else saved = null; linkRow.hidden = !linkRow.hidden; if (!linkRow.hidden) linkIn.focus(); });
-  tb('unlink', 'Link entfernen', svg(ICONS.link) + '<span style="position:absolute;font-size:22px;line-height:1;transform:translateY(-1px)">\u2215</span>', function () { exec('unlink'); }).style.position = 'relative';
+  tb('link', 'Link einfügen', ico('link'), function () { var s = window.getSelection(); if (s.rangeCount && area.contains(s.anchorNode)) saved = s.getRangeAt(0).cloneRange(); else saved = null; linkRow.hidden = !linkRow.hidden; if (!linkRow.hidden) linkIn.focus(); });
+  tb('unlink', 'Link entfernen', ico('link') + '<span style="position:absolute;font-size:22px;line-height:1;transform:translateY(-1px)">\u2215</span>', function () { exec('unlink'); }).style.position = 'relative';
   tb('clear', 'Formatierung entfernen', 'T<small style="font-size:.6em">x</small>', function () { exec('removeFormat'); exec('formatBlock', 'p'); });
   sep();
-  tb('undo', 'Rückgängig', svg(ICONS.undo), function () { exec('undo'); });
-  tb('redo', 'Wiederholen', svg(ICONS.redo), function () { exec('redo'); });
+  tb('undo', 'Rückgängig', ico('undo'), function () { exec('undo'); });
+  tb('redo', 'Wiederholen', ico('redo'), function () { exec('redo'); });
   linkRow.appendChild(linkIn);
   linkRow.appendChild(h('button', { type: 'button', class: 'btn btn-primary btn-sm', text: 'Übernehmen', onclick: applyLink }));
   linkRow.appendChild(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Abbrechen', onclick: function () { linkRow.hidden = true; area.focus(); } }));
@@ -874,7 +893,7 @@ function viewCatalog() {
   search.addEventListener('input', function () { filters.q = search.value; renderRows(); });
   durSel.addEventListener('change', function () { filters.dur = durSel.value; renderRows(); });
 
-  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [h('h1', { text: HERO.title }),
+  root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [topline('Informelles Lernen im Außendienst'), h('h1', { html: hlHtml(HERO.title) }),
     h('p', { text: HERO.text }),
     h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' }))])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
@@ -1033,7 +1052,7 @@ function participationCard(info, code, o) {
     codeBox('Dein Buchungscode', code)]));
   return node;
 }
-function codeWarning(title, text) { return h('div', { class: 'notice warn', role: 'alert' }, [h('b', { text: title }), h('div', { text: text })]); }
+function codeWarning(title, text) { return h('div', { class: 'notice warn', role: 'alert' }, h('div', { class: 'n-body' }, [h('b', { text: title }), h('div', { text: text })])); }
 
 /* ---- Veranstaltung anbieten ---- */
 function viewCreate() {
@@ -1041,7 +1060,7 @@ function viewCreate() {
   var wrap = root.firstChild;
   function show() {
     clear(wrap);
-    wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
+    wrap.appendChild(topline('Mitmachen')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
     wrap.appendChild(h('p', { class: 'lead', text: 'Teile dein Wissen oder lade zum Austausch ein, dienstlich oder privat. Jede und jeder kann einen Termin anlegen. Inhalte müssen legal, respektvoll und jugendfrei sein.' }));
     wrap.appendChild(buildEventForm({ onSubmit: function (p) { return Api.createEvent(p).then(function (r) { done(p, r.code); }); } }));
   }
@@ -1085,7 +1104,7 @@ function viewMine(q) {
     if (r.canCancel) {
       var cancel = h('button', { class: 'btn btn-danger', type: 'button', text: 'Teilnahme stornieren' });
       cancel.addEventListener('click', function () {
-        if (!cancel._c) { cancel._c = true; cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.textContent = 'Teilnahme stornieren'; }, 4000); return; }
+        if (!cancel._c) { cancel._c = true; cancel.setAttribute('data-c', '1'); cancel.textContent = 'Wirklich stornieren?'; setTimeout(function () { cancel._c = false; cancel.removeAttribute('data-c'); cancel.textContent = 'Teilnahme stornieren'; }, 4000); return; }
         cancel.disabled = true;
         Api.cancel(r.code).then(function () { forgetMine(r.code); clear(result); clear(acts); result.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Deine Teilnahme an „' + r.eventInfo.title + '“ wurde storniert. Der Platz ist wieder frei.' })); result.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' }))); },
           function (er) { cancel.disabled = false; clear(done); done.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message })); });
@@ -1107,7 +1126,7 @@ function viewMine(q) {
     });
     mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
   }
-  wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Anmeldung</span>' }));
+  wrap.appendChild(topline('Buchung')); wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Anmeldung</span>' }));
   wrap.appendChild(h('p', { class: 'lead', text: 'Gib deinen Buchungscode ein. Du siehst dann den Teams-Link zu deiner Veranstaltung, kannst die Kalenderdatei (.ics) herunterladen oder deine Teilnahme stornieren, wenn du nicht dabei sein kannst.' }));
   wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
   if (q.code) lookup(q.code);
@@ -1145,7 +1164,7 @@ function viewMyEvent(q) {
     });
     mineBox.appendChild(ul); mineBox.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Diese Liste liegt nur in diesem Browser, nicht auf dem Server.' }));
   }
-  wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Veranstaltung</span>' }));
+  wrap.appendChild(topline('Für Anbietende')); wrap.appendChild(h('h1', { html: 'Meine <span class="accent">Veranstaltung</span>' }));
   wrap.appendChild(h('p', { class: 'lead', text: 'Du hast eine Veranstaltung angeboten? Mit dem Veranstaltungscode siehst du, wer sich angemeldet hat. Änderungen oder Absagen der Veranstaltung übernimmt die Administration.' }));
   wrap.appendChild(cf.form); wrap.appendChild(result); wrap.appendChild(mineBox);
   if (q.code) lookup(q.code);
@@ -1155,7 +1174,7 @@ function viewMyEvent(q) {
 /* ---- Handbuch ---- */
 function viewManual() {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap' })), wrap = root.firstChild;
-  wrap.appendChild(h('h1', { html: 'Nutzer<span class="accent">handbuch</span>' }));
+  wrap.appendChild(topline('Hilfe')); wrap.appendChild(h('h1', { html: 'Nutzer<span class="accent">handbuch</span>' }));
   wrap.appendChild(h('p', { class: 'lead', text: 'So nutzt du ' + state.settings.appTitle + ': Veranstaltungen finden, dich anmelden, stornieren und selbst etwas anbieten.' }));
   var tools = h('div', { class: 'manual-tools' });
   if (CFG.pdfUrl) tools.appendChild(h('a', { class: 'btn btn-primary', href: rel(CFG.pdfUrl), download: 'LearnTogether-Nutzerhandbuch.pdf', html: ico('download') + ' Als PDF herunterladen' }));
@@ -1177,19 +1196,19 @@ function viewAdmin() {
     var fp = field('Passwort', pw, { id: 'a-pw', req: true }); var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true }); var go = h('button', { type: 'submit', class: 'btn btn-primary', text: 'Anmelden' });
     var form = h('form', { class: 'form', style: 'max-width:420px;margin-top:24px', novalidate: true }, [fp, msg, h('div', null, go)]);
     form.addEventListener('submit', function (e) { e.preventDefault(); msg.hidden = true; go.disabled = true; Api.login(pw.value).then(panel, function (er) { go.disabled = false; msg.hidden = false; msg.textContent = er.message; pw.select(); }); });
-    wrap.appendChild(h('h1', { text: 'Administration' }));
+    wrap.appendChild(topline('Verwaltung')); wrap.appendChild(h('h1', { text: 'Administration' }));
     wrap.appendChild(h('p', { class: 'lead', text: 'Dieser Bereich ist passwortgeschützt. Hier verwaltest du Veranstaltungen, Anmeldungen und Einstellungen.' }));
     wrap.appendChild(form); pw.focus();
   }
   var SECTIONS = [
     ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung']]],
-    ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten']]]
+    ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['password', 'Passwort', 'Admin-Passwort'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
   ];
   var section = sess.get('lt_admin_sec') || 'events';
   function panel() {
     clear(wrap);
-    wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('h1', { text: 'Administration', style: 'flex:1' }), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
+    wrap.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, [h('div', { style: 'flex:1' }, [topline('Verwaltung'), h('h1', { text: 'Administration' })]), h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abmelden', onclick: function () { adminToken = ''; sess.del('lt_admin'); login(); } })]));
     var nav = h('nav', { class: 'admin-nav', 'aria-label': 'Bereiche der Administration' }), content = h('div', { class: 'admin-content' }), head = h('h2', { class: 'admin-title' }), body = h('div');
     content.appendChild(head); content.appendChild(body);
     SECTIONS.forEach(function (g) {
@@ -1202,7 +1221,7 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, stats: adminStats, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
+      var fn = { events: adminEvents, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, general: adminGeneral, password: adminPassword, testdata: adminTest }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (er.status === 401) { login(); return; } clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
@@ -1258,7 +1277,7 @@ function viewAdmin() {
           var del = h('button', { class: 'btn btn-danger btn-sm', type: 'button', text: 'Löschen' });
           del.addEventListener('click', function () {
             if (del._c) { Api.adminDeleteEvent(e.id).then(function () { toast('Veranstaltung gelöscht.'); return reload(); }, function (er) { toast(er.message, true); }); return; }
-            del._c = true; del.textContent = 'Wirklich löschen?'; setTimeout(function () { del._c = false; del.textContent = 'Löschen'; }, 4000);
+            del._c = true; del.setAttribute('data-c', '1'); del.textContent = 'Wirklich löschen?'; setTimeout(function () { del._c = false; del.removeAttribute('data-c'); del.textContent = 'Löschen'; }, 4000);
           });
           tb.appendChild(h('tr', { class: past ? 'past' : '' }, [
             h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { class: 'tag cat-' + e.category, text: CAT_LABEL[e.category] }), h('span', { text: e.type + ' · ' + capFirst(e.topic) }), e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, past ? h('span', { class: 'tag past', text: 'vergangen' }) : null]), e.code ? h('div', { class: 'hint', text: 'Veranstaltungscode ' + e.code }) : null]),
@@ -1283,7 +1302,7 @@ function viewAdmin() {
           e.bookings.forEach(function (b, i) {
             var rm = h('button', { class: 'btn btn-danger btn-sm', type: 'button', text: 'Entfernen' });
             rm.addEventListener('click', function () {
-              if (!rm._c) { rm._c = true; rm.textContent = 'Wirklich?'; setTimeout(function () { rm._c = false; rm.textContent = 'Entfernen'; }, 4000); return; }
+              if (!rm._c) { rm._c = true; rm.setAttribute('data-c', '1'); rm.textContent = 'Wirklich?'; setTimeout(function () { rm._c = false; rm.removeAttribute('data-c'); rm.textContent = 'Entfernen'; }, 4000); return; }
               Api.adminDeleteBooking(b.id).then(function () { toast('Anmeldung entfernt.'); return reload(); }, function (er) { toast(er.message, true); });
             });
             tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.name })), h('td', { text: b.email, style: 'overflow-wrap:anywhere' }), h('td', null, h('code', { text: b.code })), h('td', { class: 'r' }, rm)]));
@@ -1410,8 +1429,8 @@ function viewAdmin() {
   function noticePanel() {
     var nt = inp('n-title', NOTICE.title, 'text', { maxlength: '80' }), nx = h('textarea', { id: 'n-text', rows: '5', maxlength: '600' }); nx.value = NOTICE.text;
     var count = h('span', { class: 'hint' }), msg = boxMsg();
-    var prev = h('div', { class: 'notice warn', 'aria-hidden': 'true' }, [h('b'), h('div')]);
-    function upd() { prev.firstChild.textContent = nt.value; prev.lastChild.textContent = nx.value; count.textContent = nx.value.length + ' / 600 Zeichen'; }
+    var prev = h('div', { class: 'notice warn', 'aria-hidden': 'true' }, h('div', { class: 'n-body' }, [h('b'), h('div')]));
+    function upd() { $('b', prev).textContent = nt.value; $('.n-body > div', prev).textContent = nx.value; count.textContent = nx.value.length + ' / 600 Zeichen'; }
     nt.addEventListener('input', upd); nx.addEventListener('input', upd); upd();
     var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Hinweis speichern' });
     save.addEventListener('click', function () {
@@ -1430,7 +1449,7 @@ function viewAdmin() {
       var t = inp('h-title', HERO.title, 'text', { maxlength: '80' }), x = h('textarea', { id: 'h-text', rows: '5', maxlength: '500' }); x.value = HERO.text;
       var count = h('span', { class: 'hint' }), msg = boxMsg();
       var prev = h('div', { class: 'stage-prev hero-prev', style: paintStage('dienstlich'), 'aria-hidden': 'true' }, [h('div', { class: 'ph-t' }), h('div', { class: 'ph-x' })]);
-      function upd() { $('.ph-t', prev).textContent = t.value; $('.ph-x', prev).textContent = x.value; count.textContent = x.value.length + ' / 500 Zeichen'; }
+      function upd() { $('.ph-t', prev).innerHTML = hlHtml(t.value); $('.ph-x', prev).textContent = x.value; count.textContent = x.value.length + ' / 500 Zeichen'; }
       t.addEventListener('input', upd); x.addEventListener('input', upd); upd();
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Texte speichern' });
       save.addEventListener('click', function () {
@@ -1440,7 +1459,7 @@ function viewAdmin() {
       var reset = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Standardtexte einsetzen', onclick: function () { t.value = DEFAULT_HERO.title; x.value = DEFAULT_HERO.text; upd(); } });
       return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
         h('p', { class: 'lead', text: 'Überschrift und Hinweistext oben im Katalog. Sie sind für alle Besucher sichtbar. Der Button „Selbst etwas anbieten“ bleibt bestehen.' }),
-        h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [field('Überschrift', t, { id: 'h-title', req: true, hint: 'Kurz und einladend, bis zu 80 Zeichen.' }), field('Hinweistext', x, { id: 'h-text', req: true, hint: 'Nenne, was es zu entdecken gibt, wie die Anmeldung geht und wann die Termine stattfinden (bis zu 500 Zeichen).' }), count]),
+        h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [field('Überschrift', t, { id: 'h-title', req: true, hint: 'Kurz und einladend, bis zu 80 Zeichen. Mit *Sternchen* markierte Wörter erscheinen in Orange; ohne Markierung ist alles nach dem ersten Satz orange.' }), field('Hinweistext', x, { id: 'h-text', req: true, hint: 'Nenne, was es zu entdecken gibt, wie die Anmeldung geht und wann die Termine stattfinden (bis zu 500 Zeichen).' }), count]),
         h('div', null, [h('h3', { text: 'Vorschau', style: 'margin-bottom:8px' }), prev]), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [save, reset]),
         noticePanel()]);
     });

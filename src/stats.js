@@ -276,3 +276,15 @@
       return h('div', null, [h('p', { class: 'lead', text: 'Auswertungen zu Veranstaltungen und Anmeldungen. Jede Auswertung lässt sich einzeln oder als Gesamtbericht als PDF speichern. Eine Anmeldung zählt im Monat der Veranstaltung.' }), h('div', { class: 'afilter' }, tools.concat([h('div', { style: 'margin-left:auto' }, all)])), host]);
     });
   }
+
+  /* ---- Handbuch fuer Administrierende (nur nach Anmeldung abrufbar) ---- */
+  function adminManual() {
+    return Api.adminManual().then(function (html) {
+      var body = h('div', { class: 'manual-body', html: html }), toc = h('nav', { class: 'manual-toc', 'aria-label': 'Inhalt' });
+      $$('h2', body).forEach(function (hh, i) { hh.id = 'akap-' + (i + 1); toc.appendChild(h('a', { href: '#/admin', text: hh.textContent, onclick: function (e) { e.preventDefault(); hh.scrollIntoView({ behavior: 'smooth' }); } })); });
+      var pdf = h('button', { type: 'button', class: 'btn btn-primary', id: 'am-pdf', html: ico('download') + ' Als PDF herunterladen', onclick: function () {
+        Api.adminManualPdf().then(function (b) { saveBlob(b, 'LearnTogether-Administrationshandbuch.pdf'); }, function (er) { toast(er.message, true); });
+      } });
+      return h('div', null, [h('p', { class: 'lead', text: 'So richtest du ' + state.settings.appTitle + ' ein und betreibst die Anwendung. Dieses Handbuch ist nur nach der Anmeldung im Admin-Bereich sichtbar.' }), h('div', { class: 'manual-tools' }, pdf), h('div', { class: 'manual-layout adm-manual' }, [toc, body])]);
+    });
+  }

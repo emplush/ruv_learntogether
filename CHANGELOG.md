@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.19.0 (01.10.2026)
+- **Design an das R+V-Design-System angeglichen:** 4 px Radius statt Pillen, keine Schatten und Verläufe (Bildplatzhalter flach), keine Akzentkanten an Hinweisen und Karten, Fokusring 3 px in Orange, Headlines in Bold (Typostufen 52/36/20), unterstrichene Links in den Link-Farben, Mint-Buttons nach Token (hell #109da8, Hover #00dcdc), dunkles Design nur in Dunkelblau mit Rahmen.
+- **Topline in RuV Slab** über den Seitenüberschriften; im Katalog-Hero markiert `*Wort*` Highlight-Wörter in Orange (ohne Markierung: alles nach dem ersten Satz).
+- **Iconfont RuV-Icons-v3** statt eigener SVG-Symbole (Suche, Download, Kopieren, Pfeile, Hinweise u. a.).
+- Rot nur noch für Fehler: „Ausgebucht“ als graues Chip, Löschen-Buttons als Ghost-Button in Dunkelblau (Rückfrage mit gefüllter Fläche), Fehlermeldungen mit Icon und dunkelblauem Text.
+- Orange-Text nur noch ab 19 px fett (Kontrast), Kalendereintrag ohne Akzentkanten.
+- **Zwei Handbücher:** Nutzerhandbuch (öffentlich, Reiter „Handbuch“, PDF-Download) und neu das **Administrationshandbuch** (Admin › System › Handbuch, PDF-Download). Es liegt in `AppData\Private` (per web.config gesperrt) und wird nur nach Admin-Anmeldung ausgeliefert. Beide gibt es auch als HTML und PDF unter `docs/`.
+
 ## 0.18.0 (01.10.2026)
 - Neu im Admin-Bereich: **Statistik und Berichte** (Gruppe „Übersicht“). Filter nach Zeitraum, Bereich und Testdaten.
 - 8 Kennzahlen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen, Termine ohne Anmeldung, ausgebuchte Termine, Ø Vorlauf der Anmeldung.

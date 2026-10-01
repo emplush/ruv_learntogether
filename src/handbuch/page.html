@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{APP_TITLE}} Nutzerhandbuch</title>
+<title>{{APP_TITLE}} {{DOCNAME}}</title>
 <link rel="icon" type="image/png" href="{{FAV}}">
 <style>
 {{CSS}}
@@ -28,9 +28,9 @@
 </head>
 <body>
 <div class="page"><div class="wrap">
-<div class="doc-head"><img src="{{LOGO}}" alt="R+V"><h1>{{APP_TITLE}} <span class="accent">Nutzerhandbuch</span></h1></div>
+<div class="doc-head"><img src="{{LOGO}}" alt="R+V"><h1>{{APP_TITLE}} <span class="accent">{{DOCNAME}}</span></h1></div>
 <p class="doc-meta">Version {{VERSION}} &middot; Stand {{DATE}}</p>
-<div class="no-print manual-tools"><a class="btn btn-primary" href="Nutzerhandbuch.pdf" download="LearnTogether-Nutzerhandbuch.pdf">Als PDF herunterladen</a><a class="btn btn-secondary" href="../index.html">Zur Anwendung</a></div>
+<div class="no-print manual-tools"><a class="btn btn-primary" href="{{PDFFILE}}" download="{{PDFDOWNLOAD}}">Als PDF herunterladen</a>{{BACKLINK}}</div>
 <div class="print-only"><h3>Inhalt</h3><ol>{{TOC}}</ol></div>
 <div class="manual-layout"><nav class="manual-toc" aria-label="Inhalt">{{TOCLINKS}}</nav><div class="manual-body">
 {{BODY}}

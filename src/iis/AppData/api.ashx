@@ -96,7 +96,7 @@ namespace LearnTogether
             textColorPrivat = "#ffffff";
             noticeTitle = "Wichtig: Speichere deinen Buchungscode!";
             noticeText = "Es wird keine E-Mail verschickt. Ohne den Buchungscode kannst du deine Buchung nicht mehr aufrufen oder stornieren. Trage den Termin am besten jetzt \u00fcber die Kalenderdatei (.ics) in deinen Kalender ein: Sie enth\u00e4lt alle Informationen, den Teams-Link und den Buchungscode.";
-            heroTitle = "Voneinander lernen. Miteinander wachsen.";
+            heroTitle = "Voneinander lernen. *Miteinander wachsen.*";
             heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du wei\u00dft. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
         }
     }
@@ -187,6 +187,8 @@ namespace LearnTogether
                 case "adminSaveTaxonomy": AdminSaveTaxonomy(); break;
                 case "adminChangePassword": AdminChangePassword(); break;
                 case "adminTestData": AdminTestData(); break;
+                case "adminManual": AdminManual(false); break;
+                case "adminManualPdf": AdminManual(true); break;
                 default: throw new ApiException("unknown", "Unbekannte Aktion.", 404);
             }
         }
@@ -575,6 +577,18 @@ namespace LearnTogether
                 string p = Path.Combine(ImgDir(), id + "." + ext);
                 if (File.Exists(p)) File.Delete(p);
             }
+        }
+
+        // Administrationshandbuch: liegt in AppData\Private (per web.config nicht abrufbar) und wird nur nach Admin-Anmeldung ausgeliefert
+        void AdminManual(bool pdf)
+        {
+            string f = Path.Combine(Path.Combine(ctx.Server.MapPath("~/AppData"), "Private"), pdf ? "Admin-Handbuch.pdf" : "Admin-Handbuch.html");
+            if (!File.Exists(f)) throw new ApiException("notfound", "Das Administrationshandbuch ist in dieser Installation nicht enthalten.", 404);
+            if (!pdf) { Send(new { ok = true, html = File.ReadAllText(f, System.Text.Encoding.UTF8) }); return; }
+            ctx.Response.ContentType = "application/pdf";
+            ctx.Response.AddHeader("Content-Disposition", "attachment; filename=LearnTogether-Administrationshandbuch.pdf");
+            ctx.Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            ctx.Response.WriteFile(f);
         }
 
         void ServeImage()

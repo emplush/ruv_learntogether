@@ -31,8 +31,8 @@ def data_uri(path, mime):
     return 'data:%s;base64,%s' % (mime, base64.b64encode(rd(path, binary=True)).decode())
 
 
-def manual_body():
-    body = rd(SRC, 'handbuch', 'body.html').replace('{{APP_TITLE}}', APP_TITLE)
+def manual_body(name='body.html'):
+    body = rd(SRC, 'handbuch', name).replace('{{APP_TITLE}}', APP_TITLE)
 
     def fig(m):
         name, cap = m.group(1), m.group(2)
@@ -40,7 +40,11 @@ def manual_body():
         if not os.path.exists(p):
             return ''
         return '<figure><img src="%s" alt="%s"><figcaption>%s</figcaption></figure>' % (data_uri(p, 'image/jpeg'), cap, cap)
-    return re.sub(r'\{\{FIGURE:([a-z]+)\|([^}]*)\}\}', fig, body)
+    return re.sub(r'\{\{FIGURE:([a-z0-9-]+)\|([^}]*)\}\}', fig, body)
+
+
+DOCS = {'user': ('Nutzerhandbuch', 'Nutzerhandbuch.pdf', 'LearnTogether-Nutzerhandbuch.pdf', '<a class="btn btn-secondary" href="../index.html">Zur Anwendung</a>'),
+        'admin': ('Administrationshandbuch', 'Admin-Handbuch.pdf', 'LearnTogether-Administrationshandbuch.pdf', '')}
 
 
 def with_ids(body):
@@ -57,28 +61,28 @@ def js_json(o):
     return json.dumps(o, ensure_ascii=False).replace('</', '<\\/').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
 
 
-def build_manual_page(css, logo_uri, body, fav=''):
+def build_manual_page(css, logo_uri, body, fav='', kind='user'):
     body, heads = with_ids(body)
     page = rd(SRC, 'handbuch', 'page.html')
     toc = ''.join('<li>%s</li>' % h for h in heads)
     links = ''.join('<a href="#kap-%d">%s</a>' % (i + 1, h) for i, h in enumerate(heads))
-    for k, v in (('{{CSS}}', css), ('{{LOGO}}', logo_uri), ('{{FAV}}', fav), ('{{TOCLINKS}}', links), ('{{TOC}}', toc), ('{{VERSION}}', VERSION), ('{{DATE}}', DATE), ('{{APP_TITLE}}', APP_TITLE), ('{{BODY}}', body)):
+    for k, v in (('{{CSS}}', css), ('{{LOGO}}', logo_uri), ('{{FAV}}', fav), ('{{TOCLINKS}}', links), ('{{TOC}}', toc), ('{{VERSION}}', VERSION), ('{{DATE}}', DATE), ('{{APP_TITLE}}', APP_TITLE), ('{{BODY}}', body), ('{{DOCNAME}}', DOCS[kind][0]), ('{{PDFFILE}}', DOCS[kind][1]), ('{{PDFDOWNLOAD}}', DOCS[kind][2]), ('{{BACKLINK}}', DOCS[kind][3])):
         page = page.replace(k, v)
     return page
 
 
-FONTS = ['Light', 'Regular', 'Bold', 'Black']
+FONTS = {'Light': 'RuVSans-Light', 'Regular': 'RuVSans-Regular', 'Bold': 'RuVSans-Bold', 'Black': 'RuVSans-Black', 'Slab': 'RuVSlab-Bold', 'Icons': 'RuV-Icons-v3'}
 
 
 def css_for(css, target):
     """Setzt die Schrift-URLs ein: 'iis' (index.html), 'manual' (AppData/Handbuch.html), 'embed' (Base64 im HTML)."""
-    for n in FONTS:
+    for n, f in FONTS.items():
         if target == 'embed':
-            url = data_uri(os.path.join(SRC, 'assets', 'fonts', 'RuVSans-%s.woff2' % n), 'font/woff2')
+            url = data_uri(os.path.join(SRC, 'assets', 'fonts', f + '.woff2'), 'font/woff2')
         elif target == 'manual':
-            url = 'fonts/RuVSans-%s.woff2' % n
+            url = 'fonts/%s.woff2' % f
         else:
-            url = 'AppData/fonts/RuVSans-%s.woff2' % n
+            url = 'AppData/fonts/%s.woff2' % f
         css = css.replace('{{FONT:%s}}' % n, url)
     return css
 
@@ -103,8 +107,8 @@ def main():
     shutil.copy(logo_d, os.path.join(IIS, 'AppData', 'assets'))
     shutil.copy(logo_w, os.path.join(IIS, 'AppData', 'assets'))
     os.makedirs(os.path.join(IIS, 'AppData', 'fonts'), exist_ok=True)
-    for n in FONTS:
-        shutil.copy(os.path.join(SRC, 'assets', 'fonts', 'RuVSans-%s.woff2' % n), os.path.join(IIS, 'AppData', 'fonts'))
+    for f in FONTS.values():
+        shutil.copy(os.path.join(SRC, 'assets', 'fonts', f + '.woff2'), os.path.join(IIS, 'AppData', 'fonts'))
     open(os.path.join(IIS, 'AppData', 'Data', '.gitkeep'), 'w').close()
 
     # ---- Handbuch (HTML + PDF)
@@ -120,6 +124,23 @@ def main():
         shutil.copy(pdf_path, os.path.join(ROOT, 'docs', 'Nutzerhandbuch.pdf'))
         wr(os.path.join(ROOT, 'docs', 'Handbuch.html'), build_manual_page(css_for(css0, 'embed'), data_uri(logo_d, 'image/png'), body, fav).replace('href="Nutzerhandbuch.pdf"', 'href="Nutzerhandbuch.pdf"'))
 
+    # ---- Administrationshandbuch (nur ueber den Admin-Bereich abrufbar: AppData/Private, per web.config gesperrt)
+    abody = manual_body('admin.html')
+    priv = os.path.join(IIS, 'AppData', 'Private')
+    os.makedirs(priv, exist_ok=True)
+    wr(os.path.join(priv, 'Admin-Handbuch.html'), abody)
+    apage = os.path.join(ROOT, 'docs', 'Admin-Handbuch.html')
+    wr(apage, build_manual_page(css_for(css0, 'embed'), data_uri(logo_d, 'image/png'), abody, fav, 'admin'))
+    apdf = os.path.join(priv, 'Admin-Handbuch.pdf')
+    if want_pdf:
+        subprocess.check_call(['node', os.path.join(ROOT, 'tools', 'pdf.mjs'), apage, apdf, 'Administrationshandbuch'])
+    elif os.path.exists(os.path.join(ROOT, 'docs', 'Administrationshandbuch.pdf')):
+        shutil.copy(os.path.join(ROOT, 'docs', 'Administrationshandbuch.pdf'), apdf)
+    has_apdf = os.path.exists(apdf)
+    if has_apdf:
+        shutil.copy(apdf, os.path.join(ROOT, 'docs', 'Administrationshandbuch.pdf'))
+        wr(apage, rd(apage).replace('href="Admin-Handbuch.pdf"', 'href="Administrationshandbuch.pdf"'))
+
     # ---- IIS index.html
     cfg = {'version': VERSION, 'mode': 'iis', 'manualHtml': body, 'manualUrl': 'AppData/Handbuch.html', 'pdfUrl': 'AppData/Nutzerhandbuch.pdf' if has_pdf else None}
     page = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css_for(css0, 'iis')).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
@@ -127,7 +148,8 @@ def main():
 
     # ---- Artefakt (Fragment ohne doctype/head/body, Logos und PDF eingebettet)
     cfg = {'version': VERSION, 'mode': 'artifact', 'manualHtml': body, 'logoDark': data_uri(logo_d, 'image/png'), 'logoWhite': data_uri(logo_w, 'image/png'),
-           'pdfUrl': data_uri(pdf_path, 'application/pdf') if has_pdf else None}
+           'pdfUrl': data_uri(pdf_path, 'application/pdf') if has_pdf else None,
+           'adminManualHtml': abody, 'adminPdfUrl': data_uri(apdf, 'application/pdf') if has_apdf else None}
     css = css_for(css0, 'embed')
     frag = '<title>%s</title>\n<link rel="icon" type="image/png" href="%s">\n<style>\n%s\n</style>\n<script>window.__LT__ = %s;</script>\n<script>\n%s\n</script>\n' % (APP_TITLE, fav, css, js_json(cfg), js)
     wr(os.path.join(ART, 'LearnTogether-AD.fragment.html'), frag)

@@ -1,0 +1,168 @@
+<h2>Worum es geht</h2>
+<p>Dieses Handbuch richtet sich an die <b>Administration</b> von {{APP_TITLE}}. Es erklärt, wie du Veranstaltungen und Anmeldungen verwaltest, Texte, Themen und Arten pflegst, Statistiken auswertest und die Anwendung auf einem IIS-Server einrichtest und betreibst. Wie Mitarbeitende die Anwendung nutzen, steht im Nutzerhandbuch.</p>
+<p>Der Admin-Bereich ist passwortgeschützt. Du erreichst ihn über <b>Admin</b> rechts in der Navigation. Links siehst du die Bereiche der Administration in drei Gruppen:</p>
+<table>
+<tr><th>Gruppe</th><th>Bereich</th><th>Wofür du ihn brauchst</th></tr>
+<tr><td>Übersicht</td><td>Veranstaltungen</td><td>Alle Termine und Anmeldungen ansehen, bearbeiten, löschen</td></tr>
+<tr><td>Übersicht</td><td>Statistik</td><td>Kennzahlen und Auswertungen, PDF-Berichte</td></tr>
+<tr><td>Katalog</td><td>Texte</td><td>Überschrift und Hinweistexte</td></tr>
+<tr><td>Katalog</td><td>Themen</td><td>Bezeichnung, Farben und Themen der beiden Bereiche</td></tr>
+<tr><td>Katalog</td><td>Arten</td><td>Arten der Veranstaltung (Workshop, Austausch …)</td></tr>
+<tr><td>System</td><td>Allgemein</td><td>Titel der Anwendung</td></tr>
+<tr><td>System</td><td>Passwort</td><td>Admin-Passwort ändern</td></tr>
+<tr><td>System</td><td>Testdaten</td><td>Beispieldaten laden und entfernen</td></tr>
+<tr><td>System</td><td>Handbuch</td><td>Dieses Handbuch</td></tr>
+</table>
+
+<h2>Anmelden und Passwort</h2>
+<ol>
+<li>Öffne <b>Admin</b> und gib das Admin-Passwort ein. Das Standardpasswort aus der Installation lautet <b>RuVTest1234</b>. Ändere es sofort.</li>
+<li>Die Anmeldung gilt etwa <b>8 Stunden</b>. Danach fragt die Anwendung erneut nach dem Passwort. Mit <b>Abmelden</b> beendest du die Sitzung sofort.</li>
+<li>Nach <b>fünf falschen Eingaben</b> sperrt die Anwendung die Anmeldung für fünf Minuten.</li>
+</ol>
+<h3>Passwort ändern</h3>
+<p>Unter <b>System › Passwort</b> gibst du das aktuelle und zweimal das neue Passwort ein. Das neue Passwort muss mindestens <b>8 Zeichen</b> lang sein. Auf dem Server wird nur ein Hash gespeichert, nie das Passwort selbst.</p>
+<div class="tip">Es gibt ein gemeinsames Passwort für die Administration. Gib es nur an Personen weiter, die Teilnehmerlisten mit E-Mail-Adressen sehen dürfen.</div>
+
+<h2>Veranstaltungen und Anmeldungen</h2>
+<p>Unter <b>Übersicht › Veranstaltungen</b> siehst du alle Termine, auch vergangene (grau, mit dem Hinweis „vergangen“). Pro Zeile erscheinen Titel, Bereich, Art, Thema, Termin, die anbietende Person mit E-Mail-Adresse, der Veranstaltungscode und die Belegung als Balken.</p>
+{{FIGURE:adm-events|Die Veranstaltungsübersicht mit Filtern und Aktionen.}}
+<h3>Suchen und filtern</h3>
+<p>Die Filter wirken sofort beim Tippen: Suche (Titel, Person, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
+<h3>Teilnehmende ansehen</h3>
+<p>Mit <b>Teilnehmende (n)</b> öffnest du ein Fenster mit Belegungsbalken und einer Tabelle aus Name, E-Mail-Adresse und Buchungscode.</p>
+{{FIGURE:adm-teilnehmende|Das Fenster mit den Teilnehmenden einer Veranstaltung.}}
+<ul>
+<li><b>E-Mail-Adressen kopieren</b> legt alle Adressen getrennt durch Semikolon in die Zwischenablage, praktisch für eine Nachricht an alle.</li>
+<li><b>Teams-Link öffnen</b> springt in die Teams-Besprechung.</li>
+<li><b>Entfernen</b> löscht eine einzelne Anmeldung. Der erste Klick fragt nach („Wirklich?“), der zweite löscht. Der Platz wird sofort wieder frei.</li>
+</ul>
+<h3>Bearbeiten und löschen</h3>
+<ul>
+<li><b>Bearbeiten</b> öffnet das Formular der Veranstaltung. Du kannst alle Angaben ändern, auch Datum und Platzzahl. Es gelten dieselben Regeln wie beim Anlegen (Zeitfenster, Montag bis Freitag).</li>
+<li><b>Löschen</b> entfernt die Veranstaltung samt Anmeldungen und Bild. Auch hier fragt ein zweiter Klick („Wirklich löschen?“) nach. Das lässt sich nicht rückgängig machen.</li>
+</ul>
+<div class="tip">Informiere angemeldete Personen vor dem Löschen, zum Beispiel über die kopierten E-Mail-Adressen. Die Anwendung verschickt selbst keine E-Mails.</div>
+
+<h2>Statistik und Berichte</h2>
+<p>Unter <b>Übersicht › Statistik</b> findest du Auswertungen zu allen Veranstaltungen und Anmeldungen. Oben grenzt du sie ein: Zeitraum von/bis, Bereich und, falls Testdaten vorhanden sind, <b>Testdaten ausblenden</b>.</p>
+{{FIGURE:adm-statistik|Kennzahlen und Auswertungen im Statistikbereich.}}
+<h3>Kennzahlen</h3>
+<p>Acht Kacheln fassen die Auswahl zusammen: Veranstaltungen, Anmeldungen, Ø Anmeldungen je Veranstaltung, Ø Auslastung, anbietende Personen, Veranstaltungen ohne Anmeldung, ausgebuchte Veranstaltungen und der Ø Vorlauf der Anmeldung (Tage vor Beginn).</p>
+<h3>Auswertungen</h3>
+<table>
+<tr><th>Auswertung</th><th>Was sie zeigt</th></tr>
+<tr><td>Veranstaltungen pro Monat</td><td>Anzahl der Termine je Monat, getrennt nach Dienstlich und Privat</td></tr>
+<tr><td>Teilnehmende pro Monat</td><td>Anmeldungen je Monat, getrennt nach Bereich</td></tr>
+<tr><td>Auslastung pro Monat</td><td>Anmeldungen im Verhältnis zu den angebotenen Plätzen</td></tr>
+<tr><td>Monatsübersicht</td><td>Alle Monatszahlen als Tabelle</td></tr>
+<tr><td>Teilnehmende nach Thema und Art</td><td>Welche Themen und Formate gefragt sind</td></tr>
+<tr><td>Veranstaltungen nach Wochentag</td><td>An welchen Tagen Termine angeboten werden</td></tr>
+<tr><td>Teilnehmende nach Tageszeit und Dauer</td><td>Morgens oder nachmittags, kurze oder lange Formate</td></tr>
+<tr><td>Auslastung der Veranstaltungen</td><td>Wie viele Termine leer, halb voll oder ausgebucht sind</td></tr>
+<tr><td>Gefragteste Veranstaltungen</td><td>Top 10 nach Anmeldungen</td></tr>
+<tr><td>Aktivste Anbietende</td><td>Top 10 nach Teilnehmenden</td></tr>
+<tr><td>Veranstaltungen ohne Anmeldung</td><td>Termine, bei denen Werbung oder Nacharbeit lohnt</td></tr>
+</table>
+<p>Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet, nicht in dem der Buchung.</p>
+<h3>Als PDF speichern</h3>
+<p>Jede Auswertung hat oben rechts einen Button <b>PDF</b>. Der <b>Gesamtbericht als PDF</b> enthält alle Kennzahlen und Auswertungen der aktuellen Auswahl, mit Filterangaben, Datum und Seitenzahlen. Das PDF entsteht im Browser, die Daten verlassen den Rechner nicht.</p>
+
+<h2>Texte im Katalog</h2>
+<p>Unter <b>Katalog › Texte</b> pflegst du, was Besucherinnen und Besucher lesen.</p>
+<h3>Überschrift und Hinweistext</h3>
+<p>Beides steht oben im Katalog. Die Überschrift darf bis zu 80, der Hinweistext bis zu 500 Zeichen haben. Mit <b>*Sternchen*</b> markierte Wörter erscheinen orange, zum Beispiel <code>Voneinander lernen. *Miteinander wachsen.*</code>. Ohne Markierung ist alles nach dem ersten Satz orange. Die Vorschau zeigt das Ergebnis sofort, <b>Standardtexte einsetzen</b> stellt den Originaltext wieder her.</p>
+{{FIGURE:adm-texte|Texte im Katalog mit Vorschau und dem Hinweis nach der Buchung.}}
+<h3>Hinweis nach der Buchung</h3>
+<p>Direkt nach einer Anmeldung erscheint eine Hinweisbox, standardmäßig „Wichtig: Speichere deinen Buchungscode!“. Überschrift (bis 80 Zeichen) und Text (bis 600 Zeichen) kannst du hier ändern.</p>
+
+<h2>Themenbereiche, Themen und Farben</h2>
+<p>Unter <b>Katalog › Themen</b> stellst du mit dem Schalter oben zwischen den beiden Bereichen um (standardmäßig Dienstlich und Privat).</p>
+{{FIGURE:adm-themen|Bezeichnung, Farben und Themen eines Bereichs.}}
+<ul>
+<li><b>Bezeichnung:</b> Du kannst die Namen der beiden Bereiche ändern. Die Bereiche selbst lassen sich nicht löschen oder ergänzen.</li>
+<li><b>Farben:</b> Pro Bereich legst du Hintergrund, Überschriftenfarbe und Textfarbe der Katalogbühne fest. Die Anwendung prüft den Kontrast (Text mindestens 4,5:1, Überschrift mindestens 3:1) und warnt bei zu schwacher Lesbarkeit. <b>Standardfarben</b> setzt die Vorgabe zurück.</li>
+<li><b>Themen:</b> Hinzufügen, umbenennen und löschen. Beim Umbenennen passen sich bestehende Veranstaltungen automatisch an. Ein Thema lässt sich nur löschen, wenn keine Veranstaltung es verwendet. Das Thema „Sonstiges“ steht im Katalog immer als letzte Reihe, alle anderen alphabetisch.</li>
+</ul>
+<p>Mit <b>Änderungen speichern</b> übernimmst du alles.</p>
+
+<h2>Arten der Veranstaltung</h2>
+<p>Unter <b>Katalog › Arten</b> legst du fest, welche Arten es gibt, zum Beispiel Workshop, Austausch oder Best Practice. Sie erscheinen im Anlege-Formular, als Chip auf den Kacheln und im Katalogfilter, immer alphabetisch sortiert.</p>
+{{FIGURE:adm-arten|Die Arten der Veranstaltung verwalten.}}
+<ul>
+<li>Du kannst bis zu <b>50 Arten</b> anlegen, umbenennen und löschen.</li>
+<li>Umbenennen passt bestehende Veranstaltungen an. Eine Art, die noch verwendet wird, lässt sich nicht löschen.</li>
+</ul>
+
+<h2>Titel der Anwendung</h2>
+<p>Unter <b>System › Allgemein</b> änderst du den Titel (2 bis 60 Zeichen), etwa von „LearnTogether@AD“ zu „LearnTogether@R+V“. Er erscheint im Seitenkopf, im Browser-Tab, im Betreff der Kalenderdatei und in den PDF-Berichten.</p>
+
+<h2>Testdaten</h2>
+<p>Unter <b>System › Testdaten</b> füllst du die Anwendung mit Beispielveranstaltungen und Anmeldungen, damit du alle Fälle ausprobieren kannst, etwa ausgebuchte, fast ausgebuchte und vergangene Termine. Die Testdaten richten sich nach den eingestellten Themen und Arten und ändern diese nicht. Sie sind mit „Testdaten“ markiert.</p>
+<ul>
+<li><b>Testdaten laden</b> oder <b>neu laden</b> legt die Beispiele an.</li>
+<li><b>Testdaten entfernen</b> löscht nur die Beispiele. Echte Veranstaltungen und Anmeldungen bleiben.</li>
+<li>Im Demo-Modus (ohne Server) setzt <b>Demo komplett zurücksetzen</b> alles im Browser zurück.</li>
+</ul>
+<div class="tip">Entferne die Testdaten vor dem Start im Echtbetrieb, sonst verfälschen sie die Statistik. Alternativ blendest du sie in der Statistik aus.</div>
+
+<h2>Installation auf dem IIS</h2>
+<p>Die Anwendung läuft als einfache Webseite mit einem ASP.NET-Handler. Node.js wird nicht benötigt.</p>
+<h3>Voraussetzungen</h3>
+<ul>
+<li>Windows Server mit IIS und <b>ASP.NET 4.x</b> (.NET Framework 4.6 oder neuer)</li>
+<li>Ein Anwendungspool mit „.NET CLR v4.0“ und integriertem Pipeline-Modus</li>
+</ul>
+<h3>Schritte</h3>
+<ol>
+<li>Kopiere den Inhalt des Ordners <code>IIS</code> in ein Verzeichnis des Webservers, als Site oder als Anwendung.</li>
+<li>Gib dem Benutzer des Anwendungspools (zum Beispiel <code>IIS AppPool\&lt;Pool&gt;</code>) <b>Ändern-Rechte</b> auf den Ordner <code>AppData\Data</code>. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder.</li>
+<li>Rufe <code>index.html</code> auf. Erscheint oben ein gelbes Banner „Demo-Modus“, erreicht die Seite den Server nicht, siehe Fehlersuche.</li>
+<li>Melde dich im Admin-Bereich an und ändere das Standardpasswort.</li>
+</ol>
+<h3>Aufbau</h3>
+<table>
+<tr><th>Datei oder Ordner</th><th>Inhalt</th></tr>
+<tr><td><code>index.html</code></td><td>Die Anwendung</td></tr>
+<tr><td><code>web.config</code></td><td>IIS-Einstellungen, schützt <code>Data</code> und <code>Private</code> vor direktem Abruf</td></tr>
+<tr><td><code>AppData\api.ashx</code></td><td>Server-Logik (Speichern, Anmelden, Admin)</td></tr>
+<tr><td><code>AppData\Data</code></td><td>Alle Daten (data.json, settings.json, Bilder, error.log)</td></tr>
+<tr><td><code>AppData\Private</code></td><td>Dieses Handbuch, nur nach Admin-Anmeldung abrufbar</td></tr>
+<tr><td><code>AppData\fonts</code>, <code>assets</code></td><td>Schriften und Logos</td></tr>
+<tr><td><code>AppData\Handbuch.html</code>, <code>Nutzerhandbuch.pdf</code></td><td>Nutzerhandbuch</td></tr>
+<tr><td><code>AppData\selftest.ashx</code></td><td>Selbsttest für die Fehlersuche</td></tr>
+</table>
+<h3>Update</h3>
+<p>Überschreibe alle Dateien außer <code>AppData\Data</code>. Die Daten bleiben erhalten. Danach lädst du die Seite mit <kbd>Strg</kbd>+<kbd>F5</kbd> neu, um den Browser-Cache zu umgehen.</p>
+<h3>Datensicherung</h3>
+<p>Sichere regelmäßig den Ordner <code>AppData\Data</code>. Er enthält alles, was die Anwendung speichert. <code>settings.json</code> enthält den Hash des Admin-Passworts, vergib deshalb Zugriffsrechte auf den Ordner nur an Betriebspersonal.</p>
+
+<h2>Fehlersuche</h2>
+<table>
+<tr><th>Symptom</th><th>Ursache und Lösung</th></tr>
+<tr><td>Gelbes Banner „Demo-Modus“</td><td>Der Server wird nicht erreicht. Klicke auf „Warum Demo-Modus?“, dort steht der Grund. Prüfe, ob <code>AppData/api.ashx?action=ping</code> JSON liefert. Andernfalls ist ASP.NET 4.x nicht installiert oder der Anwendungspool falsch eingestellt.</td></tr>
+<tr><td>Roter Hinweis „Speichern nicht möglich“</td><td>Dem Anwendungspool fehlen Schreibrechte auf <code>AppData\Data</code>.</td></tr>
+<tr><td>HTTP 500 beim Aufruf von api.ashx</td><td>Öffne <code>AppData/selftest.ashx</code>. Die Seite zeigt .NET-Version, Pool-Benutzer und Schreibrechte. Fehlermeldungen des Servers stehen in <code>AppData\Data\error.log</code>.</td></tr>
+<tr><td>Änderungen erscheinen nicht</td><td>Browser-Cache mit <kbd>Strg</kbd>+<kbd>F5</kbd> umgehen.</td></tr>
+<tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten.</td></tr>
+<tr><td>Passwort vergessen</td><td>Setze in <code>AppData\Data\settings.json</code> den Wert von <code>passwordHash</code> auf einen leeren Text (Dienst vorher anhalten). Danach gilt wieder das Standardpasswort, das du sofort ändern solltest.</td></tr>
+</table>
+
+<h2>Datenschutz und Spielregeln</h2>
+<ul>
+<li>Die Anwendung speichert Name und E-Mail-Adresse der Anbietenden und der angemeldeten Personen sowie die Veranstaltungsdaten. Sie verschickt keine E-Mails und setzt keine Benutzerkonten ein.</li>
+<li>Der Teams-Link wird nur Personen mit Buchungscode angezeigt und steht nicht im Katalog.</li>
+<li>Die Teilnehmerliste sehen nur die Administration und Anbietende mit Veranstaltungscode, und zwar ohne E-Mail-Adressen.</li>
+<li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
+<li>Der Betrieb gilt als Proof of Concept. Prüfe vor einem breiten Einsatz Datenschutz, Betriebsrat und Berechtigungskonzept.</li>
+</ul>
+
+<h2>Häufige Fragen</h2>
+<h3>Kann ich Anmeldungen für andere Personen vornehmen?</h3>
+<p>Nein, Anmeldungen entstehen nur über den Katalog. Du kannst Anmeldungen aber entfernen und die Platzzahl einer Veranstaltung erhöhen.</p>
+<h3>Wie viele Daten verträgt die Anwendung?</h3>
+<p>Alle Daten liegen in einer JSON-Datei, geeignet für einige hundert Veranstaltungen und einige tausend Anmeldungen. Für größeren Betrieb empfiehlt sich eine Datenbank.</p>
+<h3>Wo ändere ich die Farben der Anwendung?</h3>
+<p>Die Farben des Katalogs je Bereich unter Katalog › Themen. Das übrige Erscheinungsbild folgt dem R+V-Design und ist fest.</p>
+<h3>Wie bekomme ich das Handbuch als PDF?</h3>
+<p>Oben in diesem Handbuch auf <b>Als PDF herunterladen</b> klicken.</p>

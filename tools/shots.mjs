@@ -30,4 +30,15 @@ await p.fill('#f-cap', '12');
 await p.waitForTimeout(200);
 await shot('anbieten', { fullPage: false, clip: { x: 0, y: 60, width: 1280, height: 800 } });
 if (testImg) { await p.setInputFiles('#f-img', testImg); await p.waitForSelector('.crop-box'); await p.fill('.zoomrow input[type=range]', '1.6'); await p.locator('.zoomrow input[type=range]').dispatchEvent('input'); await p.locator('.modal').screenshot({ path: path.join(out, 'zuschneiden.jpg'), type: 'jpeg', quality: 80 }); }
+// ---- Administration
+await p.setViewportSize({ width: 1280, height: 900 });
+await go('#/admin'); await p.fill('#a-pw', 'RuVTest1234'); await p.click('button[type=submit]'); await p.waitForSelector('table.tbl');
+await shot('adm-events', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await p.locator('button:has-text("Teilnehmende (8)")').first().click(); await p.waitForSelector('.modal .people-tbl'); await p.waitForTimeout(200);
+await p.locator('.modal').screenshot({ path: path.join(out, 'adm-teilnehmende.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
+const nav = async t => { await p.click('.admin-nav button:has-text("' + t + '")'); await p.waitForTimeout(500); };
+await nav('Statistik'); await p.waitForSelector('.st-card'); await shot('adm-statistik', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await nav('Texte'); await p.waitForSelector('#h-title'); await shot('adm-texte', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await nav('Themen'); await shot('adm-themen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await nav('Arten'); await shot('adm-arten', { clip: { x: 0, y: 60, width: 1280, height: 600 } });
 await b.close(); console.log('Screenshots in', out);

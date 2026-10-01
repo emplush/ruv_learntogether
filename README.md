@@ -21,3 +21,10 @@ Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `II
 `cd tools && npm install` (nur für PDF/Screenshots), dann `python3 tools/build.py`. Bei jeder Änderung wird `IIS/`, `artifact/` und das Handbuch (HTML + PDF) neu erzeugt. Version in `VERSION`.
 
 **Hinweis:** Die Anwendung verschickt keine E-Mails.
+
+
+## Handbücher
+
+- **Nutzerhandbuch:** Quelle `src/handbuch/body.html`, in der App unter „Handbuch“, als `AppData/Handbuch.html` und `Nutzerhandbuch.pdf`.
+- **Administrationshandbuch:** Quelle `src/handbuch/admin.html`, in der App unter Admin › System › Handbuch; Dateien in `AppData/Private` (nur nach Admin-Anmeldung abrufbar).
+- Beide werden bei jeder Änderung an der Anwendung mitgepflegt. Neu erzeugen: `node tools/shots.mjs && python3 tools/build.py`. Kopien liegen in `docs/`.
