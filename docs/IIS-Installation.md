@@ -4,7 +4,7 @@
 
 1. Inhalt des Ordners `IIS/` in ein Verzeichnis des Webservers kopieren (als Site oder Anwendung).
 2. Dem Anwendungspool-Benutzer (z. B. `IIS AppPool\<Pool>`) **Ändern-Rechte** auf `AppData\Data` geben. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder als JSON-/Bilddateien.
-3. `index.html` aufrufen. Anmelden mit Benutzername `admin` und Standardpasswort `RuVTest1234`; die Anwendung verlangt sofort ein neues Passwort. Weitere Administrierende ernennt die Hauptadministration unter Admin › Nutzer.
+3. `index.html` aufrufen. Das Startpasswort steht nur auf dem Server in `AppData\Data\admin-startpasswort.txt`. Anmelden mit Benutzername `admin` und diesem Passwort; die Anwendung verlangt sofort ein neues Passwort und löscht die Datei danach. Weitere Administrierende ernennt die Hauptadministration unter Admin › Nutzer. Ohne HTTPS nur im internen Netz betreiben (siehe docs/LearnTogether-AD_IT-Sicherheit-Datenschutz.pdf).
 4. Die Anwendung **verschickt keine E-Mails**. Teilnahme-Angaben (Teams-Link, Kalenderdatei) zeigt sie direkt nach der Anmeldung und unter „Meine Anmeldungen“. Mitteilungen (z. B. Absagen) erscheinen dort ebenfalls.
 
 **Hinweise**

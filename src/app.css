@@ -705,3 +705,7 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 .prof-sec h2 .bdg { margin-right: 2px; }
 .au-row { display: flex; gap: 10px; align-items: flex-start; } .au-noav { width: 44px; flex: none; }
 .login-help { margin-top: 16px; max-width: 640px; } .login-help summary { cursor: pointer; color: var(--link); font-weight: 700; } .login-help > div, .login-help > p { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+/* 0.26: Sicherheitshinweise in der Administration */
+.admin-warn { display: flex; flex-direction: column; gap: 12px; margin: 0 0 20px; }
+.admin-warn:empty { display: none; }
+.chk-sep { padding-top: 16px; border-top: 1px solid var(--line); }

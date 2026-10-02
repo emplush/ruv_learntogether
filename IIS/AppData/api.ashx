@@ -52,7 +52,9 @@ namespace LearnTogether
         public string avatar { get; set; }        // "" | "upload" | Kennung eines Platzhalter-Profilbilds
         public long avatarVer { get; set; }
         public bool showAvatar { get; set; }
-        public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); }
+        public bool hideBadges { get; set; }      // Abzeichen und Expertenstatus fuer andere ausblenden
+        public List<string> sessions { get; set; } // aktive Sitzungen "Kennung:Ablauf" (Abmelden beendet die Sitzung auch auf dem Server)
+        public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); sessions = new List<string>(); }
     }
 
     public class EventRec
@@ -186,6 +188,10 @@ namespace LearnTogether
         public Dictionary<string, int> offered = new Dictionary<string, int>();
         public Dictionary<string, int> topic = new Dictionary<string, int>();
         public SettingsRec s;
+        public HashSet<string> hidden = new HashSet<string>();
+        // Fuer andere sichtbar: 0 bzw. false, wenn die Person ihre Abzeichen ausgeblendet hat
+        public int PubLevel(string uid) { return !string.IsNullOrEmpty(uid) && hidden.Contains(uid) ? 0 : Level(uid); }
+        public bool PubExpert(string uid, string cat, string tp) { return !string.IsNullOrEmpty(uid) && !hidden.Contains(uid) && Expert(uid, cat, tp); }
         public int Level(string uid)
         {
             if (string.IsNullOrEmpty(uid)) return 0;
@@ -203,12 +209,19 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.25.1";
+        const string Version = "0.26.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
         const int RetainYears = 5;
         const int SessionHours = 8;
+        const int MinRatings = 3;        // Durchschnittswerte erst ab drei Bewertungen, damit niemand auf einzelne Stimmen schliessen kann
+        const int InactiveMonths = 24;   // Konten ohne Anmeldung werden danach automatisch geloescht
+        static DateTime lastPurge = DateTime.MinValue;
+        // Lesende Aufrufe; alles andere ist nur per POST mit Pflicht-Header erlaubt
+        static readonly string[] GetActions = new string[] { "ping", "settings", "events", "img", "photo", "avatar", "me", "myBookings", "myEvents", "profile", "publicProfile", "myData", "adminEvents", "adminUsers", "adminSettings", "adminManual", "adminManualPdf" };
+        // Admin-Aktionen, die im Protokoll (AppData\Data\audit) festgehalten werden
+        static readonly string[] AuditActions = new string[] { "adminSetRole", "adminResetPassword", "adminSetLocked", "adminDeleteUser", "adminSaveEvent", "adminDeleteEvent", "adminDeleteBooking", "adminDeleteAvatar", "adminSavePhoto", "adminDeletePhoto", "adminSaveSettings", "adminSaveTaxonomy", "adminTestData" };
         static readonly string[] AllowedTeamsHosts = new string[] { "teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft", "teams.microsoft.us" };
         static readonly Dictionary<string, int[]> AuthFails = new Dictionary<string, int[]>();
         static readonly Dictionary<string, int[]> RegCount = new Dictionary<string, int[]>();
@@ -217,6 +230,8 @@ namespace LearnTogether
 
         HttpContext ctx;
         JavaScriptSerializer json;
+        string curAction = "";
+        Dictionary<string, object> bodyCache;
 
         public bool IsReusable { get { return false; } }
 
@@ -228,11 +243,15 @@ namespace LearnTogether
             json.MaxJsonLength = int.MaxValue;
             json.RecursionLimit = 100;
             string action = (context.Request.QueryString["action"] ?? "").Trim();
+            curAction = action;
             try
             {
                 // CSRF-Schutz: schreibende Aufrufe brauchen einen Header, den ein fremdes Formular nicht setzen kann
                 if (context.Request.HttpMethod == "POST" && (context.Request.Headers["X-LT-Request"] ?? "") != "1")
                     throw new ApiException("csrf", "Ungültige Anfrage.");
+                // Schreibende Aktionen nur per POST
+                if (context.Request.HttpMethod != "POST" && Array.IndexOf(GetActions, action) < 0)
+                    throw new ApiException("method", "Diese Aktion ist nur per POST erlaubt.", 405);
                 switch (action)
                 {
                     case "ping": { bool w; string we; CheckWritable(out w, out we); Send(new { ok = true, server = true, version = Version, writable = w, storageError = we }); break; }
@@ -260,6 +279,8 @@ namespace LearnTogether
                     case "updateAccount": UpdateAccount(); break;
                     case "dismissHint": DismissHint(); break;
                     case "publicProfile": PublicProfile(); break;
+                    case "myData": MyData(); break;
+                    case "deleteAccount": DeleteAccount(); break;
                     default:
                         AdminAction(action);
                         break;
@@ -307,6 +328,7 @@ namespace LearnTogether
                     case "adminDeleteEvent": AdminDeleteEvent(d); break;
                     case "adminDeleteBooking": AdminDeleteBooking(d); break;
                     case "adminDeleteAvatar": AdminDeleteAvatar(d); break;
+                    case "adminDeleteUser": AdminDeleteUser(d, me); break;
                     case "adminSavePhoto": AdminSavePhoto(); break;
                     case "adminDeletePhoto": AdminDeletePhoto(); break;
                     case "adminSettings": AdminSettings(); break;
@@ -317,7 +339,30 @@ namespace LearnTogether
                     case "adminManualPdf": AdminManual(true); break;
                     default: throw new ApiException("unknown", "Unbekannte Aktion.", 404);
                 }
+                if (Array.IndexOf(AuditActions, action) >= 0) Audit(me, action);
             }
+        }
+
+        // Protokoll der Admin-Aktionen: wer hat wann was an welchem Datensatz geaendert (ohne Inhalte), Monatsdateien, 12 Monate aufbewahrt
+        void Audit(UserRec me, string action)
+        {
+            try
+            {
+                string dir = Path.Combine(DataDir(), "audit");
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                DateTime now = NowBerlin();
+                string target = "";
+                if (bodyCache != null)
+                {
+                    string id = S(bodyCache, "id"); if (id.Length == 0) { Dictionary<string, object> ev = D(bodyCache, "event"); if (ev != null) id = S(ev, "id"); }
+                    if (id.Length == 0) id = S(bodyCache, "mode");
+                    target = Regex.Replace(id, "[^A-Za-z0-9_-]", "");
+                }
+                File.AppendAllText(Path.Combine(dir, "audit-" + now.ToString("yyyy-MM", CultureInfo.InvariantCulture) + ".log"), now.ToString("s", CultureInfo.InvariantCulture) + "\t" + me.username + "\t" + action + "\t" + target + Environment.NewLine, new UTF8Encoding(false));
+                string limit = "audit-" + now.AddMonths(-12).ToString("yyyy-MM", CultureInfo.InvariantCulture) + ".log";
+                foreach (string f in Directory.GetFiles(dir, "audit-*.log")) if (string.CompareOrdinal(Path.GetFileName(f), limit) < 0) File.Delete(f);
+            }
+            catch (Exception ex) { LogError(ex); }
         }
 
         // ---------------------------------------------------------------- Hilfsfunktionen HTTP/JSON
@@ -325,17 +370,20 @@ namespace LearnTogether
         {
             ctx.Response.ContentType = "application/json; charset=utf-8";
             ctx.Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            ctx.Response.Cache.SetNoStore();
             ctx.Response.Write(json.Serialize(o));
         }
 
         Dictionary<string, object> Body()
         {
+            if (bodyCache != null) return bodyCache;
             string raw;
             using (StreamReader r = new StreamReader(ctx.Request.InputStream, Encoding.UTF8)) { raw = r.ReadToEnd(); }
-            if (string.IsNullOrEmpty(raw)) return new Dictionary<string, object>();
+            if (string.IsNullOrEmpty(raw)) { bodyCache = new Dictionary<string, object>(); return bodyCache; }
             object o = json.DeserializeObject(raw);
             Dictionary<string, object> d = o as Dictionary<string, object>;
             if (d == null) throw new ApiException("invalid", "Ung\u00fcltige Anfrage.");
+            bodyCache = d;
             return d;
         }
 
@@ -419,6 +467,7 @@ namespace LearnTogether
             DataFile d = ReadJson<DataFile>("data.json");
             bool changed = EnsureAdmin(d);
             if (Anonymize(d)) changed = true;
+            if (PurgeInactive(d)) changed = true;
             if (changed) { try { SaveData(d); } catch (Exception ex) { LogError(ex); } }
             return d;
         }
@@ -427,19 +476,84 @@ namespace LearnTogether
 
         static string NewId() { return RandomToken(6).Replace('-', 'a').Replace('_', 'b').ToLowerInvariant(); }
 
-        // Standard-Administrator: Benutzername admin; ein frueher vergebenes Admin-Passwort wird uebernommen
+        // Hauptadministration: Benutzername admin. Das Startpasswort ist zufaellig und steht nur auf dem Server
+        // in AppData\Data\admin-startpasswort.txt (ueber HTTP nicht abrufbar). Die Datei verschwindet nach der ersten Passwortaenderung.
+        string StartPasswordFile() { return Path.Combine(DataDir(), "admin-startpasswort.txt"); }
+        string NewStartPassword()
+        {
+            string pw = TempPassword();
+            File.WriteAllText(StartPasswordFile(), "LearnTogether@AD - Startpasswort der Hauptadministration" + Environment.NewLine + Environment.NewLine + "Benutzername: admin" + Environment.NewLine + "Passwort:     " + pw + Environment.NewLine + Environment.NewLine + "Beim ersten Anmelden verlangt die Anwendung ein eigenes Passwort. Danach wird diese Datei automatisch geloescht." + Environment.NewLine, new UTF8Encoding(false));
+            return pw;
+        }
+        static bool defaultPwChecked;
         bool EnsureAdmin(DataFile d)
         {
-            if (d.users.Exists(delegate (UserRec x) { return x.role == "superadmin"; })) return false;
-            if (d.users.Exists(delegate (UserRec x) { return x.username.ToLowerInvariant() == "admin"; })) { UserRec ex = d.users.Find(delegate (UserRec x) { return x.username.ToLowerInvariant() == "admin"; }); ex.role = "superadmin"; ex.locked = false; ex.pwHash = HashPassword(DefaultAdminPassword); ex.pwVersion++; ex.mustChange = true; return true; }
-            SettingsRec s = LoadSettings();
-            UserRec a = new UserRec();
-            a.id = NewId(); a.username = "admin"; a.firstName = "Haupt"; a.lastName = "Administration"; a.xv = ""; a.email = "admin@learntogether.local";
-            a.role = "superadmin"; a.created = NowBerlin().ToString("s", CultureInfo.InvariantCulture);
-            if (d.users.Count == 0 && !string.IsNullOrEmpty(s.passwordHash) && !CheckPassword(DefaultAdminPassword, s.passwordHash)) { a.pwHash = s.passwordHash; a.mustChange = false; }
-            else { a.pwHash = HashPassword(DefaultAdminPassword); a.mustChange = true; }
-            d.users.Add(a);
+            UserRec sa = d.users.Find(delegate (UserRec x) { return x.role == "superadmin"; });
+            if (sa != null)
+            {
+                // Aeltere Installationen: hat die Hauptadministration noch das frueher bekannte Standardpasswort, wird es durch ein zufaelliges ersetzt
+                if (defaultPwChecked) return false;
+                defaultPwChecked = true;
+                if (!sa.mustChange || !CheckPassword(DefaultAdminPassword, sa.pwHash)) return false;
+                sa.pwHash = HashPassword(NewStartPassword()); sa.pwVersion++; sa.sessions = new List<string>();
+                return true;
+            }
+            UserRec a = d.users.Find(delegate (UserRec x) { return x.username.ToLowerInvariant() == "admin"; });
+            if (a == null)
+            {
+                a = new UserRec();
+                a.id = NewId(); a.username = "admin"; a.firstName = "Haupt"; a.lastName = "Administration"; a.xv = ""; a.email = "admin@learntogether.local";
+                a.created = NowBerlin().ToString("s", CultureInfo.InvariantCulture);
+                d.users.Add(a);
+            }
+            a.role = "superadmin"; a.locked = false; a.pwHash = HashPassword(NewStartPassword()); a.pwVersion++; a.mustChange = true; a.sessions = new List<string>();
             return true;
+        }
+
+        // Konten ohne Anmeldung seit InactiveMonths Monaten loeschen (nicht die Hauptadministration und keine Testkonten), hoechstens einmal je Stunde geprueft
+        bool PurgeInactive(DataFile d)
+        {
+            if ((DateTime.UtcNow - lastPurge).TotalHours < 1) return false;
+            lastPurge = DateTime.UtcNow;
+            DateTime limit = NowBerlin().AddMonths(-InactiveMonths);
+            List<UserRec> old = d.users.FindAll(delegate (UserRec u)
+            {
+                if (u.role == "superadmin" || u.isTest) return false;
+                DateTime t;
+                string last = !string.IsNullOrEmpty(u.lastLogin) ? u.lastLogin : u.created;
+                return DateTime.TryParse(last, CultureInfo.InvariantCulture, DateTimeStyles.None, out t) && t < limit;
+            });
+            foreach (UserRec u in old) DeleteUser(d, u, "Das Konto der anbietenden Person wurde gel\u00f6scht.");
+            return old.Count > 0;
+        }
+
+        // Konto loeschen: Stammdaten, Profilbild, Mitteilungen und Sitzungen weg. Kuenftige eigene Veranstaltungen werden abgesagt
+        // (Teilnehmende erhalten eine Mitteilung), vergangene bleiben anonym erhalten. Kuenftige Anmeldungen entfallen, vergangene werden anonymisiert.
+        void DeleteUser(DataFile d, UserRec u, string reason)
+        {
+            DateTime now = NowBerlin();
+            foreach (EventRec e in d.events)
+            {
+                if (e.ownerId != u.id) continue;
+                if (!e.cancelled && StartOfSafe(e.date, e.start) > now)
+                {
+                    e.cancelled = true; e.cancelledAt = NowIso(); e.cancelReason = reason;
+                    foreach (BookingRec bk in d.bookings) if (bk.eventId == e.id && !string.IsNullOrEmpty(bk.userId) && bk.userId != u.id) AddNote(d, bk.userId, "cancelled", e, reason);
+                }
+                e.ownerId = null; e.host = "Anonymisiert"; e.teamsLink = "";
+            }
+            List<BookingRec> drop = new List<BookingRec>();
+            foreach (BookingRec bk in d.bookings)
+            {
+                if (bk.userId != u.id) continue;
+                EventRec ev = FindEvent(d, bk.eventId);
+                if (ev == null || (!ev.cancelled && StartOfSafe(ev.date, ev.start) > now)) drop.Add(bk);
+                else { bk.userId = null; bk.name = "Anonymisiert"; bk.email = ""; }
+            }
+            foreach (BookingRec bk in drop) d.bookings.Remove(bk);
+            d.notes.RemoveAll(delegate (NoteRec n) { return n.userId == u.id; });
+            try { DeleteAvatarFile(u.id); } catch (Exception ex) { LogError(ex); }
+            d.users.Remove(u);
         }
 
         static UserRec FindUser(DataFile d, string id)
@@ -494,6 +608,7 @@ namespace LearnTogether
         Badges BuildBadges(DataFile d, SettingsRec s, DateTime now)
         {
             Badges b = new Badges(); b.s = s;
+            foreach (UserRec u in d.users) if (u.hideBadges) b.hidden.Add(u.id);
             foreach (EventRec e in d.events)
             {
                 if (e.cancelled || e.anonymized || string.IsNullOrEmpty(e.ownerId) || !Ended(e, now)) continue;
@@ -582,13 +697,22 @@ namespace LearnTogether
             return c == null ? "" : c.Value;
         }
 
+        // Sitzung: signiertes Cookie mit Konto, Ablauf, Passwortstand und Sitzungskennung. Die Kennung steht zusaetzlich am Konto,
+        // damit "Abmelden" die Sitzung auch auf dem Server beendet. Hoechstens 10 Sitzungen je Konto, feste Dauer SessionHours.
         void SetSession(UserRec u)
         {
             SettingsRec s = LoadSettings();
-            long exp = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds + SessionHours * 3600;
-            string payload = u.id + ":" + exp.ToString(CultureInfo.InvariantCulture) + ":" + u.pwVersion.ToString(CultureInfo.InvariantCulture);
+            long now = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds, exp = now + SessionHours * 3600;
+            string sid = RandomToken(12);
+            if (u.sessions == null) u.sessions = new List<string>();
+            u.sessions.RemoveAll(delegate (string x) { return SessionExp(x) <= now; });
+            while (u.sessions.Count >= 10) u.sessions.RemoveAt(0);
+            u.sessions.Add(sid + ":" + exp.ToString(CultureInfo.InvariantCulture));
+            string payload = u.id + ":" + exp.ToString(CultureInfo.InvariantCulture) + ":" + u.pwVersion.ToString(CultureInfo.InvariantCulture) + ":" + sid;
             WriteCookie(payload + "." + Sign(payload, s.tokenSecret), SessionHours * 3600);
         }
+        static long SessionExp(string entry) { long e; int i = entry.LastIndexOf(':'); return i > 0 && long.TryParse(entry.Substring(i + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out e) ? e : 0; }
+        static bool HasSession(UserRec u, string sid) { return u.sessions != null && u.sessions.Exists(delegate (string x) { return x.StartsWith(sid + ":"); }); }
 
         void WriteCookie(string value, int maxAge)
         {
@@ -599,6 +723,7 @@ namespace LearnTogether
         }
 
         // Liefert den angemeldeten Benutzer (oder null / Fehler, wenn require gesetzt ist)
+        string sessionId = "";
         UserRec Auth(DataFile d, bool require)
         {
             string t = Cookie("lt_session");
@@ -608,19 +733,22 @@ namespace LearnTogether
             {
                 string[] q = p[0].Split(':');
                 long exp;
-                if (q.Length == 3 && long.TryParse(q[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out exp))
+                if (q.Length == 4 && long.TryParse(q[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out exp))
                 {
                     long now = (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
                     SettingsRec s = LoadSettings();
                     if (exp > now && SlowEquals(Sign(p[0], s.tokenSecret), p[1]))
                     {
                         u = FindUser(d, q[0]);
-                        if (u != null && (u.locked || u.pwVersion.ToString(CultureInfo.InvariantCulture) != q[2])) u = null;
-                        if (u != null && exp - now < (SessionHours * 3600) - 600) { try { SetSession(u); } catch { } }
+                        if (u != null && (u.locked || u.pwVersion.ToString(CultureInfo.InvariantCulture) != q[2] || !HasSession(u, q[3]))) u = null;
+                        if (u != null) sessionId = q[3];
                     }
                 }
             }
             if (u == null && require) throw new ApiException("auth", "Bitte melde Dich an.");
+            // Vorlaeufiges Passwort: bis zur Aenderung nur Profil und Passwortaenderung
+            if (u != null && require && u.mustChange && curAction != "changePassword" && curAction != "profile" && curAction != "me")
+                throw new ApiException("mustChange", "Bitte vergib zuerst ein eigenes Passwort (Profil \u203a Konto).");
             return u;
         }
 
@@ -698,7 +826,10 @@ namespace LearnTogether
         {
             try
             {
-                File.AppendAllText(Path.Combine(DataDir(), "error.log"), DateTime.Now.ToString("s") + " " + ex.ToString() + Environment.NewLine + Environment.NewLine, Encoding.UTF8);
+                string lp = Path.Combine(DataDir(), "error.log");
+                // Groesse begrenzen: ab 2 MB wird die Datei nach error.log.old verschoben
+                if (File.Exists(lp) && new FileInfo(lp).Length > 2 * 1024 * 1024) { File.Copy(lp, lp + ".old", true); File.Delete(lp); }
+                File.AppendAllText(lp, DateTime.Now.ToString("s") + " " + ex.ToString() + Environment.NewLine + Environment.NewLine, Encoding.UTF8);
             }
             catch { }
         }
@@ -868,8 +999,8 @@ namespace LearnTogether
                 UserRec u = new UserRec();
                 u.id = NewId(); u.username = username; u.firstName = first; u.lastName = last; u.xv = xv; u.email = email; u.pwHash = HashPassword(pw);
                 u.created = NowIso(); u.lastLogin = u.created;
-                d.users.Add(u); SaveData(d);
-                SetSession(u);
+                d.users.Add(u);
+                SetSession(u); SaveData(d);
                 Send(new { ok = true, me = MeInfo(d, BuildBadges(d, LoadSettings(), NowBerlin()), u) });
             }
         }
@@ -897,14 +1028,19 @@ namespace LearnTogether
                 if (u.locked) throw new ApiException("locked", "Dieses Konto ist gesperrt. Bitte wende Dich an die Administration.");
                 ThrottleClear(ku); ThrottleClear(ki);
                 if (NeedsRehash(u.pwHash)) u.pwHash = HashPassword(pw);
-                u.lastLogin = NowIso(); SaveData(d);
-                SetSession(u);
+                u.lastLogin = NowIso();
+                SetSession(u); SaveData(d);
                 Send(new { ok = true, me = MeInfo(d, BuildBadges(d, LoadSettings(), NowBerlin()), u) });
             }
         }
 
         void Logout()
         {
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec u = Auth(d, false);
+                if (u != null && sessionId.Length > 0) { u.sessions.RemoveAll(delegate (string x) { return x.StartsWith(sessionId + ":"); }); SaveData(d); }
+            }
             WriteCookie("", 0);
             Send(new { ok = true });
         }
@@ -934,8 +1070,9 @@ namespace LearnTogether
                 string pr = PasswordProblem(nw, u.username, u.email);
                 if (pr != null) throw new ApiException("invalid", pr);
                 if (nw == cur) throw new ApiException("invalid", "Das neue Passwort muss sich vom bisherigen unterscheiden.");
-                u.pwHash = HashPassword(nw); u.pwVersion++; u.mustChange = false;
-                SaveData(d); SetSession(u);
+                u.pwHash = HashPassword(nw); u.pwVersion++; u.mustChange = false; u.sessions = new List<string>();
+                SetSession(u); SaveData(d);
+                if (u.role == "superadmin") { try { if (File.Exists(StartPasswordFile())) File.Delete(StartPasswordFile()); } catch (Exception ex) { LogError(ex); } }
                 Send(new { ok = true });
             }
         }
@@ -954,13 +1091,22 @@ namespace LearnTogether
         {
             int sum = 0; count = 0;
             foreach (BookingRec b in d.bookings) if (b.eventId == eventId && b.rating > 0) { sum += b.rating; count++; }
-            avg = count > 0 ? Math.Round(sum / (double)count, 2) : 0;
+            avg = count >= MinRatings ? Math.Round(sum / (double)count, 2) : 0;
         }
+
+        // Verteilung der Sterne (1 bis 5) einer Veranstaltung, nur ab MinRatings Bewertungen
+        static int[] RatingDist(DataFile d, string eventId)
+        {
+            int[] r = new int[5]; int n = 0;
+            foreach (BookingRec b in d.bookings) if (b.eventId == eventId && b.rating > 0) { r[b.rating - 1]++; n++; }
+            return n >= MinRatings ? r : null;
+        }
+        static double AvgOrZero(int sum, int count) { return count >= MinRatings ? Math.Round(sum / (double)count, 2) : 0; }
 
         Dictionary<string, object> EventBase(DataFile d, Badges bd, EventRec e)
         {
             Dictionary<string, object> x = new Dictionary<string, object>();
-            x["id"] = e.id; x["title"] = e.title; x["host"] = HostName(d, e); x["hostLevel"] = bd.Level(e.ownerId); x["hostExpert"] = bd.Expert(e.ownerId, e.category, e.topic);
+            x["id"] = e.id; x["title"] = e.title; x["host"] = HostName(d, e); x["hostLevel"] = bd.PubLevel(e.ownerId); x["hostExpert"] = bd.PubExpert(e.ownerId, e.category, e.topic);
             { UserRec ho = FindUser(d, e.ownerId); x["hostPublic"] = ho != null && ho.profilePublic && !ho.locked; }
             x["category"] = e.category; x["type"] = e.type; x["topic"] = e.topic; x["date"] = e.date; x["start"] = e.start; x["duration"] = e.duration; x["capacity"] = e.capacity;
             x["description"] = e.description; x["isTest"] = e.isTest;
@@ -1188,7 +1334,7 @@ namespace LearnTogether
                     {
                         if (bk.eventId != ev.id) continue;
                         UserRec bu = FindUser(d, bk.userId);
-                        people.Add(new { username = bu != null ? bu.username : "Anonymisiert", level = bd.Level(bk.userId), created = bk.created });
+                        people.Add(new { username = bu != null ? bu.username : "Anonymisiert", level = bd.PubLevel(bk.userId), created = bk.created });
                     }
                     double avg; int cnt; RatingOf(d, ev.id, out avg, out cnt);
                     x["teamsLink"] = ev.teamsLink; x["participants"] = people; x["booked"] = people.Count; x["ended"] = ended;
@@ -1230,7 +1376,7 @@ namespace LearnTogether
                     if (ev.cancelled) continue;
                     if (!ended) { upcomingAttended++; continue; }
                     heldAttended++; if (bk.rating > 0) rated++;
-                    attended.Add(new { id = ev.id, title = ev.title, date = ev.date, start = ev.start, category = ev.category, type = ev.type, topic = ev.topic, host = HostName(d, ev), hostLevel = bd.Level(ev.ownerId), rating = bk.rating });
+                    attended.Add(new { id = ev.id, title = ev.title, date = ev.date, start = ev.start, category = ev.category, type = ev.type, topic = ev.topic, host = HostName(d, ev), hostLevel = bd.PubLevel(ev.ownerId), rating = bk.rating });
                 }
                 List<object> topics = new List<object>();
                 foreach (KeyValuePair<string, int> kv in bd.topic)
@@ -1245,10 +1391,10 @@ namespace LearnTogether
                 {
                     ok = true, me = MeInfo(d, bd, me),
                     badge = new { level = lvl, offered = heldOffered, levels = s.badgeLevels, next = next, expertMin = s.expertMin },
-                    offered = new { held = heldOffered, upcoming = upcomingOffered, cancelled = cancelledOffered, ratingAvg = ratingCount > 0 ? Math.Round(ratingSum / (double)ratingCount, 2) : 0, ratingCount = ratingCount, list = offered },
+                    offered = new { held = heldOffered, upcoming = upcomingOffered, cancelled = cancelledOffered, ratingAvg = AvgOrZero(ratingSum, ratingCount), ratingCount = ratingCount, minRatings = MinRatings, list = offered },
                     attended = new { held = heldAttended, upcoming = upcomingAttended, rated = rated, list = attended },
                     topics = topics,
-                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, bio = me.bio ?? "" },
+                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, hideBadges = me.hideBadges, bio = me.bio ?? "" },
                     avatar = AvatarInfo(me, s, true), avatarUpload = !s.avatarUploadOff
                 });
             }
@@ -1265,7 +1411,7 @@ namespace LearnTogether
             lock (Gate)
             {
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
-                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.showAvatar = B(b, "showAvatar") && !string.IsNullOrEmpty(me.avatar); me.bio = bio.Trim();
+                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.showAvatar = B(b, "showAvatar") && !string.IsNullOrEmpty(me.avatar); me.hideBadges = B(b, "hideBadges"); me.bio = bio.Trim();
                 SaveData(d);
                 Send(new { ok = true });
             }
@@ -1301,6 +1447,7 @@ namespace LearnTogether
                     if (!m.Success) throw new ApiException("invalid", "Das Bildformat wird nicht unterstützt.");
                     byte[] bytes = Convert.FromBase64String(m.Groups[1].Value);
                     if (bytes.Length > 1024 * 1024) throw new ApiException("invalid", "Das Bild ist zu groß (maximal 1 MB).");
+                    CheckImageBytes(bytes, "jpeg");
                     File.WriteAllBytes(Path.Combine(AvatarDir(), me.id + ".jpg"), bytes);
                     me.avatar = "upload"; me.avatarVer = DateTime.UtcNow.Ticks;
                 }
@@ -1368,6 +1515,7 @@ namespace LearnTogether
                     if (!m.Success) throw new ApiException("invalid", "Das Bildformat wird nicht unterstützt.");
                     byte[] bytes = Convert.FromBase64String(m.Groups[1].Value);
                     if (bytes.Length > 2 * 1024 * 1024) throw new ApiException("invalid", "Das Foto ist zu groß (maximal 2 MB).");
+                    CheckImageBytes(bytes, "jpeg");
                     File.WriteAllBytes(Path.Combine(PhotoDir(), ph.id + ".jpg"), bytes);
                     ph.ver = DateTime.UtcNow.Ticks;
                 }
@@ -1449,7 +1597,7 @@ namespace LearnTogether
                 if (u == null || !u.profilePublic || u.locked) throw new ApiException("notfound", "Dieses Profil ist nicht öffentlich oder gibt es nicht.");
                 Badges bd = BuildBadges(d, s, now);
                 Dictionary<string, object> p = new Dictionary<string, object>();
-                p["username"] = u.username; p["level"] = bd.Level(u.id); p["bio"] = u.bio ?? ""; p["offered"] = bd.Count(u.id);
+                p["username"] = u.username; p["level"] = bd.PubLevel(u.id); p["bio"] = u.bio ?? ""; p["offered"] = bd.Count(u.id);
                 if (u.showAvatar) { object av = AvatarInfo(u, s, false); if (av != null) p["avatar"] = av; }
                 List<object> topics = new List<object>(), experts = new List<object>();
                 foreach (KeyValuePair<string, int> kv in bd.topic)
@@ -1460,7 +1608,7 @@ namespace LearnTogether
                     if (kv.Value >= s.expertMin) experts.Add(new { category = q[1], topic = q[2] });
                 }
                 p["topics"] = topics;
-                if (u.showExpert) p["experts"] = experts;
+                if (u.showExpert && !u.hideBadges) p["experts"] = experts;
                 if (u.showEmail) p["email"] = u.email;
                 if (u.showRating)
                 {
@@ -1470,7 +1618,7 @@ namespace LearnTogether
                         if (ev.ownerId != u.id || ev.cancelled || !Ended(ev, now)) continue;
                         foreach (BookingRec bk in d.bookings) if (bk.eventId == ev.id && bk.rating > 0) { sum += bk.rating; cnt++; }
                     }
-                    p["ratingAvg"] = cnt > 0 ? Math.Round(sum / (double)cnt, 2) : 0; p["ratingCount"] = cnt;
+                    p["ratingAvg"] = AvgOrZero(sum, cnt); p["ratingCount"] = cnt;
                 }
                 if (u.showUpcoming)
                 {
@@ -1506,33 +1654,87 @@ namespace LearnTogether
                 {
                     if (bk.eventId != e.id) continue;
                     UserRec bu = FindUser(d, bk.userId);
-                    if (bu != null) bl.Add(new { id = bk.id, username = bu.username, firstName = bu.firstName, lastName = bu.lastName, xv = bu.xv, email = bu.email, created = bk.created, rating = bk.rating });
-                    else bl.Add(new { id = bk.id, username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", email = bk.email ?? "", created = bk.created, rating = bk.rating });
+                    if (bu != null) bl.Add(new { id = bk.id, username = bu.username, firstName = bu.firstName, lastName = bu.lastName, xv = bu.xv, email = bu.email, created = bk.created });
+                    else bl.Add(new { id = bk.id, username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", email = bk.email ?? "", created = bk.created });
                 }
                 double avg; int cnt; RatingOf(d, e.id, out avg, out cnt);
-                x["bookings"] = bl; x["booked"] = bl.Count; x["ratingAvg"] = avg; x["ratingCount"] = cnt;
+                // Bewertungen nur zusammengefasst und erst ab MinRatings: wer wie bewertet hat, sieht auch die Administration nicht
+                x["bookings"] = bl; x["booked"] = bl.Count; x["ratingAvg"] = avg; x["ratingCount"] = cnt; x["ratingDist"] = RatingDist(d, e.id);
                 l.Add(x);
             }
             Send(new { ok = true, events = l });
         }
 
+        // Nutzerliste fuer die Administration: keine Anmeldezeiten und keine Teilnahmen je Person (keine Verhaltens- oder Leistungskontrolle).
+        // Die Aktivitaet gibt es nur zusammengefasst ueber alle Konten.
         void AdminUsers(DataFile d)
         {
             DateTime now = NowBerlin();
             Badges bd = BuildBadges(d, LoadSettings(), now);
             List<object> l = new List<object>();
+            int[] act = new int[5];
             foreach (UserRec u in d.users)
             {
-                int attended = u.legacyAttended;
-                foreach (BookingRec bk in d.bookings)
-                {
-                    if (bk.userId != u.id) continue;
-                    EventRec ev = FindEvent(d, bk.eventId);
-                    if (ev != null && !ev.cancelled && Ended(ev, now)) attended++;
-                }
-                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, lastLogin = u.lastLogin ?? "", isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), attended = attended, profilePublic = u.profilePublic, avatar = AvatarInfo(u, LoadSettings(), true) });
+                DateTime t; int k = 4;
+                if (!string.IsNullOrEmpty(u.lastLogin) && DateTime.TryParse(u.lastLogin, CultureInfo.InvariantCulture, DateTimeStyles.None, out t)) { double days = (now - t).TotalDays; k = days < 7 ? 0 : days < 30 ? 1 : days < 90 ? 2 : 3; }
+                act[k]++;
+                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), profilePublic = u.profilePublic, avatar = AvatarInfo(u, LoadSettings(), true) });
             }
-            Send(new { ok = true, users = l });
+            Send(new { ok = true, users = l, activity = act, inactiveMonths = InactiveMonths });
+        }
+
+        // Konto durch die Administration loeschen (z. B. beim Ausscheiden). Admin-Konten nur durch die Hauptadministration.
+        void AdminDeleteUser(DataFile d, UserRec me)
+        {
+            UserRec u = FindUser(d, S(Body(), "id"));
+            if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
+            if (u.role == "superadmin" || u.id == me.id) throw new ApiException("forbidden", "Dieses Konto l\u00e4sst sich hier nicht l\u00f6schen.");
+            if (u.role == "admin" && me.role != "superadmin") throw new ApiException("forbidden", "Admin-Konten kann nur die Hauptadministration l\u00f6schen.");
+            DeleteUser(d, u, "Das Konto der anbietenden Person wurde gel\u00f6scht.");
+            SaveData(d);
+            Send(new { ok = true });
+        }
+
+        // Eigenes Konto loeschen (mit Passwort bestaetigt)
+        void DeleteAccount()
+        {
+            string pw = Convert.ToString(Body().ContainsKey("password") ? Body()["password"] : "", CultureInfo.InvariantCulture) ?? "";
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                if (me.role == "superadmin") throw new ApiException("forbidden", "Das Konto der Hauptadministration l\u00e4sst sich nicht l\u00f6schen.");
+                ThrottleCheck("p:" + me.id);
+                if (!CheckPassword(pw, me.pwHash)) { ThrottleFail("p:" + me.id); Thread.Sleep(500); throw new ApiException("password", "Das Passwort stimmt nicht."); }
+                DeleteUser(d, me, "Die anbietende Person hat ihr Konto gel\u00f6scht.");
+                SaveData(d);
+                WriteCookie("", 0);
+                Send(new { ok = true });
+            }
+        }
+
+        // Auskunft (Art. 15 DSGVO): alle zum eigenen Konto gespeicherten Daten als JSON-Datei
+        void MyData()
+        {
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                List<object> evs = new List<object>(), bks = new List<object>(), notes = new List<object>();
+                foreach (EventRec e in d.events) if (e.ownerId == me.id) { int c = 0; double avg; RatingOf(d, e.id, out avg, out c); evs.Add(new { title = e.title, category = e.category, type = e.type, topic = e.topic, date = e.date, start = e.start, duration = e.duration, capacity = e.capacity, teamsLink = e.teamsLink, description = e.description, created = e.created, cancelled = e.cancelled, cancelReason = e.cancelReason ?? "", participants = CountBookings(d, e.id), ratingCount = c, ratingAvg = avg }); }
+                foreach (BookingRec b in d.bookings) if (b.userId == me.id) { EventRec e = FindEvent(d, b.eventId); bks.Add(new { eventTitle = e != null ? e.title : "", date = e != null ? e.date : "", start = e != null ? e.start : "", booked = b.created, myRating = b.rating, ratedAt = b.ratedAt ?? "" }); }
+                foreach (NoteRec n in d.notes) if (n.userId == me.id) notes.Add(new { type = n.type, title = n.title, date = n.date, reason = n.reason, created = n.created, read = n.read });
+                object o = new
+                {
+                    exported = NowIso(),
+                    account = new { username = me.username, firstName = me.firstName, lastName = me.lastName, xv = me.xv, email = me.email, role = me.role, created = me.created, lastLogin = me.lastLogin ?? "", locked = me.locked, activeSessions = me.sessions == null ? 0 : me.sessions.Count },
+                    profile = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, hideBadges = me.hideBadges, bio = me.bio ?? "", avatar = me.avatar ?? "" },
+                    archive = new { offeredBeforeAnonymization = me.legacyOffered, attendedBeforeAnonymization = me.legacyAttended },
+                    events = evs, bookings = bks, notes = notes
+                };
+                ctx.Response.ContentType = "application/json; charset=utf-8";
+                ctx.Response.Cache.SetCacheability(HttpCacheability.NoCache); ctx.Response.Cache.SetNoStore();
+                ctx.Response.AddHeader("Content-Disposition", "attachment; filename=LearnTogether-meine-Daten.json");
+                ctx.Response.Write(json.Serialize(o));
+            }
         }
 
         void AdminSetRole(DataFile d, UserRec me)
@@ -1632,7 +1834,9 @@ namespace LearnTogether
         void AdminSettings()
         {
             SettingsRec s = LoadSettings();
-            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>() });
+            DataFile d = LoadData();
+            int tu = 0, te = 0; foreach (UserRec u in d.users) if (u.isTest) tu++; foreach (EventRec e in d.events) if (e.isTest) te++;
+            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection });
         }
 
         void AdminSaveSettings()
@@ -1748,11 +1952,22 @@ namespace LearnTogether
             if (!m.Success) throw new ApiException("invalid", "Das Bildformat wird nicht unterst\u00fctzt.");
             byte[] bytes = Convert.FromBase64String(m.Groups[2].Value);
             if (bytes.Length > 2 * 1024 * 1024) throw new ApiException("invalid", "Das Bild ist zu gro\u00df (maximal 2 MB).");
+            CheckImageBytes(bytes, m.Groups[1].Value);
             string ext = m.Groups[1].Value == "jpeg" ? "jpg" : m.Groups[1].Value;
             DeleteImageFiles(ev.id);
             File.WriteAllBytes(Path.Combine(ImgDir(), ev.id + "." + ext), bytes);
             ev.hasImage = true;
             ev.imgVer = DateTime.UtcNow.Ticks;
+        }
+
+        // Inhalt pruefen, nicht nur die Angabe im Data-URL: JPEG FF D8 FF, PNG 89 50 4E 47, WebP RIFF....WEBP
+        static void CheckImageBytes(byte[] b, string kind)
+        {
+            bool ok = false;
+            if (kind == "jpeg") ok = b.Length > 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF;
+            else if (kind == "png") ok = b.Length > 8 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47;
+            else if (kind == "webp") ok = b.Length > 12 && b[0] == 0x52 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x46 && b[8] == 0x57 && b[9] == 0x45 && b[10] == 0x42 && b[11] == 0x50;
+            if (!ok) throw new ApiException("invalid", "Die Datei ist kein g\u00fcltiges Bild.");
         }
 
         void DeleteImageFiles(string id)

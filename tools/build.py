@@ -51,7 +51,8 @@ def manual_body(name='body.html', img_dir=None, img_url=''):
 
 
 DOCS = {'user': ('Nutzerhandbuch', 'Nutzerhandbuch.pdf', 'LearnTogether-Nutzerhandbuch.pdf', '<a class="btn btn-secondary" href="../index.html">Zur Anwendung</a>'),
-        'admin': ('Administrationshandbuch', 'Admin-Handbuch.pdf', 'LearnTogether-Administrationshandbuch.pdf', '')}
+        'admin': ('Administrationshandbuch', 'Admin-Handbuch.pdf', 'LearnTogether-Administrationshandbuch.pdf', ''),
+        'security': ('IT-Sicherheit und Datenschutz', 'LearnTogether-AD_IT-Sicherheit-Datenschutz.pdf', 'LearnTogether-AD_IT-Sicherheit-Datenschutz.pdf', '')}
 
 
 def with_ids(body):
@@ -148,6 +149,13 @@ def main():
     if has_apdf:
         shutil.copy(apdf, os.path.join(ROOT, 'docs', 'Administrationshandbuch.pdf'))
         wr(apage, rd(apage).replace('href="Admin-Handbuch.pdf"', 'href="Administrationshandbuch.pdf"'))
+
+    # ---- Papier IT-Sicherheit und Datenschutz (nur in docs, fuer IT-Sicherheit, Datenschutz und Betriebsrat)
+    sbody = manual_body('sicherheit.html').replace('{{VERSION}}', VERSION)
+    spage = os.path.join(ROOT, 'docs', 'IT-Sicherheit-Datenschutz.html')
+    wr(spage, build_manual_page(css_for(css0, 'embed'), data_uri(logo_d, 'image/png'), sbody, fav, 'security'))
+    if want_pdf:
+        subprocess.check_call(['node', os.path.join(ROOT, 'tools', 'pdf.mjs'), spage, os.path.join(ROOT, 'docs', 'LearnTogether-AD_IT-Sicherheit-Datenschutz.pdf'), 'IT-Sicherheit und Datenschutz'])
 
     # ---- IIS index.html
     # Nutzerhandbuch fuer die App: nicht in index.html einbetten, sondern bei Bedarf laden (index.html wird so rund 1 MB kleiner)

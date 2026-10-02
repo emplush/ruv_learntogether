@@ -1,0 +1,167 @@
+<h2>Zusammenfassung</h2>
+<p>{{APP_TITLE}} ist eine Plattform für informelles Lernen im R+V-Außendienst. Kolleginnen und Kollegen bieten kurze Online-Termine in Microsoft Teams an, andere melden sich an. Dieses Papier fasst zusammen, wie die Anwendung IT-Sicherheit, Datenschutz und die Interessen der Beschäftigten schützt. Es richtet sich an IT-Sicherheit, Datenschutz, Betriebsrat und Betrieb.</p>
+<p>Grundlage ist eine Prüfung des gesamten Quellcodes von Server und Oberfläche mit Version {{VERSION}}. Alle gefundenen Schwachstellen sind behoben. Zwei Rahmenbedingungen gelten bewusst: Die Anwendung setzt <b>kein HTTPS</b> voraus und verschickt <b>keine E-Mails</b>.</p>
+<table>
+<tr><th>Prüfbereich</th><th>Ergebnis</th></tr>
+<tr><td>Anmeldung und Sitzungen</td><td>Sichere Passwort-Hashes, zufälliges Startpasswort, Schutz vor Rate-Angriffen, serverseitig beendbare Sitzungen</td></tr>
+<tr><td>Angriffe über den Browser</td><td>Schutz vor fremden Formularen (CSRF), eingeschleusten Skripten (XSS) und Einbettung (Clickjacking), strenge Sicherheits-Header</td></tr>
+<tr><td>Uploads und Eingaben</td><td>Prüfung auf dem Server, Bilder mit Inhaltsprüfung, Beschreibungen über Positivliste bereinigt</td></tr>
+<tr><td>Datenschutz</td><td>Datensparsam, privat voreingestellt, Auskunft und Löschung per Klick, feste Lösch- und Anonymisierungsfristen</td></tr>
+<tr><td>Mitbestimmung</td><td>Keine Ranglisten, keine Einzelbewertungen, keine Anmeldezeiten je Person, Abzeichen und Profil freiwillig</td></tr>
+<tr><td>Betrieb ohne HTTPS</td><td>Restrisiko: Passwörter und Sitzungen gehen unverschlüsselt durchs Netz. Ausgleich: nur internes Netz, Zugriff im IIS begrenzen</td></tr>
+</table>
+
+<h2>Aufbau und Datenfluss</h2>
+<ul>
+<li><b>Bestandteile:</b> eine statische Webseite (<code>index.html</code>) und ein ASP.NET-Handler (<code>AppData/api.ashx</code>) auf dem IIS. Es gibt keine Datenbank, keinen Node.js-Dienst und keine Zusatzsoftware.</li>
+<li><b>Datenablage:</b> JSON-Dateien und Bilder im Ordner <code>AppData\Data</code> auf dem Server. Der Ordner ist über das Web nicht abrufbar, doppelt abgesichert über <code>web.config</code>.</li>
+<li><b>Keine externen Dienste:</b> Keine Tracker, kein Analyse-Werkzeug, kein CDN, keine Fremdschriften. Schriften, Logos und Bilder liegen auf dem eigenen Server. Die Sicherheits-Header verbieten Verbindungen zu fremden Servern.</li>
+<li><b>Keine Fremdbibliotheken:</b> Oberfläche und Server kommen ohne Pakete Dritter aus. Damit entfällt das Risiko über fremde Abhängigkeiten.</li>
+<li><b>Microsoft Teams:</b> Die Anwendung speichert nur den Link zur Besprechung. Er ist nur für angemeldete Teilnehmende sichtbar. Die Besprechung selbst läuft vollständig in Teams.</li>
+<li><b>Cookies:</b> Es gibt genau ein Cookie, das Sitzungs-Cookie. Es ist technisch notwendig.</li>
+</ul>
+
+<h2>Verarbeitete Daten</h2>
+<table>
+<tr><th>Daten</th><th>Zweck</th><th>Sichtbar für</th><th>Speicherdauer</th></tr>
+<tr><td>Benutzername</td><td>Anzeige auf Kacheln und Listen</td><td>alle</td><td>bis zur Löschung des Kontos</td></tr>
+<tr><td>Vor- und Nachname, XV-Nummer, E-Mail-Adresse</td><td>Zuordnung, Nachweis, Kontakt durch die Administration</td><td>die Person selbst, Administration; E-Mail nur nach Freigabe auch andere</td><td>bis zur Löschung des Kontos</td></tr>
+<tr><td>Passwort</td><td>Anmeldung</td><td>niemand (nur als Hash gespeichert)</td><td>bis zur Löschung des Kontos</td></tr>
+<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst, Administration; Anbietende sehen nur Benutzernamen</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Qualität und Motivation</td><td>niemand einzeln; Durchschnitt ab 3 Bewertungen</td><td>mit der Anmeldung, danach anonym</td></tr>
+<tr><td>Profil, Beschreibung, Profilbild</td><td>freiwillige Vorstellung</td><td>nur nach Freigabe</td><td>bis zur Änderung oder Löschung</td></tr>
+<tr><td>Letzte Anmeldung</td><td>automatische Löschung inaktiver Konten</td><td>niemand einzeln; Administration nur als Gesamtzahl</td><td>bis zur nächsten Anmeldung</td></tr>
+<tr><td>Admin-Protokoll</td><td>Nachvollziehbarkeit von Änderungen durch die Administration</td><td>Betrieb auf dem Server</td><td>12 Monate</td></tr>
+</table>
+<p>Die Anwendung erfasst keine Arbeitszeit, keine Inhalte aus Teams, keine Standorte und keine Geräte-Merkmale. IP-Adressen nutzt sie nur kurz im Arbeitsspeicher, um Fehlversuche zu bremsen. Sie speichert sie nicht. Die Zugriffsprotokolle des IIS sind davon unabhängig und folgen den Regeln des Serverbetriebs.</p>
+
+<h2>Rollen und Zugriffe</h2>
+<table>
+<tr><th>Rolle</th><th>Darf</th><th>Sieht</th></tr>
+<tr><td>Ohne Anmeldung</td><td>Katalog ansehen</td><td>Veranstaltungen und Benutzernamen, keine Teams-Links</td></tr>
+<tr><td>Nutzende</td><td>Anmelden, abmelden, bewerten, Veranstaltungen anbieten und absagen, Profil pflegen, Daten herunterladen, Konto löschen</td><td>Eigene Daten; bei eigenen Veranstaltungen die Benutzernamen der Teilnehmenden und den Durchschnitt ab 3 Bewertungen</td></tr>
+<tr><td>Administration</td><td>Veranstaltungen und Anmeldungen verwalten, Passwörter zurücksetzen, Konten sperren und löschen, Texte, Themen und Einstellungen pflegen</td><td>Kontodaten aller Personen und Teilnehmendenlisten; keine Einzelbewertungen, keine Anmeldezeiten je Person</td></tr>
+<tr><td>Hauptadministration</td><td>Zusätzlich Admin-Rechte vergeben und entziehen, Admin-Konten löschen</td><td>wie Administration</td></tr>
+<tr><td>Betrieb (Server)</td><td>Installation, Datensicherung</td><td>Dateien in <code>AppData\Data</code></td></tr>
+</table>
+<div class="tip">Die Rechte prüft immer der Server. Eine veränderte Oberfläche verschafft keine weiteren Rechte.</div>
+
+<h2>Datenschutz</h2>
+<h3>Grundsätze</h3>
+<ul>
+<li><b>Datensparsam:</b> Nur Daten, die für Anmeldung, Organisation und den späteren Nachweis nötig sind.</li>
+<li><b>Privat voreingestellt:</b> Profile sind nicht öffentlich. Jede weitere Angabe geben Nutzende einzeln frei.</li>
+<li><b>Pseudonym im Alltag:</b> Andere sehen nur den frei gewählten Benutzernamen. Echte Namen sieht nur die Administration.</li>
+<li><b>Zweckbindung:</b> Die Daten dienen nur Organisation und Nachweis. Die Anwendung gibt nichts an andere Systeme weiter.</li>
+<li><b>Freiwillig:</b> Teilnahme, Angebot, Bewertung, Profil, Profilbild und Abzeichen sind freiwillig.</li>
+</ul>
+<h3>Rechte der Beschäftigten direkt in der Anwendung</h3>
+<table>
+<tr><th>Recht</th><th>Umsetzung</th></tr>
+<tr><td>Auskunft und Datenübertragbarkeit (Art. 15 und 20 DSGVO)</td><td>Profil › Konto › Meine Daten herunterladen: alle Daten zum Konto als JSON-Datei</td></tr>
+<tr><td>Berichtigung (Art. 16 DSGVO)</td><td>Name, XV-Nummer und E-Mail-Adresse selbst ändern</td></tr>
+<tr><td>Löschung (Art. 17 DSGVO)</td><td>Profil › Konto › Konto löschen, sofort und ohne Umweg über die Administration</td></tr>
+<tr><td>Einschränkung der Sichtbarkeit</td><td>Profil, Profilbild, E-Mail-Adresse, Bewertung, Expertenstatus und Abzeichen einzeln ein- und ausschalten</td></tr>
+</table>
+<h3>Fristen</h3>
+<ul>
+<li>Veranstaltungen und Anmeldungen werden <b>5 Jahre</b> nach dem Ende automatisch anonymisiert. Die Frist folgt der Nachweispflicht der IDD.</li>
+<li>Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch.</li>
+<li>Das Admin-Protokoll bleibt <b>12 Monate</b>. Das Fehlerprotokoll ist auf 2 MB begrenzt und enthält keine Passwörter.</li>
+<li>Bei einer Löschung werden Kontaktdaten, Profilbild und Mitteilungen sofort entfernt. Künftige eigene Veranstaltungen werden abgesagt. Vergangene Teilnahmen bleiben nur anonym für die Statistik.</li>
+</ul>
+<h3>Vor dem Start mit Datenschutz zu klären</h3>
+<ul>
+<li>Rechtsgrundlage und Zweckbeschreibung festlegen und das Verzeichnis der Verarbeitungstätigkeiten ergänzen.</li>
+<li>Datenschutzhinweis für Beschäftigte bereitstellen, zum Beispiel im Handbuch oder im Intranet.</li>
+<li>Aufbewahrung der Datensicherungen mit den Fristen der Anwendung abstimmen.</li>
+<li>Prüfen, ob eine Datenschutz-Folgenabschätzung nötig ist. Wegen des kleinen Datenumfangs und der Schutzmaßnahmen ist eher keine zu erwarten.</li>
+</ul>
+
+<h2>Mitbestimmung</h2>
+<p>Die Anwendung verarbeitet Daten von Beschäftigten. Sie unterliegt deshalb der Mitbestimmung nach § 87 Abs. 1 Nr. 6 BetrVG. Eine Leistungs- oder Verhaltenskontrolle ist technisch ausgeschlossen, soweit die Funktionen es zulassen:</p>
+<table>
+<tr><th>Thema</th><th>Technische Ausgestaltung</th></tr>
+<tr><td>Bewertungen</td><td>Anonym. Niemand sieht, wer wie bewertet hat, auch nicht die Administration. Durchschnittswerte erscheinen erst ab drei Bewertungen. Eine abgegebene Bewertung ist endgültig.</td></tr>
+<tr><td>Ranglisten</td><td>Gibt es nicht. Die Statistik zeigt nur zusammengefasste Werte, zum Beispiel je Monat, Thema oder Format.</td></tr>
+<tr><td>Aktivität</td><td>Die Administration sieht keine Anmeldezeiten und keine Teilnahmen je Person. Die Statistik zeigt nur, wie viele Konten in einem Zeitraum aktiv waren.</td></tr>
+<tr><td>Abzeichen und Expertenstatus</td><td>Richten sich nach der Zahl angebotener Veranstaltungen. Sie dienen der Anerkennung und lassen sich ausblenden.</td></tr>
+<tr><td>Teilnehmendenlisten</td><td>Anbietende sehen nur Benutzernamen. Echte Namen sieht die Administration, für Organisation und späteren Nachweis.</td></tr>
+<tr><td>Schnittstellen</td><td>Keine. Keine Übergabe an Personal-, Zeit- oder Vertriebssysteme.</td></tr>
+<tr><td>Arbeitszeit</td><td>Wird nicht erfasst. Teilnehmende an dienstlichen Sessions stempeln sich selbst ein und aus.</td></tr>
+</table>
+<p>Vorschlag für eine Vereinbarung: Zweck, Datenarten, Rollen und Fristen wie in diesem Papier festhalten. Dazu ein Verbot, Daten der Anwendung zur Leistungs- oder Verhaltensbeurteilung zu nutzen. Änderungen an Auswertungen nur nach Abstimmung.</p>
+
+<h2>IT-Sicherheit</h2>
+<table>
+<tr><th>Bereich</th><th>Maßnahme</th></tr>
+<tr><td>Passwörter</td><td>PBKDF2-SHA256 mit 100.000 Runden und eigenem Salt. Mindestens 10 Zeichen, bekannte Passwörter und Teile von Benutzername oder E-Mail werden abgelehnt.</td></tr>
+<tr><td>Startpasswort</td><td>Zufällig erzeugt, nur auf dem Server in einer Datei lesbar, nach der ersten Änderung automatisch gelöscht. Kein festes Standardpasswort auf dem Server.</td></tr>
+<tr><td>Fehlversuche</td><td>5 Fehlversuche je Benutzername, 50 je IP-Adresse, dann 5 Minuten Sperre. Gleiche Antwortzeit für bekannte und unbekannte Benutzernamen.</td></tr>
+<tr><td>Vorläufige Passwörter</td><td>Bis zur Änderung erlaubt der Server nur Profil und Passwortänderung.</td></tr>
+<tr><td>Sitzungen</td><td>Signiertes Cookie (HMAC-SHA256), HttpOnly, SameSite=Strict, Secure bei HTTPS. Feste Dauer 8 Stunden. Der Server führt die Sitzungen je Konto. Abmelden, Sperren und Passwortwechsel beenden sie sofort.</td></tr>
+<tr><td>Fremde Formulare (CSRF)</td><td>Schreiben nur per POST mit Pflicht-Header. Andere Websites können ihn nicht setzen. Das Cookie geht nicht an fremde Seiten.</td></tr>
+<tr><td>Eingeschleuste Skripte (XSS)</td><td>Ausgabe als Text. Beschreibungen werden auf dem Server und im Browser über eine Positivliste bereinigt. Links nur mit http, https oder mailto.</td></tr>
+<tr><td>Sicherheits-Header</td><td>Content-Security-Policy ohne fremde Quellen, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Cross-Origin-Opener-Policy. Die Server-Kennung X-Powered-By entfällt.</td></tr>
+<tr><td>Uploads</td><td>Nur JPEG, PNG und WebP bis 2 MB. Der Server prüft den Dateiinhalt. Ablage außerhalb des Web-Zugriffs, Auslieferung nur über den Handler.</td></tr>
+<tr><td>Eingaben</td><td>Jede Eingabe prüft der Server: Längen, Formate, Zeitfenster, Teams-Links nur zu Microsoft-Teams-Adressen.</td></tr>
+<tr><td>Zwischenspeicher</td><td>Antworten mit persönlichen Daten tragen <code>no-store</code> und bleiben nicht im Browser-Cache.</td></tr>
+<tr><td>Fehler</td><td>Nutzende sehen keine technischen Details. Der Selbsttest mit Pfaden und Benutzernamen ist nur direkt auf dem Server abrufbar.</td></tr>
+<tr><td>Protokoll</td><td>Änderungen der Administration mit Zeit, Benutzername, Aktion und Datensatz-Kennung. Keine Inhalte, keine Passwörter.</td></tr>
+<tr><td>Testdaten</td><td>Testkonten haben ein bekanntes Passwort. Die Administration zeigt einen Hinweis, solange Testdaten geladen sind.</td></tr>
+</table>
+
+<h2>Betrieb ohne HTTPS</h2>
+<p>Die Anwendung läuft auch über HTTP. Dann gehen Passwörter und Sitzungs-Cookies unverschlüsselt durchs Netz. Wer den Netzverkehr mitlesen kann, könnte sie abgreifen. Dieses Restrisiko lässt sich nur mit HTTPS vollständig beseitigen.</p>
+<table>
+<tr><th>Ausgleichende Maßnahme</th><th>Wirkung</th></tr>
+<tr><td>Nur im internen Netz betreiben, nicht aus dem Internet erreichbar</td><td>Mitlesen ist nur im Firmennetz möglich</td></tr>
+<tr><td>Zugriff im IIS auf Firmennetz und VPN begrenzen (IP-Adressen und Domänen einschränken)</td><td>Fremde Rechner erreichen die Anwendung nicht</td></tr>
+<tr><td>Eigenes Passwort nur für diese Anwendung</td><td>Ein abgegriffenes Passwort öffnet keine anderen Systeme</td></tr>
+<tr><td>Sitzungen mit fester Dauer und Abmeldung auf dem Server</td><td>Ein abgegriffenes Cookie verliert schnell seinen Wert</td></tr>
+<tr><td>Hinweis in der Administration bei Betrieb ohne HTTPS</td><td>Das Risiko bleibt sichtbar</td></tr>
+</table>
+<div class="tip"><b>Empfehlung:</b> HTTPS mit einem Zertifikat der internen Zertifizierungsstelle einrichten. Die Anwendung erkennt HTTPS selbst und setzt dann das Secure-Merkmal am Cookie. Eine Änderung am Code ist nicht nötig.</div>
+
+<h2>Restrisiken und Empfehlungen</h2>
+<table>
+<tr><th>Restrisiko</th><th>Einschätzung</th><th>Empfehlung</th></tr>
+<tr><td>Unverschlüsselte Übertragung ohne HTTPS</td><td>mittel, im internen Netz gering</td><td>HTTPS einrichten, bis dahin Zugriff begrenzen</td></tr>
+<tr><td>Offene Registrierung für alle, die die Seite erreichen</td><td>gering im internen Netz</td><td>Zugriff begrenzen; später Anmeldung über das Unternehmensverzeichnis prüfen</td></tr>
+<tr><td>Keine Zwei-Faktor-Anmeldung</td><td>gering, da wenig schutzbedürftige Daten</td><td>Admin-Konten mit starken Passwörtern und wenigen Personen</td></tr>
+<tr><td>Daten unverschlüsselt im Dateisystem</td><td>gering bei korrekten Rechten</td><td>Rechte auf <code>AppData\Data</code> nur für Anwendungspool und Betrieb, Laufwerksverschlüsselung des Servers</td></tr>
+<tr><td>Sperren nach Fehlversuchen liegen im Arbeitsspeicher</td><td>gering</td><td>Ein Neustart des Anwendungspools hebt sie auf. Dazu keine automatischen Neustarts in kurzen Abständen</td></tr>
+<tr><td>Administration sieht echte Namen der Teilnehmenden</td><td>gewollt, für Organisation und Nachweis</td><td>Wenige benannte Personen, Zweckbindung in der Vereinbarung</td></tr>
+<tr><td>Rückschluss auf einzelne Bewertungen über die Änderung des Durchschnitts</td><td>sehr gering</td><td>Durchschnitt erst ab drei Bewertungen; Anbietende wissen nicht, wer wann bewertet</td></tr>
+<tr><td>Demo-Version im Browser</td><td>nur für Tests</td><td>Keine echten Daten in die Demo eingeben</td></tr>
+</table>
+
+<h2>Checkliste für den Start</h2>
+<ol>
+<li>Anwendung nur im internen Netz bereitstellen, Zugriff im IIS auf Firmennetz und VPN begrenzen.</li>
+<li>HTTPS mit internem Zertifikat einrichten, sobald möglich.</li>
+<li>Rechte auf <code>AppData\Data</code> nur für den Anwendungspool und das Betriebsteam vergeben.</li>
+<li>Startpasswort aus <code>AppData\Data\admin-startpasswort.txt</code> nutzen und sofort ändern.</li>
+<li>Testdaten entfernen (System › Testdaten).</li>
+<li>Admin-Rechte nur an wenige benannte Personen aus VH-VP-TV vergeben.</li>
+<li>Datensicherung von <code>AppData\Data</code> einrichten, Aufbewahrung mit den Fristen abstimmen.</li>
+<li>Datenschutzhinweis veröffentlichen und das Verzeichnis der Verarbeitungstätigkeiten ergänzen.</li>
+<li>Vereinbarung mit dem Betriebsrat abschließen.</li>
+<li><code>AppData\selftest.ashx</code> nach der Einrichtung bei Bedarf löschen.</li>
+</ol>
+
+<h2>Prüfung und Tests</h2>
+<p>Die Prüfung umfasste alle Endpunkte des Servers, die Oberfläche, die IIS-Konfiguration und den Selbsttest. Automatische Tests im Browser prüfen bei jedem Stand die Funktionen und die Schutzmaßnahmen. Sie laufen gegen den Server und gegen die Demo-Version. Geprüft wird unter anderem:</p>
+<ul>
+<li>Das alte Standardpasswort gilt auf dem Server nicht. Die Datei mit dem Startpasswort verschwindet nach der Änderung.</li>
+<li>Ein kopiertes Sitzungs-Cookie ist nach dem Abmelden wertlos.</li>
+<li>Schreibende Aufrufe per GET werden abgelehnt.</li>
+<li>Ein Skript, getarnt als Bild, wird beim Hochladen abgelehnt.</li>
+<li>Antworten tragen <code>no-store</code>.</li>
+<li>Die Administration erhält keine Einzelbewertungen, keine Anmeldezeiten und keine Teilnahmen je Person.</li>
+<li>Durchschnittswerte erscheinen erst ab drei Bewertungen.</li>
+<li>Ausgeblendete Abzeichen erscheinen nirgends.</li>
+<li>Gelöschte Konten können sich nicht mehr anmelden.</li>
+<li>Konten mit vorläufigem Passwort können nur das Passwort ändern.</li>
+</ul>

@@ -1,5 +1,20 @@
 # Änderungen
 
+## 0.26.0 (02.10.2026)
+Prüfung auf IT-Sicherheit, Datenschutz und Mitbestimmung.
+- **Startpasswort:** Auf dem IIS zufällig, nur auf dem Server in `AppData\Data\admin-startpasswort.txt` lesbar und nach der ersten Änderung gelöscht. Ein noch unverändertes altes Standardpasswort wird beim Update ersetzt.
+- **Sitzungen:** Der Server führt die aktiven Sitzungen je Konto. Abmelden beendet die Sitzung auch auf dem Server. Feste Dauer von 8 Stunden.
+- **Vorläufiges Passwort:** Bis zur Änderung erlaubt der Server nur Profil und Passwortänderung.
+- **Schreiben nur per POST,** Antworten mit `no-store`, Uploads mit Prüfung des Dateiinhalts, Fehlerprotokoll auf 2 MB begrenzt.
+- **Sicherheits-Header:** Content-Security-Policy, Permissions-Policy, Cross-Origin-Opener-Policy, ohne X-Powered-By.
+- **Selbsttest** nur noch direkt auf dem Server abrufbar.
+- **Admin-Protokoll:** Änderungen der Administration mit Zeit, Benutzername und Datensatz, 12 Monate.
+- **Rechte der Nutzenden:** Meine Daten herunterladen (Auskunft) und Konto selbst löschen. Admins können Konten löschen. Konten ohne Anmeldung seit 24 Monaten werden automatisch gelöscht.
+- **Keine Leistungskontrolle:** Bewertungen nur als Durchschnitt ab drei Stimmen, keine Einzelbewertungen für Admins, keine Ranglisten mit Personenbezug, keine Anmeldezeiten oder Teilnahmen je Person in der Nutzerliste. Aktivität nur gesamt.
+- **Abzeichen freiwillig:** Abzeichen und Expertenstatus lassen sich ausblenden.
+- **Hinweise in der Administration:** geladene Testdaten und Betrieb ohne HTTPS.
+- **Präsentation:** neue Folie „IT-Sicherheit und Datenschutz: technisch umgesetzt“. Neues Papier zu IT-Sicherheit und Datenschutz (PDF).
+
 ## 0.25.1 (02.10.2026)
 - **Anmeldung:** Das Sitzungs-Cookie richtet sich nach der Schreibweise der aufgerufenen Adresse. Groß- und Kleinschreibung im Pfad verhindern die Anmeldung auf dem IIS nicht mehr.
 - **Sperre je IP-Adresse:** Grenze von 5 auf 50 Fehlversuche erhöht. Ein gemeinsamer Internetausgang sperrt nicht mehr alle Konten. Je Benutzername bleibt es bei 5 Versuchen.

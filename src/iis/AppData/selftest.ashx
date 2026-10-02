@@ -19,6 +19,13 @@ public class SelfTest : IHttpHandler
         ctx.Response.ContentType = "text/plain; charset=utf-8";
         ctx.Response.Cache.SetCacheability(HttpCacheability.NoCache);
         ctx.Response.TrySkipIisCustomErrors = true;
+        // Nur direkt auf dem Server abrufbar (http://localhost/...), da die Ausgabe Pfade und Benutzernamen zeigt
+        if (!ctx.Request.IsLocal)
+        {
+            ctx.Response.StatusCode = 403;
+            ctx.Response.Write("Der Selbsttest ist nur direkt auf dem Server abrufbar, zum Beispiel unter http://localhost/<pfad>/AppData/selftest.ashx");
+            return;
+        }
         StringBuilder o = new StringBuilder();
         o.AppendLine("LearnTogether Selbsttest");
         o.AppendLine("=======================");

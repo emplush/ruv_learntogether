@@ -24,17 +24,21 @@
       if (e.cancelled) { cancelledN++; return false; }
       return true;
     }).map(function (e) { return { e: e, c: e.category === 'privat' ? 1 : 0, n: e.bookings ? e.bookings.length : e.booked, cap: e.capacity }; });
-    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]], ended: 0, ratedEv: 0 };
+    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, all: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]], ended: 0, ratedEv: 0 };
+    var act = (users && users.activity) || [0, 0, 0, 0, 0];
+    users = users && users.users ? users.users : (users || []);
     var acc = (users || []).filter(function (u) { return !(F.noTest && u.isTest); });
     var inRange = acc.filter(function (u) { var d = (u.created || '').slice(0, 10); return (!F.from || d >= F.from) && (!F.to || d <= F.to); });
     evs.forEach(function (x) {
       tot.pt += x.n; tot.cap += x.cap; if (!x.n) tot.zero++; if (x.n >= x.cap) tot.full++;
       if (!x.e.anonymized) hosts[x.e.host.toLowerCase()] = 1;
-      var r = 0; (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { r++; rt.sum += b.rating; rt.n++; rt.d[b.rating - 1][x.c]++; } });
+      /* Sterne nur zusammengefasst je Veranstaltung und erst ab drei Bewertungen (ratingDist); einzelne Bewertungen kennt die Statistik nicht */
+      var r = x.e.ratingCount || 0; rt.all += r;
+      if (x.e.ratingDist) x.e.ratingDist.forEach(function (n, i) { rt.sum += n * (i + 1); rt.n += n; rt.d[i][x.c] += n; });
       if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
-    var now = Date.now(), active30 = acc.filter(function (u) { return u.lastLogin && now - new Date(u.lastLogin) < 30 * 864e5; }).length;
+    var now = Date.now(), active30 = act[0] + act[1];
     var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
     /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
     var EX = {}; all.forEach(function (e) { if (e.cancelled || !eventEnded(e) || !e.ownerId) return; var k = e.ownerId + '|' + e.category + '|' + e.topic; EX[k] = (EX[k] || 0) + 1; });
@@ -47,7 +51,7 @@
       kpi('veranstaltungen', 'Abgesagt', stNum(cancelledN)), kpi('veranstaltungen', 'Absagequote', kept ? stPct(cancelledN, kept) + ' %' : '–'), kpi('veranstaltungen', 'Ø Vorlauf der Anmeldung', lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–'),
       kpi('nutzende', 'Neue Konten im Zeitraum', stNum(inRange.length)), kpi('nutzende', 'Aktiv in den letzten 30 Tagen', stNum(active30)), kpi('nutzende', 'Öffentliche Profile', acc.length ? stPct(pubN, acc.length) + ' %' : '–'),
       kpi('nutzende', 'Mit Profilbild', stNum(avN)), kpi('nutzende', 'Mit Expertenstatus', stNum(Object.keys(experts).length)),
-      kpi('bewertungen', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('bewertungen', 'Abgegebene Bewertungen', stNum(rt.n)), kpi('bewertungen', 'Bewertungsquote', rt.ended ? stPct(rt.n, rt.ended) + ' %' : '–'),
+      kpi('bewertungen', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('bewertungen', 'Abgegebene Bewertungen', stNum(rt.all)), kpi('bewertungen', 'Bewertungsquote', rt.ended ? stPct(rt.all, rt.ended) + ' %' : '–'),
       kpi('bewertungen', 'Bewertete Veranstaltungen', stNum(rt.ratedEv))];
     var names = stSeriesNames(), stats = [];
     function add(group, s) { s.group = group; stats.push(s); }
@@ -101,24 +105,15 @@
       var rk = Object.keys(RK).sort().slice(-24);
       add('nutzende', { id: 'monat-registrierungen', title: 'Neue Registrierungen pro Monat', hint: 'Angelegte Konten nach Monat der Registrierung.', type: 'columns', labels: rk.map(stMonthShort), series: [{ name: 'Registrierungen', values: rk.map(function (k) { return RK[k]; }) }] });
     }
-    function lastLog(u) { if (!u.lastLogin) return 'Noch nie angemeldet'; var d = (now - new Date(u.lastLogin)) / 864e5; return d < 7 ? 'In den letzten 7 Tagen' : d < 30 ? 'Vor 7 bis 30 Tagen' : d < 90 ? 'Vor 30 bis 90 Tagen' : 'Vor mehr als 90 Tagen'; }
-    var LL = {}; acc.forEach(function (u) { var k = lastLog(u); LL[k] = (LL[k] || 0) + 1; });
-    add('nutzende', { id: 'aktivitaet', title: 'Letzte Anmeldung', hint: 'Wann sich die Konten zuletzt angemeldet haben. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['In den letzten 7 Tagen', 'Vor 7 bis 30 Tagen', 'Vor 30 bis 90 Tagen', 'Vor mehr als 90 Tagen', 'Noch nie angemeldet'].map(function (k) { return { label: k, sub: '', v: [LL[k] || 0, 0] }; }) });
+    add('nutzende', { id: 'aktivitaet', title: 'Letzte Anmeldung', hint: 'Nur zusammengefasst über alle Konten, nie je Person. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['In den letzten 7 Tagen', 'Vor 7 bis 30 Tagen', 'Vor 30 bis 90 Tagen', 'Vor mehr als 90 Tagen', 'Noch nie angemeldet'].map(function (k, i) { return { label: k, sub: '', v: [act[i] || 0, 0] }; }) });
     var LV = [0, 0, 0, 0, 0, 0, 0]; acc.forEach(function (u) { LV[u.level || 0]++; });
     add('nutzende', { id: 'abzeichen', title: 'Konten nach Abzeichen', hint: 'Verteilung der Abzeichenstufen. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['Ohne Abzeichen'].concat(BADGE_NAMES).map(function (k, i) { return { label: k, sub: i ? 'Stufe ' + i + ', ab ' + BADGES.levels[i - 1] + ' Sessions' : '', v: [LV[i], 0] }; }) });
     add('nutzende', { id: 'profile', title: 'Profile und Profilbilder', hint: 'Freiwillige Angaben der Nutzenden. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: [['Profil öffentlich', pubN], ['Profil nicht öffentlich', acc.length - pubN], ['Mit Profilbild', avN], ['Ohne Profilbild', acc.length - avN]].map(function (r) { return { label: r[0], sub: '', v: [r[1], 0] }; }) });
-    var HS = {}; evs.forEach(function (x) { if (x.e.anonymized) return; var k = x.e.host.toLowerCase(); if (!HS[k]) HS[k] = { name: x.e.host, ev: 0, pt: 0, rs: 0, rn: 0 }; HS[k].ev++; HS[k].pt += x.n; (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { HS[k].rs += b.rating; HS[k].rn++; } }); });
-    var hl = Object.keys(HS).map(function (k) { return HS[k]; }).sort(function (a, b) { return b.pt - a.pt || b.ev - a.ev || a.name.localeCompare(b.name, 'de'); }).slice(0, 10);
-    add('nutzende', { id: 'top-anbieter', title: 'Die aktivsten Anbietenden', hint: 'Nach Anzahl der Teilnehmenden. Anonymisierte Veranstaltungen sind nicht enthalten.', type: 'table', wide: true, head: ['Benutzername', 'Veranstaltungen', 'Teilnehmende', 'Ø je Veranstaltung', 'Ø Bewertung'], widths: [3.2, 1.5, 1.5, 1.8, 1.5], align: ['l', 'r', 'r', 'r', 'r'],
-      rows: hl.map(function (r) { return [r.name, r.ev, r.pt, stDec(r.pt / r.ev), r.rn ? stDec(r.rs / r.rn) : '–']; }) });
     /* Bewertungen */
-    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Eine Bewertung gilt für eine besuchte Veranstaltung.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
-    var RT = {}; evs.forEach(function (x) { (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { var k = CAT_LABEL[x.e.category] + '|' + capFirst(x.e.topic); if (!RT[k]) RT[k] = { s: 0, n: 0 }; RT[k].s += b.rating; RT[k].n++; } }); });
-    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
+    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Enthalten sind nur Veranstaltungen ab drei Bewertungen, damit keine einzelne Bewertung erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
+    var RT = {}; evs.forEach(function (x) { if (!x.e.ratingDist) return; var k = CAT_LABEL[x.e.category] + '|' + capFirst(x.e.topic); if (!RT[k]) RT[k] = { s: 0, n: 0 }; x.e.ratingDist.forEach(function (n, i) { RT[k].s += n * (i + 1); RT[k].n += n; }); });
+    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema, aus Veranstaltungen ab drei Bewertungen.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
       rows: Object.keys(RT).sort(function (a, b) { return RT[b].s / RT[b].n - RT[a].s / RT[a].n; }).map(function (k) { var p = k.split('|'); return [p[0], p[1], RT[k].n, stDec(RT[k].s / RT[k].n)]; }) });
-    var best = evs.filter(function (x) { return x.e.ratingCount; }).sort(function (a, b) { return b.e.ratingAvg - a.e.ratingAvg || b.e.ratingCount - a.e.ratingCount; }).slice(0, 10);
-    add('bewertungen', { id: 'top-bewertet', title: 'Die zehn am besten bewerteten Veranstaltungen', hint: 'Nach durchschnittlicher Bewertung, bei Gleichstand nach Zahl der Bewertungen.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Benutzername', 'Bewertungen', 'Ø Sterne'], widths: [4, 1.6, 2, 1.3, 1.1], align: ['l', 'l', 'l', 'r', 'r'],
-      rows: best.map(function (x) { return [x.e.title, dateFull(x.e.date), x.e.host, x.e.ratingCount, stDec(x.e.ratingAvg)]; }) });
     /* Datenschutz */
     var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
     evs.forEach(function (x) { DS[x.e.anonymized ? 'Anonymisiert' : 'Personenbezogen gespeichert'][x.c]++; });
@@ -388,14 +383,14 @@
       }
       function people(e) {
         var body = h('div', { class: 'modal-body people' });
-        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host + (e.ratingCount ? ' \u00b7 \u00d8 ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host + (e.ratingCount >= MIN_RATINGS ? ' \u00b7 \u00d8 ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
         if (e.cancelled) body.appendChild(h('div', { class: 'notice warn' }, h('div', { class: 'n-body' }, [h('b', { text: 'Abgesagt' }), h('div', { text: e.cancelReason || 'Die Veranstaltung hat nicht stattgefunden.' })])));
         if (e.anonymized) body.appendChild(h('div', { class: 'notice' }, 'Die personenbezogenen Daten dieser Veranstaltung wurden anonymisiert. Es bleibt die Zahl der Anmeldungen.'));
         if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Es gab keine Anmeldungen.' })));
         else {
           var tb = h('tbody');
-          e.bookings.forEach(function (b, i) { tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '\u2013' }), h('td', { text: b.xv || '\u2013' }), h('td', { text: b.email || '\u2013', style: 'overflow-wrap:anywhere' }), h('td', null, b.rating ? ratingNode(b.rating, 1) : '\u2013')])); });
-          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail', 'Bewertung'].map(function (t) { return h('th', { text: t }); }))), tb])));
+          e.bookings.forEach(function (b, i) { tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '\u2013' }), h('td', { text: b.xv || '\u2013' }), h('td', { text: b.email || '\u2013', style: 'overflow-wrap:anywhere' })])); });
+          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail'].map(function (t) { return h('th', { text: t }); }))), tb])));
           if (!e.anonymized) body.appendChild(h('div', { class: 'people-foot' }, h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).filter(Boolean).join('; ')); } })));
         }
         return body;

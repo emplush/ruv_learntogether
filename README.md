@@ -14,7 +14,7 @@ Plattform für informelles Lernen im R+V-Außendienst (POC). Verwaltet Veranstal
 
 ## Installation auf dem IIS
 
-Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `IIS/` in ein IIS-Verzeichnis kopieren, Schreibrechte auf `AppData\Data` für den Anwendungspool vergeben, fertig. Standard-Admin: Benutzername `admin`, Passwort `RuVTest1234` (wird beim ersten Anmelden zur Änderung verlangt). Läuft die Anwendung nur über HTTP, laufen Passwörter unverschlüsselt durch das Netz; HTTPS wird empfohlen.
+Siehe [docs/IIS-Installation.md](docs/IIS-Installation.md). Kurz: Inhalt von `IIS/` in ein IIS-Verzeichnis kopieren, Schreibrechte auf `AppData\Data` für den Anwendungspool vergeben, fertig. Hauptadmin: Benutzername `admin`, zufälliges Startpasswort in `AppData\Data\admin-startpasswort.txt` (nur auf dem Server lesbar, wird beim ersten Anmelden zur Änderung verlangt). In der Demo-Version im Browser gilt `RuVTest1234`. Läuft die Anwendung nur über HTTP, laufen Passwörter unverschlüsselt durch das Netz; HTTPS wird empfohlen.
 
 ## Bauen
 

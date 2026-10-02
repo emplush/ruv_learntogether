@@ -86,7 +86,7 @@
 <p>Sagt die anbietende Person eine Veranstaltung ab, für die Du angemeldet bist, erscheint oben unter <b>Mitteilungen</b> ein Hinweis mit dem Grund. In der Navigation zeigt ein orangefarbener Zähler neben „Meine Anmeldungen“, wie viele neue Mitteilungen es gibt. Mit <b>Alle als gelesen markieren</b> setzt Du den Zähler zurück. Die abgesagte Veranstaltung entfernst Du mit <b>Aus meiner Liste entfernen</b>. Es wird keine E-Mail verschickt. Entfernt die Administration eine Veranstaltung oder Deine Anmeldung, erscheint ebenfalls eine Mitteilung.</p>
 <h3>Vergangen: Veranstaltungen bewerten</h3>
 <p>Nach dem Ende einer Veranstaltung kannst Du sie unter <b>Vergangen</b> mit <b>einem bis fünf Sternen</b> bewerten. Wähle die Sterne und klicke auf <b>Bewertung abgeben</b>. Bestätige mit <b>Endgültig abgeben?</b>.</p>
-<div class="tip"><b>Wichtig:</b> Eine abgegebene Bewertung lässt sich nicht mehr ändern. Die anbietende Person sieht den Durchschnitt aller Bewertungen, nicht Deine einzelne Bewertung mit Namen.</div>
+<div class="tip"><b>Wichtig:</b> Eine abgegebene Bewertung lässt sich nicht mehr ändern. Die anbietende Person sieht nur den Durchschnitt, und erst ab drei Bewertungen. Deine einzelne Bewertung sieht niemand, auch nicht die Administration.</div>
 
 <h2>Eine Veranstaltung anbieten</h2>
 <p>Jede angemeldete Person kann eine Veranstaltung anbieten. Öffne dazu <b>Veranstaltung anbieten</b> und fülle das Formular aus. Als Anbieter erscheint automatisch Dein Benutzername. Felder mit einem <span class="accent">*</span> sind Pflicht.</p>
@@ -136,7 +136,7 @@
 {{FIGURE:meine-veranstaltungen|Meine Veranstaltungen: Teilnehmende, Bewertung und der Bereich „Veranstaltung absagen“.}}
 <ul>
 <li>Du siehst die Belegung, zum Beispiel „8 von 12“, den Teams-Link und die <b>Benutzernamen der angemeldeten Personen</b>. Echte Namen und E-Mail-Adressen siehst Du nicht.</li>
-<li>Bei vergangenen Veranstaltungen steht die <b>durchschnittliche Bewertung</b> der Teilnehmenden. Daneben siehst Du, wie viele Personen bewertet haben.</li>
+<li>Bei vergangenen Veranstaltungen steht die <b>durchschnittliche Bewertung</b> der Teilnehmenden und wie viele Personen bewertet haben. Den Durchschnitt zeigt die Anwendung erst ab drei Bewertungen, damit keine einzelne Bewertung erkennbar ist.</li>
 </ul>
 <h3>Eine Veranstaltung absagen</h3>
 <p>Kannst Du nicht anbieten, sagst Du die Veranstaltung selbst ab. Das geht, solange sie noch nicht begonnen hat.</p>
@@ -154,8 +154,8 @@
 <tr><td>Übersicht</td><td>Deine Daten (Benutzername, Name, XV-Nummer, E-Mail-Adresse), Zähler, Abzeichen sowie Themen und Expertenstatus</td></tr>
 <tr><td>Veranstaltungen</td><td>Archiv aller angebotenen Sessions mit der Bewertung durch die Teilnehmenden</td></tr>
 <tr><td>Teilnahmen</td><td>Archiv aller besuchten Sessions mit Deiner Bewertung</td></tr>
-<tr><td>Veröffentlichung</td><td>Ob Dein Profil öffentlich ist, was andere sehen und Deine Beschreibung</td></tr>
-<tr><td>Konto</td><td>Name, XV-Nummer und E-Mail-Adresse ändern sowie Passwort ändern</td></tr>
+<tr><td>Veröffentlichung</td><td>Ob Dein Profil öffentlich ist, was andere sehen, ob Dein Abzeichen erscheint und Deine Beschreibung</td></tr>
+<tr><td>Konto</td><td>Name, XV-Nummer und E-Mail-Adresse ändern, Passwort ändern, Meine Daten herunterladen und Konto löschen</td></tr>
 </table>
 <p>Deine Daten sehen nur Du und die Administration. Eine lange E-Mail-Adresse wird in der Übersicht gekürzt angezeigt.</p>
 {{FIGURE:profil|Das Profil mit Bereichen, Abzeichen und Zählern.}}
@@ -173,7 +173,7 @@
 <table>
 <tr><th>Kennzahl</th><th>Bedeutung</th></tr>
 <tr><td>Angebotene Sessions</td><td>Durchgeführte Veranstaltungen, dazu geplante und abgesagte</td></tr>
-<tr><td>Meine Bewertung als Anbieter</td><td>Durchschnitt aller Sterne über alle Deine Sessions. Darunter steht, aus wie vielen Bewertungen und Veranstaltungen er sich ergibt. Ohne Bewertung zeigt die Kachel 0 Sterne.</td></tr>
+<tr><td>Meine Bewertung als Anbieter</td><td>Durchschnitt aller Sterne über alle Deine Sessions, ab drei Bewertungen. Darunter steht, aus wie vielen Bewertungen und Veranstaltungen er sich ergibt. Ohne Bewertung zeigt die Kachel 0 Sterne.</td></tr>
 <tr><td>Teilnehmende bei mir</td><td>Summe der Anmeldungen, dazu der Durchschnitt je Session</td></tr>
 <tr><td>Teilgenommen</td><td>Besuchte Sessions, dazu die angemeldeten, noch anstehenden</td></tr>
 <tr><td>Meine Bewertungen</td><td>Wie viele besuchte Sessions Du bewertet hast</td></tr>
@@ -194,7 +194,7 @@
 <p>Das gibst Du zusätzlich einzeln frei:</p>
 <table>
 <tr><th>Freigabe</th><th>Was andere sehen</th></tr>
-<tr><td>Bewertung</td><td>Deine durchschnittliche Bewertung über alle Sessions</td></tr>
+<tr><td>Bewertung</td><td>Deine durchschnittliche Bewertung über alle Sessions, ab drei Bewertungen</td></tr>
 <tr><td>Themen mit Expertenstatus</td><td>Die Liste der Themen, in denen Du Experte bist</td></tr>
 <tr><td>E-Mail-Adresse</td><td>Deine E-Mail-Adresse zur Kontaktaufnahme</td></tr>
 <tr><td>Anstehende Veranstaltungen</td><td>Deine anstehenden Veranstaltungen mit Bereich, Titel, Thema, Art, Datum und Uhrzeit</td></tr>
@@ -216,6 +216,7 @@
 <tr><td>6</td><td>Diamant</td></tr>
 </table>
 <p>Ab wie vielen Sessions welche Stufe gilt, legt die Administration fest. Die Grenzen siehst Du in Deinem Profil.</p>
+<p>Abzeichen und Rakete sind freiwillig. Unter <b>Veröffentlichung</b> nimmst Du den Haken bei <b>Abzeichen und Expertenstatus anzeigen</b> heraus. Dann sehen andere sie nirgends mehr, auch nicht im Katalog. Du selbst siehst sie weiter in Deinem Profil.</p>
 <p>Wer in einem Thema viele Sessions angeboten hat, wird dort zum <b>Experten</b>. Dann erscheint eine kleine <b>Rakete</b> neben dem Namen auf der Kachel der Veranstaltung. Die Mindestzahl je Thema legt ebenfalls die Administration fest. In Deinem Profil siehst Du, wie viele Sessions Du je Thema angeboten hast und in welchen Themen Du Experte bist.</p>
 
 <h2>Arbeitszeit, IDD und Datenschutz</h2>
@@ -234,7 +235,22 @@
 <li>Die Daten einer Veranstaltung bleiben <b>fünf Jahre nach ihrem Ende</b> gespeichert, bei privaten und dienstlichen Sessions gleichermaßen. Das gilt auch für abgesagte Veranstaltungen. Danach werden sie anonymisiert.</li>
 <li>Bei der Anonymisierung entfällt der Bezug zu Personen. Es bleiben die Zählung für Statistik und Abzeichen sowie die Bewertungen als Durchschnitt.</li>
 <li>Zugriff auf diese Daten haben nur die Administratoren aus VH-VP-TV. Sie werden nicht veröffentlicht.</li>
-<li>Dein Konto bleibt bestehen, bis die Administration es entfernt.</li>
+<li><b>Bewertungen sind anonym.</b> Niemand sieht, wie Du bewertet hast, auch nicht die Administration. Einen Durchschnitt zeigt die Anwendung erst ab drei Bewertungen.</li>
+<li>Die Anwendung erstellt <b>keine Ranglisten</b> von Personen und zeigt der Administration keine Anmeldezeiten je Person. Sie dient nicht der Leistungs- oder Verhaltenskontrolle.</li>
+<li>Meldest Du Dich <b>24 Monate</b> nicht an, löscht die Anwendung Dein Konto automatisch.</li>
+</ul>
+<h3>Deine Daten herunterladen oder Dein Konto löschen</h3>
+<p>Im Profil unter <b>Konto</b> findest Du den Bereich <b>Meine Daten</b>:</p>
+<ul>
+<li><b>Meine Daten herunterladen</b> speichert alle Daten zu Deinem Konto in einer Datei: Kontodaten, Freigaben, Deine Veranstaltungen, Anmeldungen, Deine Bewertungen und Mitteilungen.</li>
+<li><b>Konto löschen</b> entfernt Dein Konto sofort. Gib dazu Dein Passwort ein und bestätige zweimal. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten.</li>
+</ul>
+<div class="tip">Eine Löschung lässt sich nicht rückgängig machen. Lade Deine Daten vorher herunter, wenn Du sie behalten möchtest.</div>
+<h3>Sicher anmelden</h3>
+<ul>
+<li>Wähle ein Passwort, das Du nur hier verwendest. Gespeichert wird es nur als sicherer Hash, niemand kann es auslesen.</li>
+<li>Melde Dich an fremden oder geteilten Rechnern mit <b>Abmelden</b> ab. Damit endet die Sitzung auch auf dem Server.</li>
+<li>Nach acht Stunden meldet Dich die Anwendung automatisch ab.</li>
 </ul>
 
 <h2>Spielregeln</h2>
@@ -257,13 +273,15 @@
 <h3>Muss ich mich registrieren?</h3>
 <p>Zum Ansehen des Katalogs nicht. Zum Anmelden und zum Anbieten brauchst Du ein Konto.</p>
 <h3>Wer sieht meine Angaben?</h3>
-<p>Andere sehen nur Deinen Benutzernamen und Dein Abzeichen. Gibst Du Dein Profil frei, kommen die Angaben dazu, die Du selbst auswählst. Name und XV-Nummer sieht nur die Administration. Die E-Mail-Adresse sehen andere nur, wenn Du sie freigibst.</p>
+<p>Andere sehen nur Deinen Benutzernamen und Dein Abzeichen, das Du auch ausblenden kannst. Gibst Du Dein Profil frei, kommen die Angaben dazu, die Du selbst auswählst. Name und XV-Nummer sieht nur die Administration. Die E-Mail-Adresse sehen andere nur, wenn Du sie freigibst.</p>
 <h3>Kann ich meinen Benutzernamen ändern?</h3>
 <p>Nein. Der Benutzername ist einmalig und bleibt bestehen. Wähle ihn deshalb mit Bedacht.</p>
 <h3>Wie ändere ich Name, XV-Nummer oder E-Mail-Adresse?</h3>
 <p>Im Profil unter <b>Konto</b>. Zur Bestätigung gibst Du Dein Passwort ein.</p>
 <h3>Ich habe mein Passwort vergessen.</h3>
 <p>Wende Dich an die Administration. Sie vergibt ein vorläufiges Passwort. Du ersetzt es beim nächsten Anmelden durch ein eigenes. In der Demo-Version setzt Du alles unter <b>Passwort vergessen?</b> zurück.</p>
+<h3>Wie lösche ich mein Konto?</h3>
+<p>Im Profil unter <b>Konto › Meine Daten</b>. Bestätige mit Deinem Passwort. Dort lädst Du vorher auch alle Deine Daten herunter.</p>
 <h3>Kann ich eine Bewertung ändern?</h3>
 <p>Nein. Eine abgegebene Bewertung ist endgültig. Prüfe Deine Sterne vor dem Absenden.</p>
 <h3>Warum kann ich eine Kachel nicht öffnen?</h3>

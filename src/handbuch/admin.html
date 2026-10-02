@@ -20,14 +20,16 @@
 <p>Jede Person registriert sich selbst mit Benutzername, echtem Vor- und Nachnamen, XV- oder XVG-Nummer, E-Mail-Adresse und Passwort. Öffentlich erscheint nur der Benutzername. Als Administration siehst Du alle Angaben.</p>
 <h3>Das Hauptadmin-Konto</h3>
 <ol>
-<li>Bei der ersten Nutzung legt die Anwendung das Konto <b>admin</b> an (Hauptadministration). Das Standardpasswort lautet <b>RuVTest1234</b>.</li>
+<li>Bei der ersten Nutzung legt die Anwendung das Konto <b>admin</b> an (Hauptadministration). Das Startpasswort ist <b>zufällig</b>. Es steht nur auf dem Server in der Datei <code>AppData\Data\admin-startpasswort.txt</code>, die über das Web nicht abrufbar ist. In der Demo-Version im Browser lautet es <b>RuVTest1234</b>.</li>
 <li>Melde Dich über <b>Anmelden</b> mit Benutzername oder E-Mail-Adresse an. Beim ersten Anmelden verlangt die Anwendung ein neues Passwort.</li>
-<li>Die Anmeldung gilt <b>8 Stunden</b>. Mit <b>Abmelden</b> in der Navigation beendest Du sie sofort.</li>
+<li>Nach der Änderung löscht die Anwendung die Datei mit dem Startpasswort.</li>
+<li>Die Anmeldung gilt <b>8 Stunden</b>. Mit <b>Abmelden</b> in der Navigation beendest Du sie sofort, auch auf dem Server.</li>
 </ol>
 <h3>Sicherheit der Anmeldung</h3>
 <ul>
 <li>Passwörter werden mit PBKDF2-SHA256 (100.000 Runden, eigener Salt) gespeichert, nie im Klartext.</li>
-<li>Die Sitzung liegt in einem signierten Cookie, das für Skripte nicht lesbar ist (HttpOnly, SameSite=Strict). Schreibende Aufrufe verlangen einen Zusatz-Header gegen Fremdaufrufe (CSRF-Schutz).</li>
+<li>Die Sitzung liegt in einem signierten Cookie, das für Skripte nicht lesbar ist (HttpOnly, SameSite=Strict). Zusätzlich führt der Server eine Liste der aktiven Sitzungen je Konto. <b>Abmelden</b> beendet die Sitzung deshalb auch auf dem Server. Ein kopiertes Cookie ist danach wertlos.</li>
+<li>Schreibende Aufrufe sind nur per POST mit einem Zusatz-Header möglich (Schutz vor Fremdaufrufen, CSRF). Ein Konto mit vorläufigem Passwort kann bis zur Änderung nur Profil und Passwort aufrufen.</li>
 <li>Nach <b>fünf falschen Versuchen</b> sperrt die Anwendung die Anmeldung für fünf Minuten, je Benutzername. Je IP-Adresse gilt eine Grenze von 50 Fehlversuchen, damit ein gemeinsamer Ausgang im Firmennetz nicht alle sperrt. Auch die Registrierung ist begrenzt.</li>
 <li>Passwörter brauchen mindestens 10 Zeichen. Bekannte Passwörter und Passwörter mit Benutzername oder Teilen der E-Mail-Adresse lehnt die Anwendung ab. Ein neues Passwort beendet alle anderen Sitzungen des Kontos.</li>
 </ul>
@@ -39,7 +41,7 @@
 <h3>Suchen und filtern</h3>
 <p>Die Filter wirken sofort beim Tippen: Suche (Titel, Benutzername, Name, XV-Nummer, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
 <h3>Teilnehmende ansehen</h3>
-<p>Mit <b>Teilnehmende (n)</b> öffnest Du ein Fenster mit Belegungsbalken und einer Tabelle aus Benutzername, echtem Namen, XV-Nummer, E-Mail-Adresse und Bewertung.</p>
+<p>Mit <b>Teilnehmende (n)</b> öffnest Du ein Fenster mit Belegungsbalken und einer Tabelle aus Benutzername, echtem Namen, XV-Nummer und E-Mail-Adresse. Wie eine Person bewertet hat, zeigt die Anwendung nicht. Bewertungen sind anonym.</p>
 {{FIGURE:adm-teilnehmende|Das Fenster mit den Teilnehmenden einer Veranstaltung.}}
 <ul>
 <li><b>E-Mail-Adressen kopieren</b> legt alle Adressen getrennt durch Semikolon in die Zwischenablage, praktisch für eine Nachricht an alle.</li>
@@ -83,11 +85,12 @@
 <tr><td>Überblick</td><td>Veranstaltungen, Anmeldungen, Ø Auslastung, registrierte Konten, Ø Bewertung, Anbietende</td><td>Veranstaltungen und Teilnehmende pro Monat</td></tr>
 <tr><td>Veranstaltungen</td><td>Ø Anmeldungen, ohne Anmeldung, ausgebucht, abgesagt, Absagequote, Ø Vorlauf der Anmeldung</td><td>Auslastung pro Monat, Monatsübersicht, Wochentag, Tageszeit, Auslastung, Bilder der Veranstaltungen, gefragteste Veranstaltungen, Veranstaltungen ohne Anmeldung</td></tr>
 <tr><td>Themen und Formate</td><td>–</td><td>Teilnehmende nach Thema, Art und Dauer, Angebot nach Thema</td></tr>
-<tr><td>Nutzende</td><td>Neue Konten im Zeitraum, aktiv in den letzten 30 Tagen, öffentliche Profile, mit Profilbild, mit Expertenstatus</td><td>Registrierungen pro Monat, letzte Anmeldung, Konten nach Abzeichen, Profile und Profilbilder, aktivste Anbietende</td></tr>
-<tr><td>Bewertungen</td><td>Ø Bewertung, abgegebene Bewertungen, Bewertungsquote, bewertete Veranstaltungen</td><td>Verteilung der Bewertungen, Bewertung nach Thema, die zehn am besten bewerteten Veranstaltungen</td></tr>
+<tr><td>Nutzende</td><td>Neue Konten im Zeitraum, aktiv in den letzten 30 Tagen, öffentliche Profile, mit Profilbild, mit Expertenstatus</td><td>Registrierungen pro Monat, letzte Anmeldung (nur gesamt), Konten nach Abzeichen, Profile und Profilbilder</td></tr>
+<tr><td>Bewertungen</td><td>Ø Bewertung, abgegebene Bewertungen, Bewertungsquote, bewertete Veranstaltungen</td><td>Verteilung der Bewertungen, Bewertung nach Thema</td></tr>
 <tr><td>Datenschutz</td><td>Personenbezogen gespeichert, anonymisiert</td><td>Personenbezogene Daten, nächste Anonymisierungen</td></tr>
 </table>
 <p>Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in „Abgesagt“ und die Absagequote. Die Bewertungsquote setzt abgegebene Bewertungen ins Verhältnis zu den Anmeldungen bei beendeten Veranstaltungen. Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
+<div class="tip"><b>Keine Leistungs- oder Verhaltenskontrolle:</b> Die Statistik zeigt nur zusammengefasste Werte. Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Sterne fließen nur aus Veranstaltungen mit mindestens drei Bewertungen ein, damit keine einzelne Bewertung erkennbar ist. Die Bewertungsquote zählt alle Bewertungen.</div>
 <h3>Als PDF speichern</h3>
 <p>Jede Auswertung hat oben rechts einen Button <b>PDF</b>. <b>Bereich als PDF</b> speichert den gewählten Bereich. Der <b>Gesamtbericht als PDF</b> enthält alle Kennzahlen und Auswertungen der aktuellen Auswahl, mit Filterangaben, Datum und Seitenzahlen. Das PDF entsteht im Browser, die Daten verlassen den Rechner nicht.</p>
 
@@ -116,15 +119,17 @@
 </ul>
 
 <h2>Nutzer und Rechte</h2>
-<p>Unter <b>Übersicht › Nutzer</b> siehst Du alle Konten mit Benutzername und Abzeichen, echtem Namen, XV-Nummer, E-Mail-Adresse, Zahl der angebotenen und besuchten Sessions und letzter Anmeldung. Die Suche findet Benutzername, Name, XV-Nummer und E-Mail-Adresse.</p>
+<p>Unter <b>Übersicht › Nutzer</b> siehst Du alle Konten mit Benutzername und Abzeichen, echtem Namen, XV-Nummer, E-Mail-Adresse, Zahl der angebotenen Sessions und dem Tag der Registrierung. Anmeldezeiten und Teilnahmen je Person zeigt die Liste bewusst nicht. Die Suche findet Benutzername, Name, XV-Nummer und E-Mail-Adresse.</p>
 {{FIGURE:adm-nutzer|Die Nutzerliste mit Rollen und Aktionen.}}
 <table>
 <tr><th>Aktion</th><th>Wirkung</th></tr>
 <tr><td>Zum Admin machen / Admin-Rechte entziehen</td><td>Nur die Hauptadministration kann das. Das Konto sieht danach den Bereich Admin in der Navigation</td></tr>
 <tr><td>Passwort zurücksetzen</td><td>Erzeugt ein vorläufiges Passwort und zeigt es einmal an. Gib es der Person weiter. Beim nächsten Anmelden muss sie ein eigenes vergeben. Alle laufenden Sitzungen enden</td></tr>
 <tr><td>Sperren / Entsperren</td><td>Ein gesperrtes Konto kann sich nicht anmelden. Das Hauptadmin-Konto und Dein eigenes Konto lassen sich nicht sperren</td></tr>
+<tr><td>Konto löschen</td><td>Zum Beispiel beim Ausscheiden. Konto, Kontaktdaten, Profilbild und Mitteilungen werden gelöscht. Künftige Veranstaltungen der Person werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben anonym erhalten. Admin-Konten löscht nur die Hauptadministration</td></tr>
 </table>
-<div class="tip">Es gibt keinen Passwort-Versand per E-Mail. Hat die Hauptadministration ihr Passwort vergessen, entfernst Du im Ordner Data in der Datei data.json bei <code>users</code> den Eintrag mit dem Benutzernamen <code>admin</code> (Dienst vorher anhalten). Beim nächsten Zugriff legt die Anwendung <b>admin</b> mit dem Standardpasswort neu an.</div>
+<p>Nutzende können ihr Konto auch selbst löschen und alle eigenen Daten als Datei herunterladen (Profil › Konto › Meine Daten). Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch auf dieselbe Weise. Ausgenommen sind die Hauptadministration und Testkonten.</p>
+<div class="tip">Es gibt keinen Passwort-Versand per E-Mail. Hat die Hauptadministration ihr Passwort vergessen, entfernst Du im Ordner Data in der Datei data.json bei <code>users</code> den Eintrag mit dem Benutzernamen <code>admin</code> (Dienst vorher anhalten). Beim nächsten Zugriff legt die Anwendung <b>admin</b> neu an und schreibt ein neues zufälliges Startpasswort in <code>AppData\Data\admin-startpasswort.txt</code>.</div>
 
 <h2>Abzeichen und Expertenstatus</h2>
 <p>Unter <b>Katalog › Abzeichen</b> legst Du fest, ab wie vielen durchgeführten Sessions welche Stufe gilt. Abgesagte Sessions zählen nicht. Die Grenzen müssen von Stufe zu Stufe ansteigen.</p>
@@ -165,7 +170,7 @@
 <li><b>Testdaten entfernen</b> löscht nur die Beispiele. Echte Veranstaltungen und Anmeldungen bleiben.</li>
 <li>Im Demo-Modus (ohne Server) setzt <b>Demo komplett zurücksetzen</b> alles im Browser zurück.</li>
 </ul>
-<div class="tip">Entferne die Testdaten vor dem Start im Echtbetrieb, sonst verfälschen sie die Statistik. Alternativ blendest Du sie in der Statistik aus.</div>
+<div class="tip"><b>Wichtig:</b> Entferne die Testdaten vor dem Start im Echtbetrieb. Die Testkonten haben ein bekanntes Passwort und wären sonst ein Einfallstor. Solange Testdaten geladen sind, zeigt die Administration oben einen Hinweis.</div>
 
 <h2>Installation auf dem IIS</h2>
 <p>Die Anwendung läuft als einfache Webseite mit einem ASP.NET-Handler. Node.js wird nicht benötigt.</p>
@@ -179,20 +184,21 @@
 <li>Kopiere den Inhalt des Ordners <code>IIS</code> in ein Verzeichnis des Webservers, als Site oder als Anwendung.</li>
 <li>Gib dem Benutzer des Anwendungspools (zum Beispiel <code>IIS AppPool\&lt;Pool&gt;</code>) <b>Ändern-Rechte</b> auf den Ordner <code>AppData\Data</code>. Dort liegen Veranstaltungen, Anmeldungen, Einstellungen und Bilder.</li>
 <li>Rufe <code>index.html</code> auf. Erscheint oben ein gelbes Banner „Demo-Modus“, erreicht die Seite den Server nicht, siehe Fehlersuche.</li>
-<li>Melde Dich als <b>admin</b> mit dem Standardpasswort an und vergib ein eigenes Passwort. Schalte nach Möglichkeit HTTPS ein.</li>
+<li>Öffne auf dem Server die Datei <code>AppData\Data\admin-startpasswort.txt</code>. Melde Dich als <b>admin</b> mit diesem Passwort an und vergib ein eigenes. Die Datei wird danach gelöscht.</li>
+<li>Schalte nach Möglichkeit HTTPS ein. Ohne HTTPS betreibe die Anwendung nur im internen Netz.</li>
 </ol>
 <h3>Aufbau</h3>
 <table>
 <tr><th>Datei oder Ordner</th><th>Inhalt</th></tr>
 <tr><td><code>index.html</code></td><td>Die Anwendung</td></tr>
-<tr><td><code>web.config</code></td><td>IIS-Einstellungen, schützt <code>Data</code> und <code>Private</code> vor direktem Abruf</td></tr>
+<tr><td><code>web.config</code></td><td>IIS-Einstellungen, schützt <code>Data</code> und <code>Private</code> vor direktem Abruf und setzt die Sicherheits-Header</td></tr>
 <tr><td><code>AppData\api.ashx</code></td><td>Server-Logik (Speichern, Anmelden, Admin)</td></tr>
-<tr><td><code>AppData\Data</code></td><td>Alle Daten (data.json mit Konten, Veranstaltungen, Anmeldungen und Mitteilungen, settings.json, Bilder, error.log)</td></tr>
+<tr><td><code>AppData\Data</code></td><td>Alle Daten (data.json mit Konten, Veranstaltungen, Anmeldungen und Mitteilungen, settings.json, Bilder, error.log, Ordner audit mit dem Protokoll der Admin-Aktionen)</td></tr>
 <tr><td><code>AppData\Private</code></td><td>Dieses Handbuch, nur nach Admin-Anmeldung abrufbar</td></tr>
 <tr><td><code>AppData\fonts</code>, <code>assets</code></td><td>Schriften und Logos</td></tr>
 <tr><td><code>AppData\Handbuch.html</code>, <code>Nutzerhandbuch.pdf</code></td><td>Nutzerhandbuch</td></tr>
 <tr><td><code>AppData\handbuch</code></td><td>Inhalt und Bilder des Nutzerhandbuchs für die Anwendung. Die App lädt sie erst beim Öffnen von „Handbuch“</td></tr>
-<tr><td><code>AppData\selftest.ashx</code></td><td>Selbsttest für die Fehlersuche</td></tr>
+<tr><td><code>AppData\selftest.ashx</code></td><td>Selbsttest für die Fehlersuche, nur direkt auf dem Server abrufbar</td></tr>
 </table>
 <h3>Leistung</h3>
 <ul>
@@ -210,10 +216,11 @@
 <tr><th>Symptom</th><th>Ursache und Lösung</th></tr>
 <tr><td>Gelbes Banner „Demo-Modus“</td><td>Der Server wird nicht erreicht. Klicke auf „Warum Demo-Modus?“, dort steht der Grund. Prüfe, ob <code>AppData/api.ashx?action=ping</code> JSON liefert. Andernfalls ist ASP.NET 4.x nicht installiert oder der Anwendungspool falsch eingestellt.</td></tr>
 <tr><td>Roter Hinweis „Speichern nicht möglich“</td><td>Dem Anwendungspool fehlen Schreibrechte auf <code>AppData\Data</code>.</td></tr>
-<tr><td>HTTP 500 beim Aufruf von api.ashx</td><td>Öffne <code>AppData/selftest.ashx</code>. Die Seite zeigt .NET-Version, Pool-Benutzer und Schreibrechte. Fehlermeldungen des Servers stehen in <code>AppData\Data\error.log</code>.</td></tr>
+<tr><td>HTTP 500 beim Aufruf von api.ashx</td><td>Öffne direkt auf dem Server <code>http://localhost/&lt;pfad&gt;/AppData/selftest.ashx</code>. Von anderen Rechnern aus ist der Selbsttest gesperrt. Die Seite zeigt .NET-Version, Pool-Benutzer und Schreibrechte. Fehlermeldungen des Servers stehen in <code>AppData\Data\error.log</code>.</td></tr>
 <tr><td>Änderungen erscheinen nicht</td><td>Browser-Cache mit <kbd>Strg</kbd>+<kbd>F5</kbd> umgehen.</td></tr>
 <tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten. Ein Neustart des Anwendungspools hebt alle Sperren sofort auf.</td></tr>
 <tr><td>Nach der Anmeldung folgt sofort wieder die Anmeldeseite</td><td>Das Sitzungs-Cookie kommt nicht an. Prüfe, ob die Adresse im Browser immer gleich lautet (gleicher Servername, gleiches Protokoll) und ob Cookies erlaubt sind. Ab Version 0.25.1 richtet sich der Cookie-Pfad nach der Schreibweise der aufgerufenen Adresse. Ersetze dafür <code>AppData\api.ashx</code>.</td></tr>
+<tr><td>Meldung „Bitte vergib zuerst ein eigenes Passwort“</td><td>Das Konto hat ein vorläufiges Passwort. Unter Profil › Konto ein eigenes vergeben, danach geht alles wieder.</td></tr>
 <tr><td>Passwort der Hauptadministration vergessen</td><td>Siehe Kapitel „Nutzer und Rechte“. Andere Konten setzt die Administration über „Passwort zurücksetzen“ zurück.</td></tr>
 </table>
 
@@ -222,13 +229,32 @@
 <li>Die Anwendung speichert Konten (Benutzername, echter Name, XV-Nummer, E-Mail-Adresse, Passwort-Hash), Veranstaltungen, Anmeldungen, Bewertungen und Mitteilungen. Sie verschickt keine E-Mails.</li>
 <li>Öffentlich sichtbar ist standardmäßig nur der Benutzername mit Abzeichen. Nutzende können ihr Profil freigeben (Benutzername, Zahl der Sessions, Themen mit Anzahl, Beschreibung) und zusätzlich Gesamtbewertung, Expertenthemen, E-Mail-Adresse und kommende Veranstaltungen. Echter Name und XV-Nummer bleiben bei der betroffenen Person und der Administration.</li>
 <li>Der Teams-Link wird nur angemeldeten Personen angezeigt und steht nicht im Katalog.</li>
-<li>Anbietende sehen Teilnehmende nur mit Benutzernamen. Bewertungen sehen sie als Durchschnitt je Session.</li>
+<li>Anbietende sehen Teilnehmende nur mit Benutzernamen. Bewertungen sehen sie als Durchschnitt je Session, erst ab drei Bewertungen. Einzelne Bewertungen sieht niemand, auch nicht die Administration.</li>
+<li>Abzeichen und Rakete können Nutzende ausblenden. Profil und Profilbild sind freiwillig.</li>
+<li>Nutzende können ihre Daten herunterladen (Auskunft) und ihr Konto selbst löschen. Konten ohne Anmeldung seit 24 Monaten löscht die Anwendung automatisch.</li>
+<li>Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Die Anwendung dient nicht der Leistungs- oder Verhaltenskontrolle.</li>
 <li>Alle Veranstaltungen werden fünf Jahre nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
 <li>Anbietende können ihre Veranstaltung unter „Meine Veranstaltungen“ selbst absagen, auch mit bestehenden Anmeldungen. Angemeldete sehen die Absage als Mitteilung unter „Meine Anmeldungen“.</li>
 <li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. Eine IDD-Anrechnung ist noch nicht möglich und in Planung.</li>
 <li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
 <li>Der Betrieb gilt als Proof of Concept. Prüfe vor einem breiten Einsatz Datenschutz, Betriebsrat und Berechtigungskonzept.</li>
 </ul>
+
+<h2>IT-Sicherheit im Betrieb</h2>
+<table>
+<tr><th>Maßnahme</th><th>Umsetzung</th></tr>
+<tr><td>Passwörter</td><td>PBKDF2-SHA256 mit 100.000 Runden und eigenem Salt, mindestens 10 Zeichen, bekannte Passwörter abgelehnt, Sperre nach Fehlversuchen</td></tr>
+<tr><td>Startpasswort</td><td>Zufällig, nur auf dem Server lesbar, nach der ersten Änderung gelöscht</td></tr>
+<tr><td>Sitzungen</td><td>Signiertes HttpOnly-Cookie mit SameSite=Strict, Secure bei HTTPS, feste Dauer 8 Stunden, serverseitig beendbar</td></tr>
+<tr><td>Fremde Aufrufe</td><td>Schreiben nur per POST mit Zusatz-Header, keine Freigabe für andere Websites</td></tr>
+<tr><td>Sicherheits-Header</td><td>Content-Security-Policy (keine fremden Skripte, Verbindungen oder Einbettungen), X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, ohne X-Powered-By</td></tr>
+<tr><td>Eingaben</td><td>Prüfung auf dem Server, Beschreibungen über eine Positivliste bereinigt, Teams-Links nur zu Microsoft-Teams-Adressen</td></tr>
+<tr><td>Uploads</td><td>Nur JPEG, PNG und WebP bis 2 MB, Dateiinhalt wird geprüft, Ablage außerhalb des Web-Zugriffs</td></tr>
+<tr><td>Daten</td><td><code>AppData\Data</code> und <code>AppData\Private</code> sind über das Web nicht abrufbar. Antworten mit persönlichen Daten werden nicht zwischengespeichert</td></tr>
+<tr><td>Protokoll</td><td>Admin-Änderungen (Rechte, Passwörter, Sperren, Löschungen, Einstellungen) stehen mit Zeit, Benutzername und betroffenem Datensatz in <code>AppData\Data\audit</code>. Inhalte werden nicht protokolliert. Die Monatsdateien bleiben 12 Monate</td></tr>
+<tr><td>Fehlerprotokoll</td><td><code>error.log</code> ohne Passwörter, auf 2 MB begrenzt</td></tr>
+</table>
+<div class="tip"><b>Ohne HTTPS:</b> Die Anwendung setzt HTTPS nicht voraus. Ohne HTTPS gehen Passwörter und Sitzungs-Cookies aber unverschlüsselt durchs Netz. Betreibe sie dann nur im internen Netz und beschränke den Zugriff im IIS auf das Firmennetz. Richte HTTPS ein, sobald es möglich ist. Die Administration zeigt dazu oben einen Hinweis.</div>
 
 <h2>Häufige Fragen</h2>
 <h3>Kann ich Anmeldungen für andere Personen vornehmen?</h3>

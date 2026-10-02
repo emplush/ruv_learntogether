@@ -35,6 +35,8 @@ function add(e, kids) {
   return e;
 }
 function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e; }
+/* Datenschutz: Durchschnittswerte erst ab drei Bewertungen; Konten ohne Anmeldung werden nach 24 Monaten geloescht (wie auf dem Server) */
+var MIN_RATINGS = 3, INACTIVE_MONTHS = 24;
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function svg(path, extra) { return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + path + '</svg>'; }
@@ -372,7 +374,15 @@ var Server = {
   adminDeletePhoto: function (id) { return this.call('adminDeletePhoto', { id: id }); },
   publicProfile: function (username) { return this.call('publicProfile&username=' + encodeURIComponent(username)).then(function (j) { return j; }); },
   adminEvents: function () { return this.call('adminEvents').then(function (j) { return j.events; }); },
-  adminUsers: function () { return this.call('adminUsers').then(function (j) { return j.users; }); },
+  adminUsers: function () { return this.call('adminUsers').then(function (j) { return { users: j.users, activity: j.activity, inactiveMonths: j.inactiveMonths }; }); },
+  adminDeleteUser: function (id) { return this.call('adminDeleteUser', { id: id }); },
+  deleteAccount: function (pw) { return this.call('deleteAccount', { password: pw }); },
+  myData: function () {
+    return fetch(API + '?action=myData', { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok || !/attachment/.test(r.headers.get('content-disposition') || '')) return r.json().then(function (j) { throw ApiErr(j.error, j.message, j.error === 'auth' ? 401 : r.status); });
+      return r.blob();
+    }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe Deine Verbindung.'); });
+  },
   adminSetRole: function (id, role) { return this.call('adminSetRole', { id: id, role: role }); },
   adminResetPassword: function (id) { return this.call('adminResetPassword', { id: id }); },
   adminSetLocked: function (id, locked) { return this.call('adminSetLocked', { id: id, locked: !!locked }); },
@@ -510,17 +520,22 @@ var Local = (function () {
     var B = { offered: {}, topic: {} };
     data.events.forEach(function (e) { if (e.cancelled || e.anonymized || !e.ownerId || !eventEnded(e)) return; B.offered[e.ownerId] = (B.offered[e.ownerId] || 0) + 1; var k = e.ownerId + '|' + e.category + '|' + e.topic; B.topic[k] = (B.topic[k] || 0) + 1; });
     data.users.forEach(function (u) { if (u.legacyOffered) B.offered[u.id] = (B.offered[u.id] || 0) + u.legacyOffered; Object.keys(u.legacyTopics || {}).forEach(function (k) { B.topic[u.id + '|' + k] = (B.topic[u.id + '|' + k] || 0) + u.legacyTopics[k]; }); });
+    B.hidden = {}; data.users.forEach(function (u) { if (u.hideBadges) B.hidden[u.id] = 1; });
     return B;
   }
+  /* Fuer andere sichtbar: ohne Abzeichen, wenn die Person sie ausgeblendet hat */
+  function pubLevel(B, uid) { return uid && B.hidden[uid] ? 0 : levelOf(B, uid); }
+  function pubExpert(B, uid, cat, tp) { return !(uid && B.hidden[uid]) && expertOf(B, uid, cat, tp); }
   function levelOf(B, uid) { var n = (uid && B.offered[uid]) || 0, lv = 0; BADGES.levels.forEach(function (t, i) { if (n >= t) lv = i + 1; }); return lv; }
   function expertOf(B, uid, cat, tp) { return !!uid && (B.topic[uid + '|' + cat + '|' + tp] || 0) >= BADGES.expertMin; }
   function avInfo(u, own) { if (!u.avatar) return null; if (u.avatar === 'upload') { if (cfg.avatarUploadOff && !own) return null; return { kind: 'upload', url: u.avatarData || '', hidden: !!cfg.avatarUploadOff }; } return { kind: 'ph', id: u.avatar }; }
   function hostPublic(e) { var u = userById(e.ownerId); return !!u && !!u.profilePublic && !u.locked; }
   function hostName(e) { var u = userById(e.ownerId); return u ? u.username : (e.host || 'Unbekannt'); }
-  function ratingOf(eventId) { var s = 0, c = 0; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; } }); return { avg: c ? Math.round(s / c * 100) / 100 : 0, count: c }; }
+  function avgOrZero(s, c) { return c >= MIN_RATINGS ? Math.round(s / c * 100) / 100 : 0; }
+  function ratingOf(eventId) { var s = 0, c = 0, d = [0, 0, 0, 0, 0]; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; d[b.rating - 1]++; } }); return { avg: avgOrZero(s, c), count: c, dist: c >= MIN_RATINGS ? d : null }; }
   function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff }; }
   function eventBase(B, e) {
-    return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: levelOf(B, e.ownerId), hostExpert: expertOf(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
+    return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: pubLevel(B, e.ownerId), hostExpert: pubExpert(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
       description: e.description, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
@@ -535,7 +550,29 @@ var Local = (function () {
     data.notes = data.notes.filter(function (n) { return n.eventId !== e.id; });
     e.ownerId = null; e.host = 'Anonymisiert'; e.teamsLink = ''; e.anonymized = true; e.anonymizedAt = nowIso();
   }
-  function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (ch) save(); }
+  /* Konto loeschen: kuenftige eigene Veranstaltungen werden abgesagt, vergangene bleiben anonym; kuenftige Anmeldungen entfallen, vergangene werden anonymisiert */
+  function deleteUser(u, reason) {
+    var now = new Date();
+    data.events.forEach(function (e) {
+      if (e.ownerId !== u.id) return;
+      if (!e.cancelled && startDate(e) > now) { e.cancelled = true; e.cancelledAt = nowIso(); e.cancelReason = reason; data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId && b.userId !== u.id) addNote(b.userId, 'cancelled', e, reason); }); }
+      e.ownerId = null; e.host = 'Anonymisiert'; e.teamsLink = '';
+    });
+    data.bookings = data.bookings.filter(function (b) {
+      if (b.userId !== u.id) return true; var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0];
+      if (!ev || (!ev.cancelled && startDate(ev) > now)) return false; b.userId = null; b.name = 'Anonymisiert'; b.email = ''; return true;
+    });
+    data.notes = data.notes.filter(function (n) { return n.userId !== u.id; });
+    data.users = data.users.filter(function (x) { return x !== u; });
+  }
+  /* Konten ohne Anmeldung seit INACTIVE_MONTHS Monaten loeschen (nicht Hauptadministration, keine Testkonten) */
+  function purgeInactive() {
+    var lim = new Date(); lim.setMonth(lim.getMonth() - INACTIVE_MONTHS);
+    var old = data.users.filter(function (u) { if (u.role === 'superadmin' || u.isTest) return false; var t = new Date(u.lastLogin || u.created || 0); return !isNaN(t) && t < lim; });
+    old.forEach(function (u) { deleteUser(u, 'Das Konto der anbietenden Person wurde gelöscht.'); });
+    return old.length > 0;
+  }
+  function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (purgeInactive()) ch = true; if (ch) save(); }
   function addNote(userId, type, e, reason) { data.notes.push({ id: rid(8), userId: userId, type: type, eventId: e.id, title: e.title, date: e.date, start: e.start, reason: reason || '', created: nowIso(), read: false }); }
   var authFails = {};
   function throttle(key, check) { var f = authFails[key]; if (check) { if (f && f.n >= 5 && Date.now() - f.t < 300000) throw ApiErr('locked', 'Zu viele Fehlversuche. Bitte warte fünf Minuten und versuche es dann erneut.'); return; } if (!f || Date.now() - f.t > 600000) f = authFails[key] = { n: 0, t: 0 }; f.n++; f.t = Date.now(); }
@@ -712,7 +749,7 @@ var Local = (function () {
       return wrap(function () {
         var me = curUser(true), B = badges(), now = new Date();
         return { events: data.events.filter(function (e) { return e.ownerId === me.id; }).map(function (ev) {
-          var o = eventBase(B, ev), people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { var bu = userById(b.userId); return { username: bu ? bu.username : 'Anonymisiert', level: levelOf(B, b.userId), created: b.created }; }), r = ratingOf(ev.id);
+          var o = eventBase(B, ev), people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { var bu = userById(b.userId); return { username: bu ? bu.username : 'Anonymisiert', level: pubLevel(B, b.userId), created: b.created }; }), r = ratingOf(ev.id);
           o.teamsLink = ev.teamsLink; o.participants = people; o.booked = people.length; o.ended = eventEnded(ev); o.ratingAvg = r.avg; o.ratingCount = r.count; o.canCancel = !ev.cancelled && startDate(ev) > now; return o;
         }) };
       });
@@ -730,12 +767,12 @@ var Local = (function () {
         data.bookings.forEach(function (bk) {
           if (bk.userId !== me.id) return; var ev = data.events.filter(function (e) { return e.id === bk.eventId; })[0]; if (!ev || ev.cancelled) return;
           if (!eventEnded(ev)) { upA++; return; } heldA++; if (bk.rating) rated++;
-          attended.push({ id: ev.id, title: ev.title, date: ev.date, start: ev.start, category: ev.category, type: ev.type, topic: ev.topic, host: hostName(ev), hostLevel: levelOf(B, ev.ownerId), rating: bk.rating || 0 });
+          attended.push({ id: ev.id, title: ev.title, date: ev.date, start: ev.start, category: ev.category, type: ev.type, topic: ev.topic, host: hostName(ev), hostLevel: pubLevel(B, ev.ownerId), rating: bk.rating || 0 });
         });
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(me.id + '|') !== 0) return; var p = k.split('|'); topics.push({ category: p[1], topic: p[2], count: B.topic[k], expert: B.topic[k] >= s.expertMin }); });
         var next = null; for (var i = 0; i < s.levels.length; i++) if (heldOffered < s.levels[i]) { next = s.levels[i]; break; }
         return { me: meInfo(me, B), badge: { level: levelOf(B, me.id), offered: heldOffered, levels: s.levels, next: next, expertMin: s.expertMin },
-          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, bio: me.bio || '' }, avatar: avInfo(me, true), avatarUpload: !cfg.avatarUploadOff };
+          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: avgOrZero(rs, rc), ratingCount: rc, minRatings: MIN_RATINGS, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, hideBadges: !!me.hideBadges, bio: me.bio || '' }, avatar: avInfo(me, true), avatarUpload: !cfg.avatarUploadOff };
       });
     },
     updateAccount: function (p) {
@@ -781,7 +818,7 @@ var Local = (function () {
         var me = curUser(true), bio = String(p.bio || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
         if (bio.length > 300) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 300 Zeichen lang sein.');
         if ((bio.match(/\n/g) || []).length > 6) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 7 Zeilen haben.');
-        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.showAvatar = !!p.showAvatar && !!me.avatar; me.bio = bio.trim(); save(); return {};
+        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.showAvatar = !!p.showAvatar && !!me.avatar; me.hideBadges = !!p.hideBadges; me.bio = bio.trim(); save(); return {};
       });
     },
     publicProfile: function (username) {
@@ -789,12 +826,12 @@ var Local = (function () {
         var me = curUser(false), B = badges(), s = BADGES, key = String(username || '').toLowerCase(), now = new Date();
         var u = data.users.filter(function (x) { return x.username.toLowerCase() === key; })[0];
         if (!u || !u.profilePublic || u.locked) throw ApiErr('notfound', 'Dieses Profil ist nicht öffentlich oder gibt es nicht.');
-        var p = { username: u.username, level: levelOf(B, u.id), bio: u.bio || '', offered: B.offered[u.id] || 0, topics: [] }, experts = [];
+        var p = { username: u.username, level: pubLevel(B, u.id), bio: u.bio || '', offered: B.offered[u.id] || 0, topics: [] }, experts = [];
         if (u.showAvatar) { var av = avInfo(u, false); if (av) p.avatar = av; }
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(u.id + '|') !== 0) return; var q = k.split('|'); p.topics.push({ category: q[1], topic: q[2], count: B.topic[k] }); if (B.topic[k] >= s.expertMin) experts.push({ category: q[1], topic: q[2] }); });
-        if (u.showExpert) p.experts = experts;
+        if (u.showExpert && !u.hideBadges) p.experts = experts;
         if (u.showEmail) p.email = u.email;
-        if (u.showRating) { var rs = u.legacyRatingSum || 0, rc = u.legacyRatingCount || 0; data.events.forEach(function (ev) { if (ev.ownerId !== u.id || ev.cancelled || !eventEnded(ev)) return; data.bookings.forEach(function (b) { if (b.eventId === ev.id && b.rating > 0) { rs += b.rating; rc++; } }); }); p.ratingAvg = rc ? Math.round(rs / rc * 100) / 100 : 0; p.ratingCount = rc; }
+        if (u.showRating) { var rs = u.legacyRatingSum || 0, rc = u.legacyRatingCount || 0; data.events.forEach(function (ev) { if (ev.ownerId !== u.id || ev.cancelled || !eventEnded(ev)) return; data.bookings.forEach(function (b) { if (b.eventId === ev.id && b.rating > 0) { rs += b.rating; rc++; } }); }); p.ratingAvg = avgOrZero(rs, rc); p.ratingCount = rc; }
         if (u.showUpcoming) p.upcoming = data.events.filter(function (ev) { return ev.ownerId === u.id && !ev.cancelled && startDate(ev) > now; }).map(function (ev) { return { id: ev.id, category: ev.category, title: ev.title, topic: ev.topic, type: ev.type, date: ev.date, start: ev.start, duration: ev.duration, capacity: ev.capacity, booked: booked(ev.id), mine: !!me && data.bookings.some(function (b) { return b.eventId === ev.id && b.userId === me.id; }), own: !!me && me.id === u.id }; });
         return { profile: p };
       });
@@ -806,18 +843,47 @@ var Local = (function () {
         return data.events.map(function (e) {
           var o = eventBase(B, e), ow = userById(e.ownerId), r = ratingOf(e.id);
           o.ownerId = e.ownerId || ''; o.owner = ow ? { username: ow.username, firstName: ow.firstName, lastName: ow.lastName, xv: ow.xv, email: ow.email } : null; o.teamsLink = e.teamsLink; o.anonymized = !!e.anonymized; o.anonymizedAt = e.anonymizedAt || '';
-          o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var bu = userById(b.userId); return bu ? { id: b.id, username: bu.username, firstName: bu.firstName, lastName: bu.lastName, xv: bu.xv, email: bu.email, created: b.created, rating: b.rating || 0 } : { id: b.id, username: b.name || 'Anonymisiert', firstName: '', lastName: '', xv: '', email: b.email || '', created: b.created, rating: b.rating || 0 }; });
-          o.booked = o.bookings.length; o.ratingAvg = r.avg; o.ratingCount = r.count; return o;
+          o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var bu = userById(b.userId); return bu ? { id: b.id, username: bu.username, firstName: bu.firstName, lastName: bu.lastName, xv: bu.xv, email: bu.email, created: b.created } : { id: b.id, username: b.name || 'Anonymisiert', firstName: '', lastName: '', xv: '', email: b.email || '', created: b.created }; });
+          o.booked = o.bookings.length; o.ratingAvg = r.avg; o.ratingCount = r.count; o.ratingDist = r.dist; return o;
         });
       });
     },
     adminUsers: function () {
       return wrap(function () {
-        needAdmin(); var B = badges();
-        return data.users.map(function (u) {
-          var att = u.legacyAttended || 0; data.bookings.forEach(function (b) { if (b.userId === u.id) { var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0]; if (ev && !ev.cancelled && eventEnded(ev)) att++; } });
-          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, lastLogin: u.lastLogin || '', isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, attended: att, profilePublic: !!u.profilePublic, avatar: avInfo(u, true) };
+        needAdmin(); var B = badges(), now = Date.now(), act = [0, 0, 0, 0, 0];
+        var users = data.users.map(function (u) {
+          var k = 4; if (u.lastLogin) { var d = (now - new Date(u.lastLogin)) / 864e5; k = d < 7 ? 0 : d < 30 ? 1 : d < 90 ? 2 : 3; } act[k]++;
+          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, profilePublic: !!u.profilePublic, avatar: avInfo(u, true) };
         });
+        return { users: users, activity: act, inactiveMonths: INACTIVE_MONTHS };
+      });
+    },
+    adminDeleteUser: function (id) {
+      return wrap(function () {
+        var me = needAdmin(), u = userById(id); if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.');
+        if (u.role === 'superadmin' || u.id === me.id) throw ApiErr('forbidden', 'Dieses Konto lässt sich hier nicht löschen.');
+        if (u.role === 'admin' && me.role !== 'superadmin') throw ApiErr('forbidden', 'Admin-Konten kann nur die Hauptadministration löschen.');
+        deleteUser(u, 'Das Konto der anbietenden Person wurde gelöscht.'); save(); return {};
+      });
+    },
+    deleteAccount: function (pw) {
+      return wrap(function () {
+        var me = curUser(true); if (me.role === 'superadmin') throw ApiErr('forbidden', 'Das Konto der Hauptadministration lässt sich nicht löschen.');
+        if (!checkPw(pw || '', me.pwHash)) throw ApiErr('password', 'Das Passwort stimmt nicht.');
+        deleteUser(me, 'Die anbietende Person hat ihr Konto gelöscht.'); save(); sess.del('lt_me'); return {};
+      });
+    },
+    myData: function () {
+      return wrap(function () {
+        var me = curUser(true);
+        var o = { exported: nowIso(),
+          account: { username: me.username, firstName: me.firstName, lastName: me.lastName, xv: me.xv, email: me.email, role: me.role, created: me.created, lastLogin: me.lastLogin || '', locked: !!me.locked },
+          profile: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, hideBadges: !!me.hideBadges, bio: me.bio || '', avatar: me.avatar || '' },
+          archive: { offeredBeforeAnonymization: me.legacyOffered || 0, attendedBeforeAnonymization: me.legacyAttended || 0 },
+          events: data.events.filter(function (e) { return e.ownerId === me.id; }).map(function (e) { var r = ratingOf(e.id); return { title: e.title, category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity, teamsLink: e.teamsLink, description: e.description, created: e.created, cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', participants: booked(e.id), ratingCount: r.count, ratingAvg: r.avg }; }),
+          bookings: data.bookings.filter(function (b) { return b.userId === me.id; }).map(function (b) { var e = data.events.filter(function (x) { return x.id === b.eventId; })[0]; return { eventTitle: e ? e.title : '', date: e ? e.date : '', start: e ? e.start : '', booked: b.created, myRating: b.rating || 0, ratedAt: b.ratedAt || '' }; }),
+          notes: data.notes.filter(function (n) { return n.userId === me.id; }).map(function (n) { return { type: n.type, title: n.title, date: n.date, reason: n.reason, created: n.created, read: !!n.read }; }) };
+        return new Blob([JSON.stringify(o, null, 2)], { type: 'application/json' });
       });
     },
     adminSetRole: function (id, role) {
@@ -864,7 +930,7 @@ var Local = (function () {
         save(); return {};
       });
     },
-    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
+    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminTestData: function (m) {
       return wrap(function () {
         needAdmin();
@@ -1216,8 +1282,10 @@ function openPublicProfile(username) {
 function starsText(avg) { var n = Math.round(avg); return new Array(n + 1).join('★') + new Array(6 - n).join('☆'); }
 function fmtAvg(avg) { return String(Math.round(avg * 10) / 10).replace('.', ','); }
 /* Anzeige einer Bewertung: Sterne und Zahl, ohne Bewertung ein Strich */
-function ratingNode(avg, count) {
+/* Bewertung anzeigen: Durchschnitt erst ab MIN_RATINGS, damit niemand auf einzelne Stimmen schliessen kann */
+function ratingNode(avg, count, single) {
   if (!count) return h('span', { class: 'hint', text: 'noch keine Bewertung' });
+  if (!single && count < MIN_RATINGS) return h('span', { class: 'hint', title: 'Der Durchschnitt erscheint ab ' + MIN_RATINGS + ' Bewertungen. So bleibt jede Bewertung anonym.', text: count + (count === 1 ? ' Bewertung' : ' Bewertungen') + ', Ø ab ' + MIN_RATINGS });
   return h('span', { class: 'rating', title: fmtAvg(avg) + ' von 5 Sternen' + (count > 1 ? ' bei ' + count + ' Bewertungen' : '') }, [h('span', { class: 'stars', 'aria-hidden': 'true', text: starsText(avg) }), h('span', { class: 'sr', text: fmtAvg(avg) + ' von 5 Sternen' }), ' ' + fmtAvg(avg) + (count > 1 ? ' (' + count + ')' : '')]);
 }
 /* Sterne zum Anklicken: 1 bis 5, danach bestaetigen */
@@ -1238,7 +1306,12 @@ function goLogin() { var cur = (location.hash || '#/').slice(1); if (/^\/(anmeld
 function setMe(me) { state.me = me || null; renderNav(); }
 function refreshMe() { return Api.me().then(function (j) { setMe(j.me); return j.me; }, function () { setMe(null); return null; }); }
 /* Fehler, die eine Anmeldung verlangen: Sitzung abgelaufen oder Konto gesperrt */
-function authFail(er) { if (er && (er.code === 'auth')) { setMe(null); goLogin(); return true; } return false; }
+function authFail(er) {
+  if (er && (er.code === 'auth')) { setMe(null); goLogin(); return true; }
+  /* Vorlaeufiges Passwort: der Server erlaubt bis zur Aenderung nur das Profil */
+  if (er && er.code === 'mustChange') { toast(er.message, true); if (!/^#\/profil/.test(location.hash)) location.hash = '#/profil'; return true; }
+  return false;
+}
 
 /* ====================================================== Rich-Text-Editor */
 function makeRte(initial) {
@@ -1829,7 +1902,7 @@ function viewMyBookings() {
     node.appendChild(h('h3', { text: b.title, style: 'overflow-wrap:anywhere' }));
     node.appendChild(h('div', { class: 'hint' }, [dateFull(b.date) + ', ' + b.start + '–' + endHm(b) + ' Uhr · angeboten von ', userTag(b.host, b.hostLevel, b.hostExpert, '', b.hostPublic)]));
     if (b.cancelled) { node.appendChild(h('p', { class: 'hint', text: 'Diese Veranstaltung wurde abgesagt' + (b.cancelReason ? ': ' + b.cancelReason : '.') })); return node; }
-    if (b.rating) node.appendChild(h('div', null, ['Deine Bewertung: ', ratingNode(b.rating, 1)]));
+    if (b.rating) node.appendChild(h('div', null, ['Deine Bewertung: ', ratingNode(b.rating, 1, true)]));
     else if (b.canRate) {
       var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
       node.appendChild(h('div', null, [h('b', { text: 'Wie war die Veranstaltung?' }), starPicker(function (stars, reset) { Api.rate(b.bookingId, stars).then(function () { toast('Danke für Deine Bewertung.'); load(); }, function (er) { reset(); if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; }); }), msg]));
@@ -1909,7 +1982,7 @@ function viewProfile(q) {
   function tile(label, value, sub) { return h('div', { class: 'st-kpi' }, [h('b', null, value), h('span', { text: label }), sub ? h('span', { class: 'hint', text: sub }) : null]); }
   function table(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (c) { return h('th', { text: c }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (c) { return h('td', null, c); })); }))])); }
   function publicBox(pub, me, avatarOk) {
-    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming, showAvatar: !!pub.showAvatar };
+    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming, showAvatar: !!pub.showAvatar, hideBadges: !!pub.hideBadges };
     var noAv = !avatarOk;
     var subs = [];
     function chk(key, label, hint, master) {
@@ -1926,13 +1999,17 @@ function viewProfile(q) {
     var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil veröffentlichen', null, true),
       chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen'), chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : null)]);
     sync();
+    /* Abzeichen und Rakete erscheinen auch ohne oeffentliches Profil neben dem Benutzernamen, deshalb eigener Schalter */
+    var bc = h('input', { type: 'checkbox', id: 'pp-badges', checked: !v.hideBadges });
+    bc.addEventListener('change', function () { v.hideBadges = !bc.checked; });
+    var badgeOpt = h('label', { class: 'chk' }, [bc, h('span', null, [h('b', { text: 'Abzeichen und Expertenstatus anzeigen' }), h('span', { class: 'hint', text: 'Erscheinen neben Deinem Benutzernamen, auch ohne öffentliches Profil. Ohne Haken sehen nur Du sie.' })])]);
     go.addEventListener('click', function () {
       go.disabled = true; var p = Object.assign({ bio: bio.value }, v);
       Api.saveProfile(p).then(function () { go.disabled = false; msg.hidden = false; msg.className = 'notice ok'; msg.textContent = v.isPublic ? 'Gespeichert. Dein Profil ist öffentlich.' : 'Gespeichert. Dein Profil ist nicht öffentlich.'; toast('Gespeichert.'); refreshMe(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
     });
     return h('section', { class: 'prof-sec', id: 'pub-box' }, [h('h2', { text: 'Öffentliches Profil' }),
       h('p', { class: 'hint', text: 'Wenn Du Dein Profil öffentlich machst, sehen andere Deinen Benutzernamen, Dein Abzeichen, die Zahl Deiner angebotenen Veranstaltungen und Deine Themen mit der Zahl der Veranstaltungen. Alles Weitere gibst Du einzeln frei.' }),
-      h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px;max-width:760px' }, [list, field('Beschreibung (wie eine Bio)', bio, { id: 'pp-bio', hint: 'Frei formulierter Text für Dein öffentliches Profil, bis zu 300 Zeichen. Er erscheint nur, wenn Dein Profil öffentlich ist.' }), count, msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, view])])]);
+      h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px;max-width:760px' }, [list, h('div', { class: 'chklist chk-sep' }, badgeOpt), field('Beschreibung (wie eine Bio)', bio, { id: 'pp-bio', hint: 'Frei formulierter Text für Dein öffentliches Profil, bis zu 300 Zeichen. Er erscheint nur, wenn Dein Profil öffentlich ist.' }), count, msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, view])])]);
   }
   function avatarDialog(r) {
     var body = h('div', { class: 'modal-body' }), m;
@@ -1982,6 +2059,30 @@ function viewProfile(q) {
     });
     return h('section', { class: 'prof-sec', id: 'pw-box' }, [h('h2', { text: 'Passwort ändern' }), forced ? h('div', { class: 'notice warn', role: 'alert', style: 'margin-bottom:12px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Bitte vergib ein eigenes Passwort' }), h('div', { text: 'Dein Konto nutzt noch ein vorläufiges Passwort. Wähle jetzt ein neues, bevor Du weitermachst.' })])) : null, form]);
   }
+  /* Meine Daten: Auskunft als Datei und Konto loeschen */
+  function dataBox(me) {
+    var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
+    var dl = h('button', { type: 'button', class: 'btn btn-secondary', html: ico('download') + ' Meine Daten herunterladen' });
+    dl.addEventListener('click', function () {
+      if (CFG.mode === 'artifact') { toast('Downloads sind in der Artefakt-Vorschau gesperrt. In der IIS-Version wird die Datei heruntergeladen.', true); return; }
+      dl.disabled = true;
+      Api.myData().then(function (blob) { dl.disabled = false; var url = URL.createObjectURL(blob), a = h('a', { href: url, download: 'LearnTogether-meine-Daten.json' }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000); toast('Die Datei mit Deinen Daten ist gespeichert.'); },
+        function (er) { dl.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; });
+    });
+    var kids = [h('h2', { text: 'Meine Daten' }), h('p', { class: 'hint', text: 'Lade alle Daten herunter, die zu Deinem Konto gespeichert sind: Kontodaten, Freigaben, Veranstaltungen, Anmeldungen, Deine Bewertungen und Mitteilungen.' }), h('div', { style: 'margin-bottom:24px' }, dl)];
+    if (me.role === 'superadmin') kids.push(h('p', { class: 'hint', text: 'Das Konto der Hauptadministration lässt sich nicht löschen.' }));
+    else {
+      var pw = h('input', { type: 'password', id: 'del-pw', autocomplete: 'current-password', maxlength: '128' });
+      var del = twoStep(h('button', { type: 'button', class: 'btn btn-danger', text: 'Konto löschen' }), 'Konto löschen', 'Endgültig löschen?', function (reset) {
+        msg.hidden = true;
+        Api.deleteAccount(pw.value).then(function () { setMe(null); toast('Dein Konto ist gelöscht.'); location.hash = '#/'; }, function (er) { reset(); if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; });
+      });
+      kids.push(h('h3', { text: 'Konto löschen' }), h('p', { class: 'hint', text: 'Dein Konto, Deine Kontaktdaten und Dein Profilbild werden sofort gelöscht. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten. Das lässt sich nicht rückgängig machen.' }),
+        h('div', { class: 'form panel', style: 'gap:16px;max-width:760px' }, [h('div', { class: 'grid2' }, [field('Passwort zur Bestätigung', pw, { id: 'del-pw', req: true }), h('div')]), h('div', null, del)]));
+    }
+    kids.push(msg);
+    return h('section', { class: 'prof-sec', id: 'data-box' }, kids);
+  }
   Api.profile().then(function (r) {
     clear(box); var me = r.me, b = r.badge, o = r.offered, a = r.attended;
     var experts = r.topics.filter(function (t) { return t.expert; });
@@ -2003,7 +2104,7 @@ function viewProfile(q) {
     function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', null, title), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
     function overview() {
       return h('div', null, [facts, h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername. Ändern kannst Du sie unter „Konto“.' }), kp,
-        sec('Abzeichen', 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen.', [lv]),
+        sec('Abzeichen', 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen. Unter „Veröffentlichung“ kannst Du es ausblenden.', [lv]),
         sec([rocketNode(), ' Themen und Expertenstatus'], 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.',
           [r.topics.length ? table(['Bereich', 'Thema', 'Sessions', 'Status'], r.topics.slice().sort(function (x, y) { return y.count - x.count; }).map(function (t) { return [CAT_LABEL[t.category] || t.category, capFirst(t.topic), String(t.count), t.expert ? h('span', { class: 'utag' }, [rocketNode(), ' Experte']) : 'noch ' + (b.expertMin - t.count) + ' bis zum Expertenstatus']; })) : h('p', { class: 'hint', text: 'Du hast noch keine Veranstaltung durchgeführt.' })])]);
     }
@@ -2013,9 +2114,9 @@ function viewProfile(q) {
     }
     function attendedTab() {
       return sec('Meine Teilnahmen', 'Alle Veranstaltungen, die Du besucht hast, mit Deiner Bewertung.', [
-        a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]);
+        a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1, true) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]);
     }
-    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange)]); }
+    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange), dataBox(me)]); }
     if (me.mustChange) sess.set('lt_tab_prof', 'konto'); else if (q && q.tab) sess.set('lt_tab_prof', q.tab);
     box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me, !!r.avatar && !r.avatar.hidden); }], ['konto', 'Konto', null, accountTab]]));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
@@ -2064,6 +2165,12 @@ function viewAdmin() {
         return h('button', { type: 'button', text: it[1], 'data-sec': it[0], 'aria-current': section === it[0] ? 'page' : null, onclick: function () { section = it[0]; sess.set('lt_admin_sec', section); $$('button', nav).forEach(function (x) { if (x.getAttribute('data-sec') === section) x.setAttribute('aria-current', 'page'); else x.removeAttribute('aria-current'); }); draw(); } });
       }))));
     });
+    /* Sicherheitshinweise fuer den Betrieb: Testdaten mit bekanntem Passwort, unverschluesselte Verbindung */
+    var warn = h('div', { class: 'admin-warn' }); wrap.appendChild(warn);
+    Api.adminSettings().then(function (st) {
+      if (st.testUsers || st.testEvents) warn.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Testdaten sind geladen' }), h('div', { text: st.testUsers + ' Testkonten und ' + st.testEvents + ' Testveranstaltungen. Die Testkonten haben ein bekanntes Passwort. Entferne sie vor dem Produktivbetrieb unter System › Testdaten.' })])));
+      if (mode === 'server' && !st.https) warn.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Verbindung ohne HTTPS' }), h('div', { text: 'Passwörter und Sitzungen gehen unverschlüsselt durchs Netz. Betreibe die Anwendung nur im internen Netz und richte nach Möglichkeit HTTPS ein.' })])));
+    }, function () { });
     wrap.appendChild(h('div', { class: 'admin-layout' }, [nav, content]));
     function draw() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
@@ -2143,7 +2250,7 @@ function viewAdmin() {
       function peopleBody(e) {
         var f = freeOf(e), pct = Math.min(100, Math.round(e.booked / e.capacity * 100));
         var body = h('div', { class: 'modal-body people' });
-        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '–' + endHm(e) + ' Uhr · ' + e.host + (e.ratingCount ? ' · Ø ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '–' + endHm(e) + ' Uhr · ' + e.host + (e.ratingCount >= MIN_RATINGS ? ' · Ø ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
         body.appendChild(h('div', { class: 'people-occ' }, [h('b', { text: e.booked + ' von ' + e.capacity + ' Plätzen belegt' }), h('div', { class: 'bar wide' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]));
         if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Noch keine Anmeldungen.' })));
         else {
@@ -2154,9 +2261,9 @@ function viewAdmin() {
               if (!rm._c) { rm._c = true; rm.setAttribute('data-c', '1'); rm.textContent = 'Wirklich?'; setTimeout(function () { rm._c = false; rm.removeAttribute('data-c'); rm.textContent = 'Entfernen'; }, 4000); return; }
               Api.adminDeleteBooking(b.id).then(function () { toast('Anmeldung entfernt.'); return reload(); }, function (er) { toast(er.message, true); });
             });
-            tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '–' }), h('td', { text: b.xv || '–' }), h('td', { text: b.email || '–', style: 'overflow-wrap:anywhere' }), h('td', null, b.rating ? ratingNode(b.rating, 1) : '–'), h('td', { class: 'r' }, rm)]));
+            tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '–' }), h('td', { text: b.xv || '–' }), h('td', { text: b.email || '–', style: 'overflow-wrap:anywhere' }), h('td', { class: 'r' }, rm)]));
           });
-          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail', 'Bewertung', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
+          body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
         }
         body.appendChild(h('div', { class: 'people-foot' }, [
           e.bookings.length ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).filter(Boolean).join('; ')); } }) : null,
@@ -2295,12 +2402,12 @@ function viewAdmin() {
     });
   }
   function adminUsers() {
-    return Api.adminUsers().then(function (list) {
-      var q = '', host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
+    return Api.adminUsers().then(function (res) {
+      var list = res.users, q = '', host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
       var search = h('input', { type: 'search', id: 'au-q', placeholder: 'Benutzername, Name, XV-Nummer oder E-Mail …', 'aria-label': 'Konten durchsuchen' });
       var meSuper = state.me.role === 'superadmin';
       search.addEventListener('input', function () { q = search.value.toLowerCase().trim(); render(); });
-      function reload() { return Api.adminUsers().then(function (l) { list = l; render(); }); }
+      function reload() { return Api.adminUsers().then(function (l) { list = l.users; render(); }); }
       function tempPassword(u, pw) {
         var c = h('div', { class: 'modal-body' }, [h('h2', { text: 'Vorläufiges Passwort' }), h('p', { text: 'Gib dieses Passwort an ' + u.username + ' weiter. Es wird nur jetzt angezeigt. Beim nächsten Anmelden muss ' + u.username + ' ein eigenes Passwort vergeben.' }),
           h('div', { class: 'codebox' }, h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, [h('span', { class: 'code', id: 'tmp-pw', text: pw }), h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'Kopieren', onclick: function () { copy(pw); } })])),
@@ -2319,16 +2426,18 @@ function viewAdmin() {
           if (u.role !== 'superadmin' || meSuper) acts.appendChild(act('Passwort zurücksetzen', 'Wirklich zurücksetzen?', 'btn-secondary', function () { return Api.adminResetPassword(u.id).then(function (r) { tempPassword(u, r.password); }); }));
           if (u.avatar) acts.appendChild(act('Profilbild löschen', 'Wirklich löschen?', 'btn-danger', function () { return Api.adminDeleteAvatar(u.id); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id) acts.appendChild(act(u.locked ? 'Entsperren' : 'Sperren', 'Wirklich?', u.locked ? 'btn-secondary' : 'btn-danger', function () { return Api.adminSetLocked(u.id, !u.locked); }));
+          if (u.role !== 'superadmin' && u.id !== state.me.id && (u.role !== 'admin' || meSuper)) acts.appendChild(act('Konto löschen', 'Endgültig löschen?', 'btn-danger', function () { return Api.adminDeleteUser(u.id).then(function () { toast('Das Konto ist gelöscht.'); }); }));
           tb.appendChild(h('tr', { class: u.locked ? 'past' : '' }, [
             h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null])])])),
             h('td', null, [u.firstName + ' ' + u.lastName, h('div', { class: 'hint', text: (u.xv || '–') })]), h('td', { text: u.email, style: 'overflow-wrap:anywhere' }),
-            h('td', null, [h('b', { text: u.offered + ' / ' + u.attended }), h('div', { class: 'hint', text: 'angeboten / teilgenommen' })]), h('td', { class: 'c-when' }, [u.lastLogin ? dateFull(u.lastLogin.slice(0, 10)) : '–', h('div', { class: 'hint', text: 'seit ' + (u.created || '').slice(0, 10).split('-').reverse().join('.') })]), h('td', { class: 'c-act' }, acts)]));
+            h('td', null, [h('b', { text: String(u.offered) }), h('div', { class: 'hint', text: 'angeboten' })]), h('td', { class: 'c-when', text: (u.created || '').slice(0, 10).split('-').reverse().join('.') }), h('td', { class: 'c-act' }, acts)]));
         });
         if (!items.length) { host.appendChild(h('div', { class: 'empty' }, h('p', { text: 'Kein Konto gefunden.' }))); return; }
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Benutzername', 'Name / XV', 'E-Mail', 'Sessions', 'Letzte Anmeldung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Benutzername', 'Name / XV', 'E-Mail', 'Sessions', 'Registriert', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       render();
-      return h('div', null, [h('p', { class: 'lead', text: meSuper ? 'Hier siehst Du alle Konten. Als Hauptadministration kannst Du Admin-Rechte vergeben, Passwörter zurücksetzen und Konten sperren.' : 'Hier siehst Du alle Konten. Du kannst Passwörter zurücksetzen und Konten sperren. Admin-Rechte vergibt nur die Hauptadministration.' }),
+      return h('div', null, [h('p', { class: 'lead', text: meSuper ? 'Hier siehst Du alle Konten. Als Hauptadministration kannst Du Admin-Rechte vergeben, Passwörter zurücksetzen, Konten sperren und löschen.' : 'Hier siehst Du alle Konten. Du kannst Passwörter zurücksetzen, Konten sperren und löschen. Admin-Rechte vergibt nur die Hauptadministration.' }),
+        h('p', { class: 'hint', style: 'margin:0 0 16px', text: 'Zum Schutz der Beschäftigten zeigt die Liste weder Anmeldezeiten noch Teilnahmen je Person. Konten ohne Anmeldung seit ' + res.inactiveMonths + ' Monaten löscht die Anwendung automatisch.' }),
         h('div', { class: 'afilter' }, h('div', { class: 'afld wide' }, [h('label', { text: 'Suche' }), search])), h('div', { class: 'toolrow' }, count), host]);
     });
   }
@@ -2500,7 +2609,7 @@ function probeServer() {
       var j = null; try { j = JSON.parse(t); } catch (e) { }
       if (j && j.server) { pingInfo = j; return true; }
       if (r.status === 404) diag = 'Die Datei AppData/api.ashx wurde nicht gefunden (HTTP 404). Prüfe, ob der Ordner AppData mit api.ashx auf den Server kopiert wurde und ob die Adresse zum Ordner mit index.html passt.';
-      else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Öffne zur Fehlersuche AppData/selftest.ashx im Browser (zeigt Umgebung, Schreibrechte und Übersetzungsfehler) oder AppData\\Data\\error.log.';
+      else if (r.status === 500) diag = 'Der Server meldet einen Fehler (HTTP 500). Häufige Ursachen: ASP.NET 4.x ist nicht installiert, der Anwendungspool steht nicht auf „.NET CLR Version v4.0“ (Integrierter Modus), die web.config passt nicht zur Serverkonfiguration oder api.ashx konnte nicht kompiliert werden. Öffne zur Fehlersuche direkt auf dem Server AppData/selftest.ashx im Browser (zeigt Umgebung, Schreibrechte und Übersetzungsfehler) oder AppData\\Data\\error.log.';
       else if (r.status === 401 || r.status === 403) diag = 'Der Zugriff auf AppData/api.ashx wird verweigert (HTTP ' + r.status + '). Prüfe die anonyme Authentifizierung und die Ordnerberechtigungen.';
       else if (r.status >= 400) diag = 'Der Server antwortet mit HTTP ' + r.status + ' auf AppData/api.ashx.';
       else if (t.indexOf('<%@') >= 0) diag = 'Der IIS liefert api.ashx als Text aus. ASP.NET ist für diese Anwendung nicht aktiv (Windows-Feature „ASP.NET 4.x“ installieren, Anwendungspool auf .NET CLR v4 stellen).';
