@@ -585,3 +585,16 @@ details.cancel-box[open] > summary { margin-bottom: 10px; }
 .chk > span { display: flex; flex-direction: column; gap: 2px; }
 .chk.master { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .chk input:disabled + span { opacity: .55; }
+
+/* ---- Abgleich mit dem R+V-Design (0.23) ---- */
+.chip.mine { background: #fff4e0; color: #001957; }
+nav.main a .cnt { background: #f79506; color: #001957; font-weight: 700; }
+.stars { color: #eb6504; }
+.stage .stars, :root[data-theme="dark"] .stars { color: #f79506; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .stars { color: #f79506; } }
+.starpick button { color: #eb6504; border-radius: var(--r); }
+.utag.chipu, .lvl, nav.main .acct { border-radius: var(--r); }
+.lvl.cur { box-shadow: none; border: 2px solid var(--accent); }
+.utag.chipu { border: 1px solid var(--line); }
+.prof-out { margin-left: auto; }
+@media (max-width: 720px) { nav.main .acct { order: -1; } }

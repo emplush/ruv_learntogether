@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.23.0 (02.10.2026)
+- **Wording nach R+V Corporate Wording:** Anredepronomen durchgehend groß (Du, Dein, Dir, Dich, Euch) in App, Servermeldungen, Testdaten und Handbüchern. „Leider“ entfernt, „Nutzer“ in Fließtexten durch „Konten“ oder „Personen“ ersetzt.
+- **Design:** Medaillen-Bänder in Blau und Orange statt Rot (Rot nur für Fehler), Bronze und Silber aus der Markenpalette, Diamant und Rakete in Illustrationsblau statt Mint (Mint nur für Interaktion). Chip „Du bist angemeldet“ in Sand statt Mint. Zähler in der Navigation mit Dunkelblau auf Orange Hell (Kontrast). Sterne auf hellem Grund in Orange Dunkel. Radien 4 px auch bei neuen Elementen, keine Schatten.
+- **Mobil:** Die Navigation scrollt den aktiven Eintrag ins Bild, der Benutzername steht vorn. Abmelden zusätzlich im Profil.
+- **Leistung:** `index.html` auf dem IIS rund 1 MB kleiner (Nutzerhandbuch wird erst beim Öffnen geladen, Bilder als Dateien). Komprimierung und Browser-Cache für Schriften, Logos und Handbuch-Bilder in der `web.config`. Server hält `data.json` und `settings.json` im Speicher und liest nur nach Änderungen neu (bei Fehlern wird der Zwischenspeicher verworfen). Sperrlisten für Fehlversuche werden aufgeräumt. Katalogsuche berechnet den Suchtext je Veranstaltung nur einmal.
+
 ## 0.22.0 (02.10.2026)
 - **Öffentliches Profil (freiwillig):** Im Profil schalten Nutzende ihr Profil frei. Der Benutzername auf der Kachel wird dann anklickbar und öffnet ein Popup mit Benutzername, Abzeichen, Zahl der angebotenen Veranstaltungen, Themen mit Anzahl und der Beschreibung.
 - **Einzelne Freigaben:** Gesamtbewertung, Themen mit Expertenstatus, E-Mail-Adresse und Liste der kommenden Veranstaltungen (mit Bereich, Titel, Thema, Art, Datum, Uhrzeit und Button „Buchen“).

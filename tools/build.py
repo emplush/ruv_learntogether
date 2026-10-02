@@ -31,7 +31,8 @@ def data_uri(path, mime):
     return 'data:%s;base64,%s' % (mime, base64.b64encode(rd(path, binary=True)).decode())
 
 
-def manual_body(name='body.html'):
+def manual_body(name='body.html', img_dir=None, img_url=''):
+    """Handbuch-Inhalt; Bilder als Base64 oder (img_dir gesetzt) als eigene Dateien, die der Browser zwischenspeichert."""
     body = rd(SRC, 'handbuch', name).replace('{{APP_TITLE}}', APP_TITLE)
 
     def fig(m):
@@ -39,7 +40,13 @@ def manual_body(name='body.html'):
         p = os.path.join(SRC, 'handbuch', 'shots', name + '.jpg')
         if not os.path.exists(p):
             return ''
-        return '<figure><img src="%s" alt="%s"><figcaption>%s</figcaption></figure>' % (data_uri(p, 'image/jpeg'), cap, cap)
+        if img_dir:
+            os.makedirs(img_dir, exist_ok=True)
+            shutil.copy(p, os.path.join(img_dir, name + '.jpg'))
+            src = img_url + name + '.jpg'
+        else:
+            src = data_uri(p, 'image/jpeg')
+        return '<figure><img src="%s" alt="%s" loading="lazy"><figcaption>%s</figcaption></figure>' % (src, cap, cap)
     return re.sub(r'\{\{FIGURE:([a-z0-9-]+)\|([^}]*)\}\}', fig, body)
 
 
@@ -142,7 +149,9 @@ def main():
         wr(apage, rd(apage).replace('href="Admin-Handbuch.pdf"', 'href="Administrationshandbuch.pdf"'))
 
     # ---- IIS index.html
-    cfg = {'version': VERSION, 'mode': 'iis', 'manualHtml': body, 'manualUrl': 'AppData/Handbuch.html', 'pdfUrl': 'AppData/Nutzerhandbuch.pdf' if has_pdf else None}
+    # Nutzerhandbuch fuer die App: nicht in index.html einbetten, sondern bei Bedarf laden (index.html wird so rund 1 MB kleiner)
+    wr(os.path.join(IIS, 'AppData', 'handbuch', 'inhalt.html'), manual_body('body.html', os.path.join(IIS, 'AppData', 'handbuch'), 'AppData/handbuch/'))
+    cfg = {'version': VERSION, 'mode': 'iis', 'manualHtml': None, 'manualBodyUrl': 'AppData/handbuch/inhalt.html', 'manualUrl': 'AppData/Handbuch.html', 'pdfUrl': 'AppData/Nutzerhandbuch.pdf' if has_pdf else None}
     page = tpl.replace('/*__FAVICON__*/', fav).replace('/*__CSS__*/', css_for(css0, 'iis')).replace('/*__CONFIG__*/', js_json(cfg)).replace('/*__JS__*/', js)
     wr(os.path.join(IIS, 'index.html'), page)
 

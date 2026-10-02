@@ -246,18 +246,21 @@ namespace LearnTogether
             }
             catch (ApiException ex)
             {
+                InvalidateCache();
                 context.Response.TrySkipIisCustomErrors = true;
                 context.Response.StatusCode = ex.Http;
                 Send(new { ok = false, error = ex.Code, message = ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
+                InvalidateCache();
                 LogError(ex);
                 context.Response.TrySkipIisCustomErrors = true;
                 Send(new { ok = false, error = "storage", message = "Die Daten können nicht gespeichert werden: Dem Anwendungspool fehlen Schreibrechte auf den Ordner AppData\\Data." });
             }
             catch (Exception ex)
             {
+                InvalidateCache();
                 LogError(ex);
                 context.Response.TrySkipIisCustomErrors = true;
                 context.Response.StatusCode = 500;
@@ -353,13 +356,26 @@ namespace LearnTogether
             return dir;
         }
 
+        // Zwischenspeicher fuer data.json und settings.json: neu gelesen wird nur, wenn sich die Datei geaendert hat.
+        // Bei jedem Fehler wird er geleert (InvalidateCache), damit halb geaenderte Objekte nie weiterleben.
+        static readonly Dictionary<string, object[]> JsonCache = new Dictionary<string, object[]>();
+        static long FileStamp(string p) { FileInfo fi = new FileInfo(p); return fi.Exists ? fi.LastWriteTimeUtc.Ticks ^ (fi.Length << 20) : 0; }
+        static void InvalidateCache() { lock (JsonCache) { JsonCache.Clear(); } }
+
         T ReadJson<T>(string name) where T : new()
         {
             string p = Path.Combine(DataDir(), name);
             if (!File.Exists(p)) return new T();
+            long stamp = FileStamp(p);
+            lock (JsonCache)
+            {
+                object[] c;
+                if (JsonCache.TryGetValue(p, out c) && (long)c[0] == stamp && c[1] is T) return (T)c[1];
+            }
             string raw = File.ReadAllText(p, Encoding.UTF8);
-            if (string.IsNullOrWhiteSpace(raw)) return new T();
-            return json.Deserialize<T>(raw);
+            T o = string.IsNullOrWhiteSpace(raw) ? new T() : json.Deserialize<T>(raw);
+            lock (JsonCache) { JsonCache[p] = new object[] { stamp, o }; }
+            return o;
         }
 
         void WriteJson(string name, object o)
@@ -369,6 +385,7 @@ namespace LearnTogether
             File.WriteAllText(tmp, json.Serialize(o), new UTF8Encoding(false));
             File.Copy(tmp, p, true);
             File.Delete(tmp);
+            lock (JsonCache) { JsonCache[p] = new object[] { FileStamp(p), o }; }
         }
 
         // ---------------------------------------------------------------- Daten
@@ -577,7 +594,7 @@ namespace LearnTogether
                     }
                 }
             }
-            if (u == null && require) throw new ApiException("auth", "Bitte melde dich an.");
+            if (u == null && require) throw new ApiException("auth", "Bitte melde Dich an.");
             return u;
         }
 
@@ -598,6 +615,7 @@ namespace LearnTogether
                 int[] f;
                 if (!AuthFails.TryGetValue(key, out f) || Environment.TickCount - f[1] > 10 * 60 * 1000) f = new int[] { 0, 0 };
                 f[0]++; f[1] = Environment.TickCount; AuthFails[key] = f;
+                if (AuthFails.Count > 5000) { List<string> old = new List<string>(); foreach (KeyValuePair<string, int[]> kv in AuthFails) if (Environment.TickCount - kv.Value[1] > 10 * 60 * 1000) old.Add(kv.Key); foreach (string k in old) AuthFails.Remove(k); }
             }
         }
         static void ThrottleClear(string key) { lock (AuthFails) { AuthFails.Remove(key); } }
@@ -802,11 +820,12 @@ namespace LearnTogether
                 if (!RegCount.TryGetValue(ip, out r) || Environment.TickCount - r[1] > 60 * 60 * 1000) r = new int[] { 0, Environment.TickCount };
                 if (r[0] >= 20) throw new ApiException("locked", "Von dieser Adresse aus wurden zu viele Registrierungen versucht. Bitte versuche es später erneut.");
                 r[0]++; RegCount[ip] = r;
+                if (RegCount.Count > 5000) { List<string> old = new List<string>(); foreach (KeyValuePair<string, int[]> kv in RegCount) if (Environment.TickCount - kv.Value[1] > 60 * 60 * 1000) old.Add(kv.Key); foreach (string k in old) RegCount.Remove(k); }
             }
             if (!ValidUsername(username)) throw new ApiException("invalid", "Der Benutzername muss 3 bis 24 Zeichen lang sein und darf nur Buchstaben, Ziffern, Punkt, Unterstrich und Bindestrich enthalten.");
             if (Array.IndexOf(ReservedNames, username.ToLowerInvariant()) >= 0) throw new ApiException("invalid", "Dieser Benutzername ist reserviert. Bitte wähle einen anderen.");
-            if (!ValidPersonName(first)) throw new ApiException("invalid", "Bitte gib deinen Vornamen an.");
-            if (!ValidPersonName(last)) throw new ApiException("invalid", "Bitte gib deinen Nachnamen an.");
+            if (!ValidPersonName(first)) throw new ApiException("invalid", "Bitte gib Deinen Vornamen an.");
+            if (!ValidPersonName(last)) throw new ApiException("invalid", "Bitte gib Deinen Nachnamen an.");
             if (!ValidXv(xv)) throw new ApiException("invalid", "Bitte gib eine gültige XV- oder XVG-Nummer an (z. B. XV12345).");
             if (!ValidEmail(email)) throw new ApiException("invalid", "Bitte gib eine gültige E-Mail-Adresse an.");
             string pr = PasswordProblem(pw, username, email);
@@ -846,7 +865,7 @@ namespace LearnTogether
                     Thread.Sleep(500);
                     throw new ApiException("login", "Benutzername oder Passwort stimmen nicht.");
                 }
-                if (u.locked) throw new ApiException("locked", "Dieses Konto ist gesperrt. Bitte wende dich an die Administration.");
+                if (u.locked) throw new ApiException("locked", "Dieses Konto ist gesperrt. Bitte wende Dich an die Administration.");
                 ThrottleClear(ku); ThrottleClear(ki);
                 if (NeedsRehash(u.pwHash)) u.pwHash = HashPassword(pw);
                 u.lastLogin = NowIso(); SaveData(d);
@@ -1003,9 +1022,9 @@ namespace LearnTogether
                 if (ev == null) throw new ApiException("notfound", "Diese Veranstaltung gibt es nicht mehr.");
                 if (ev.cancelled) throw new ApiException("cancelled", "Diese Veranstaltung wurde abgesagt. Eine Anmeldung ist nicht mehr möglich.");
                 if (StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Diese Veranstaltung hat bereits begonnen. Eine Anmeldung ist nicht mehr möglich.");
-                if (ev.ownerId == me.id) throw new ApiException("own", "Das ist deine eigene Veranstaltung.");
+                if (ev.ownerId == me.id) throw new ApiException("own", "Das ist Deine eigene Veranstaltung.");
                 if (d.bookings.Exists(delegate (BookingRec x) { return x.eventId == ev.id && x.userId == me.id; })) throw new ApiException("duplicate", "Du bist bereits angemeldet.");
-                if (CountBookings(d, ev.id) >= ev.capacity) throw new ApiException("full", "Leider sind inzwischen alle Plätze vergeben. Die Anmeldung war nicht möglich.");
+                if (CountBookings(d, ev.id) >= ev.capacity) throw new ApiException("full", "Inzwischen sind alle Plätze vergeben. Die Anmeldung war deshalb nicht möglich.");
                 BookingRec bk = new BookingRec(); bk.id = NewId(); bk.eventId = ev.id; bk.userId = me.id; bk.created = NowIso();
                 d.bookings.Add(bk); SaveData(d);
                 Badges bd = BuildBadges(d, s, NowBerlin());
@@ -1039,7 +1058,7 @@ namespace LearnTogether
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
                 EventRec ev = FindEvent(d, id);
                 bool admin = me.role == "admin" || me.role == "superadmin";
-                if (ev == null || (ev.ownerId != me.id && !admin)) throw new ApiException("notfound", "Diese Veranstaltung gibt es nicht oder sie gehört dir nicht.");
+                if (ev == null || (ev.ownerId != me.id && !admin)) throw new ApiException("notfound", "Diese Veranstaltung gibt es nicht oder sie gehört Dir nicht.");
                 if (ev.cancelled) throw new ApiException("invalid", "Diese Veranstaltung ist bereits abgesagt.");
                 if (StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Die Veranstaltung hat bereits begonnen. Eine Absage ist nicht mehr möglich.");
                 ev.cancelled = true; ev.cancelledAt = NowIso(); ev.cancelReason = reason.Trim();
@@ -1099,8 +1118,8 @@ namespace LearnTogether
                 BookingRec bk = d.bookings.Find(delegate (BookingRec x) { return x.id == bookingId && x.userId == me.id; });
                 if (bk == null) throw new ApiException("notfound", "Diese Anmeldung gibt es nicht.");
                 EventRec ev = FindEvent(d, bk.eventId);
-                if (ev == null || ev.cancelled || !Ended(ev, NowBerlin())) throw new ApiException("invalid", "Bewerten kannst du nur Veranstaltungen, die stattgefunden haben.");
-                if (bk.rating > 0) throw new ApiException("invalid", "Diese Veranstaltung hast du bereits bewertet. Eine Bewertung lässt sich nicht mehr ändern.");
+                if (ev == null || ev.cancelled || !Ended(ev, NowBerlin())) throw new ApiException("invalid", "Bewerten kannst Du nur Veranstaltungen, die stattgefunden haben.");
+                if (bk.rating > 0) throw new ApiException("invalid", "Diese Veranstaltung hast Du bereits bewertet. Eine Bewertung lässt sich nicht mehr ändern.");
                 bk.rating = stars; bk.ratedAt = NowIso(); SaveData(d);
                 Send(new { ok = true, rating = stars });
             }

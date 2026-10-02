@@ -32,7 +32,7 @@
     var kpis = [
       { label: 'Veranstaltungen', value: stNum(tot.ev) }, { label: 'Anmeldungen', value: stNum(tot.pt) },
       { label: 'Ø Anmeldungen je Veranstaltung', value: tot.ev ? stDec(tot.pt / tot.ev) : '–' }, { label: 'Ø Auslastung', value: tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–' },
-      { label: 'Anbietende (nicht anonymisiert)', value: stNum(Object.keys(hosts).length) }, { label: 'Registrierte Nutzer', value: stNum(inRange.length) }, { label: 'Ø Bewertung', value: rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–' }, { label: 'Abgegebene Bewertungen', value: stNum(rt.n) }, { label: 'Ohne Anmeldung', value: stNum(tot.zero) },
+      { label: 'Anbietende (nicht anonymisiert)', value: stNum(Object.keys(hosts).length) }, { label: 'Registrierte Konten', value: stNum(inRange.length) }, { label: 'Ø Bewertung', value: rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–' }, { label: 'Abgegebene Bewertungen', value: stNum(rt.n) }, { label: 'Ohne Anmeldung', value: stNum(tot.zero) },
       { label: 'Ausgebucht', value: stNum(tot.full) }, { label: 'Abgesagt', value: stNum(cancelledN) }, { label: 'Ø Vorlauf der Anmeldung', value: lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–' }];
     var names = stSeriesNames(), stats = [];
     /* Monate lueckenlos */
@@ -300,7 +300,7 @@
       var pdf = h('button', { type: 'button', class: 'btn btn-primary', id: 'am-pdf', html: ico('download') + ' Als PDF herunterladen', onclick: function () {
         Api.adminManualPdf().then(function (b) { saveBlob(b, 'LearnTogether-Administrationshandbuch.pdf'); }, function (er) { toast(er.message, true); });
       } });
-      return h('div', null, [h('p', { class: 'lead', text: 'So richtest du ' + state.settings.appTitle + ' ein und betreibst die Anwendung. Dieses Handbuch ist nur nach der Anmeldung im Admin-Bereich sichtbar.' }), h('div', { class: 'manual-tools' }, pdf), h('div', { class: 'manual-layout adm-manual' }, [toc, body])]);
+      return h('div', null, [h('p', { class: 'lead', text: 'So richtest Du ' + state.settings.appTitle + ' ein und betreibst die Anwendung. Dieses Handbuch ist nur nach der Anmeldung im Admin-Bereich sichtbar.' }), h('div', { class: 'manual-tools' }, pdf), h('div', { class: 'manual-layout adm-manual' }, [toc, body])]);
     });
   }
 
