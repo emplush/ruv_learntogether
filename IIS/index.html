@@ -608,11 +608,71 @@ nav.main a .cnt { background: #f79506; color: #001957; font-weight: 700; }
 .prof-out { margin-left: auto; }
 @media (max-width: 720px) { nav.main .acct { order: -1; } }
 
+/* ---- 0.24: Platzhalterbilder, breitere Ansichten, Bereiche, Profil ---- */
+.ph { overflow: hidden; }
+.ph .ph-deco { position: absolute; inset: 0; width: 100%; height: 100%; stroke: none; fill: initial; }
+.ph .ruv-i { position: relative; font-size: 34cqw; font-size: min(34cqw, 110px); line-height: 1; }
+.tile-img, .bk-img, .imgprev, .ph-box { container-type: inline-size; }
+.ph .ki-label { position: absolute; right: 6%; bottom: 6%; width: 13%; min-width: 18px; max-width: 34px; height: auto; }
+.chips-b ~ .cover .ki-label { right: 6%; }
+.imgprev { position: relative; }
+.imgprev .ph { position: absolute; inset: 0; }
+.ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto; padding: 2px; }
+.ph-opt { font: inherit; display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 2px solid transparent; border-radius: var(--r); background: none; cursor: pointer; color: var(--text); text-align: left; }
+.ph-opt:hover { border-color: var(--line); }
+.ph-opt[aria-selected="true"] { border-color: var(--text); }
+.ph-box { position: relative; display: block; aspect-ratio: 1; border-radius: var(--r); overflow: hidden; }
+.ph-name { font-size: .85rem; font-weight: 700; }
+/* Benutzername mit öffentlichem Profil: Mint, ohne Unterstreichung */
+.utag-n.ulink { text-decoration: none; color: var(--link); }
+.utag-n.ulink:hover { text-decoration: none; filter: brightness(1.15); }
+.stage .utag-n.ulink, .bk-facts .utag-n.ulink { color: #00dcdc; }
+/* Profil-Popup breiter, Tabelle mit breiter Titelspalte */
+.modal.pwide { max-width: 1100px; }
+.pp-tbl .pp-title { min-width: 260px; width: 40%; }
+.pp-tbl .pp-when { white-space: nowrap; }
+.pp-tbl td { vertical-align: top; }
+/* Buchungs-Popup: Aktionen unten, Beschreibung scrollt */
+@media (min-width: 861px) {
+  .bk { align-items: stretch; height: min(680px, calc(100vh - 48px)); }
+  .bk-side { overflow-y: auto; }
+  .bk-main { min-height: 0; overflow-y: auto; }
+  .bk-main.bk-form { overflow: hidden; }
+  .bk-main.bk-form .bk-desc { flex: 1 1 0; min-height: 80px; max-height: none; }
+  .bk-foot { margin-top: auto; padding-top: 12px; padding-bottom: 6px; display: flex; flex-direction: column; gap: 14px; }
+}
+.bk-foot { display: flex; flex-direction: column; gap: 14px; }
+/* Bereiche umschalten */
+.ptabs { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
+.tabs-seg { align-self: flex-start; flex-wrap: wrap; }
+.cardlist { display: flex; flex-direction: column; gap: 16px; }
+.empty-list { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; padding: 8px 0; }
+.nowrap { white-space: nowrap; }
+.facts-wide { grid-template-columns: repeat(4, minmax(max-content, 1fr)); }
+@media (max-width: 760px) { .facts-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cancel-wrap { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.cancel-wrap .cancel-box { border-top: 0; padding-top: 0; max-width: 760px; }
+/* Profil */
+.prof-sec { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.prof-sec + .prof-sec, .st-kpis + .prof-sec { margin-top: 32px; }
+.prof-sec h2 { font-size: 1.35rem; }
+.dd-mail { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(.82rem, 1.25vw, 1rem); }
+.levels { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 900px) { .levels { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .levels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Hinweis auf der Startseite */
+.pub-hint { margin-top: 24px; display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; max-width: 900px; padding: 14px 16px 14px 20px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.pub-hint-t { flex: 1 1 320px; display: flex; flex-direction: column; gap: 2px; }
+.pub-hint-t b { color: var(--accent); }
+.pub-x { font: inherit; font-size: 1.4rem; line-height: 1; width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--text); cursor: pointer; }
+.pub-x:hover { background: var(--surface-2); }
+.st-kpi .stars { color: #eb6504; } .st-kpi .rating { color: var(--text); }
+
 </style>
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.23.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.24.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -840,10 +900,10 @@ function lastWeekday() { var d = new Date(); d.setHours(0, 0, 0, 0); do { d.setD
 var PAIRS = [['#001957', '#155784'], ['#155784', '#00b7bd'], ['#109da8', '#5b7a03'], ['#c47d47', '#583720'], ['#3875a6', '#001957'], ['#759a03', '#155784'], ['#f79506', '#a45f33'], ['#583720', '#c47d47']];
 function makeImage(seed, size) {
   var c = document.createElement('canvas'); c.width = c.height = size || 320; var x = c.getContext('2d'), s = c.width;
-  var p = PAIRS[seed % PAIRS.length]; var g = x.createLinearGradient(0, 0, s, s); g.addColorStop(0, p[0]); g.addColorStop(1, p[1]); x.fillStyle = g; x.fillRect(0, 0, s, s);
+  var p = PAIRS[seed % PAIRS.length]; x.fillStyle = p[0]; x.fillRect(0, 0, s, s); /* flach, ohne Verlauf (R+V-Bildwelt) */
   var r = seed * 9301 + 49297;
   function rnd() { r = (r * 9301 + 49297) % 233280; return r / 233280; }
-  for (var i = 0; i < 7; i++) { x.beginPath(); x.fillStyle = 'rgba(255,255,255,' + (0.05 + rnd() * .16) + ')'; x.arc(rnd() * s, rnd() * s, s * (.08 + rnd() * .3), 0, 6.283); x.fill(); }
+  for (var i = 0; i < 3; i++) { x.beginPath(); x.fillStyle = p[1]; x.arc(rnd() * s, rnd() * s, s * (.15 + rnd() * .3), 0, 6.283); x.fill(); }
   x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = s * .018; x.beginPath(); x.arc(s * .5, s * .5, s * .22, 0, 6.283); x.stroke();
   return c.toDataURL('image/jpeg', .72);
 }
@@ -895,7 +955,7 @@ function buildTestData() {
   var events = [], bookings = [];
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1), oi = r[1] % 10, past = r[5] < 0;
-    var e = { id: id, title: r[0], owner: TU[oi][0], category: r[2], type: mapType(r[3]), topic: mapTopic(r[2], r[4]), date: past ? pastDay : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '' };
+    var e = { id: id, title: r[0], owner: TU[oi][0], category: r[2], type: mapType(r[3]), topic: mapTopic(r[2], r[4]), date: past ? pastDay : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', placeholder: r[10] ? '' : phGuess(r[0], r[4]) };
     if (r[12] === 'x') { e.cancelled = true; e.cancelReason = 'Der Anbieter ist erkrankt. Ein neuer Termin folgt.'; }
     events.push(e);
     for (var b = 0; b < r[9]; b++) bookings.push({ user: TU[(oi + 1 + b) % TU.length][0], eventId: id, rating: past && b > 0 ? RATE[(i + b) % RATE.length] : 0 });
@@ -977,6 +1037,8 @@ var Server = {
   myEvents: function () { return this.call('myEvents'); },
   profile: function () { return this.call('profile'); },
   saveProfile: function (p) { return this.call('saveProfile', p); },
+  updateAccount: function (p) { return this.call('updateAccount', p); },
+  dismissHint: function () { return this.call('dismissHint', {}); },
   publicProfile: function (username) { return this.call('publicProfile&username=' + encodeURIComponent(username)).then(function (j) { return j; }); },
   adminEvents: function () { return this.call('adminEvents').then(function (j) { return j.events; }); },
   adminUsers: function () { return this.call('adminUsers').then(function (j) { return j.users; }); },
@@ -1049,7 +1111,7 @@ var Local = (function () {
     if (k.length) throw ApiErr('invalid', er[k[0]]);
     target.title = v.title.trim(); target.category = v.category; target.type = v.type; target.topic = v.topic;
     target.date = v.date; target.start = v.start; target.duration = Number(v.duration); target.capacity = Number(v.capacity); target.teamsLink = v.teamsLink.trim();
-    target.description = sanitizeHtml(v.description);
+    target.description = sanitizeHtml(v.description); target.placeholder = /^[a-z0-9-]{0,40}$/.test(v.placeholder || '') ? (v.placeholder || '') : '';
     if (v.imageData) target.imageData = v.imageData; else if (v.removeImage) target.imageData = '';
     return target;
   }
@@ -1124,10 +1186,10 @@ var Local = (function () {
   function hostPublic(e) { var u = userById(e.ownerId); return !!u && !!u.profilePublic && !u.locked; }
   function hostName(e) { var u = userById(e.ownerId); return u ? u.username : (e.host || 'Unbekannt'); }
   function ratingOf(eventId) { var s = 0, c = 0; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; } }); return { avg: c ? Math.round(s / c * 100) / 100 : 0, count: c }; }
-  function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created }; }
+  function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff }; }
   function eventBase(B, e) {
     return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: levelOf(B, e.ownerId), hostExpert: expertOf(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
-      description: e.description, isTest: !!e.isTest, image: e.imageData || null, cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
+      description: e.description, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
     var held = !e.cancelled, owner = userById(e.ownerId);
@@ -1216,12 +1278,12 @@ var Local = (function () {
         if (RESERVED.indexOf(un.toLowerCase()) >= 0) throw ApiErr('invalid', 'Dieser Benutzername ist reserviert. Bitte wähle einen anderen.');
         if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(fn)) throw ApiErr('invalid', 'Bitte gib deinen Vornamen an.');
         if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(ln)) throw ApiErr('invalid', 'Bitte gib deinen Nachnamen an.');
-        if (!/^XVG?[0-9]{2,8}$/.test(xv)) throw ApiErr('invalid', 'Bitte gib eine gültige XV- oder XVG-Nummer an (z. B. XV12345).');
+        if (!/^XVG?[0-9]{2,8}$/.test(xv)) throw ApiErr('invalid', 'Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).');
         if (!validEmail(em)) throw ApiErr('invalid', 'Bitte gib eine gültige E-Mail-Adresse an.');
         var pr = pwProblem(pw, un, em); if (pr) throw ApiErr('invalid', pr);
         if (data.users.some(function (u) { return u.username.toLowerCase() === un.toLowerCase(); })) throw ApiErr('taken', 'Dieser Benutzername ist bereits vergeben.');
         if (data.users.some(function (u) { return u.email.toLowerCase() === em; })) throw ApiErr('taken', 'Mit dieser E-Mail-Adresse gibt es bereits ein Konto.');
-        if (data.users.some(function (u) { return u.xv === xv; })) throw ApiErr('taken', 'Zu dieser XV-/XVG-Nummer gibt es bereits ein Konto.');
+        if (data.users.some(function (u) { return u.xv === xv; })) throw ApiErr('taken', 'Zu dieser XV-Nummer gibt es bereits ein Konto.');
         var u = { id: rid(8), username: un, firstName: fn, lastName: ln, xv: xv, email: em, pwHash: hashPw(pw), pwVersion: 0, role: 'user', locked: false, mustChange: false, created: nowIso(), lastLogin: nowIso(), isTest: false, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {} };
         data.users.push(u); save(); sess.set('lt_me', u.id);
         return { me: meInfo(u, badges()) };
@@ -1343,6 +1405,20 @@ var Local = (function () {
           offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, bio: me.bio || '' } };
       });
     },
+    updateAccount: function (p) {
+      return wrap(function () {
+        var me = curUser(true), fn = String(p.firstName || '').trim(), ln = String(p.lastName || '').trim(), xv = normXv(p.xv), em = String(p.email || '').trim().toLowerCase();
+        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(fn)) throw ApiErr('invalid', 'Bitte gib Deinen Vornamen an.');
+        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(ln)) throw ApiErr('invalid', 'Bitte gib Deinen Nachnamen an.');
+        if (!/^XVG?[0-9]{2,8}$/.test(xv)) throw ApiErr('invalid', 'Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).');
+        if (!validEmail(em)) throw ApiErr('invalid', 'Bitte gib eine gültige E-Mail-Adresse an.');
+        if (!checkPw(p.password || '', me.pwHash)) throw ApiErr('password', 'Das Passwort stimmt nicht.');
+        if (data.users.some(function (u) { return u.id !== me.id && u.email.toLowerCase() === em; })) throw ApiErr('taken', 'Mit dieser E-Mail-Adresse gibt es bereits ein Konto.');
+        if (data.users.some(function (u) { return u.id !== me.id && u.xv === xv; })) throw ApiErr('taken', 'Zu dieser XV-Nummer gibt es bereits ein Konto.');
+        me.firstName = fn; me.lastName = ln; me.xv = xv; me.email = em; save(); return { me: meInfo(me, badges()) };
+      });
+    },
+    dismissHint: function () { return wrap(function () { var me = curUser(true); me.publicHintOff = true; save(); return {}; }); },
     saveProfile: function (p) {
       return wrap(function () {
         var me = curUser(true), bio = String(p.bio || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
@@ -1484,31 +1560,122 @@ function field(label, control, o) {
 function chipEl(cls, text) { return h('span', { class: 'chip ' + cls, text: text }); }
 function statusChip(e) { var f = freeOf(e); if (f <= 0) return chipEl('full', 'Ausgebucht'); if (f <= 5) return chipEl('few', 'Fast ausgebucht'); return null; }
 
-/* Platzhalter-Bild */
-var TOPIC_STYLE = {
-  'fachlich': ['#155784', '#001957', 'book'], 'vertrieblich': ['#109da8', '#155784', 'trend'], 'Sport': ['#759a03', '#5b7a03', 'pulse'],
-  'Freizeit': ['#f79506', '#c47d47', 'sun'], 'Essen & Trinken': ['#c47d47', '#583720', 'cup'], 'Reisen': ['#3875a6', '#109da8', 'globe'], 'Sonstiges': ['#5b7a03', '#155784', 'star']
+/* ====================================================== Platzhalterbilder (R+V-Bildwelt: flache Markenfarben, Piktogramme aus RuV-Icons-v3, keine Verläufe) */
+/* Die Motive sind mit KI gestaltet und tragen deshalb das R+V-KI-Label. */
+var KI_LABEL = { pos: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iRWJlbmVfMSIgZGF0YS1uYW1lPSJFYmVuZSAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMzI1LjA3NSAzMjMuMDc1Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjMDAxOTU3OwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICNmZmY7CiAgICAgIH0KCiAgICAgIC5jbHMtMyB7CiAgICAgICAgZmlsbDogbm9uZTsKICAgICAgfQoKICAgICAgLmNscy00IHsKICAgICAgICBjbGlwLXBhdGg6IHVybCgjY2xpcHBhdGgpOwogICAgICB9CiAgICA8L3N0eWxlPgogICAgPGNsaXBQYXRoIGlkPSJjbGlwcGF0aCI+CiAgICAgIDxyZWN0IGNsYXNzPSJjbHMtMyIgd2lkdGg9IjMyNS4wNzUiIGhlaWdodD0iMzIzLjA3NSIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPGcgY2xhc3M9ImNscy00Ij4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTYzLjc1NTIsNy4zMzMyaDE5Ni4yMzFjMzAuNzkzLDAsNTUuNzU1LDI0Ljk2Miw1NS43NTUsNTUuNzU1djE5Ni4yMzJjMCwzMC43OTItMjQuOTYyLDU1Ljc1NS01NS43NTUsNTUuNzU1SDYzLjc1NTJjLTMwLjc5MywwLTU1Ljc1NS0yNC45NjMtNTUuNzU1LTU1Ljc1NVY2My4wODgyYzAtMzAuNzkzLDI0Ljk2Mi01NS43NTUsNTUuNzU1LTU1Ljc1NSIvPgogICAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMTY1LjY1MTksMjcxLjUyMWgtNzQuMDEyYy0yMS42NjEsMC0zOS4yODMtMTcuNjIyLTM5LjI4My0zOS4yODNWOTEuMTAyYzAtMjEuNjYxLDE3LjYyMi0zOS4yODMsMzkuMjgzLTM5LjI4M2gxNDEuMTM1YzIxLjY2MSwwLDM5LjI4MywxNy42MjIsMzkuMjgzLDM5LjI4M3Y3Ny42MzJjMCw1LjA2Ny00LjEwNyw5LjE3Ni05LjE3Niw5LjE3NnMtOS4xNzYtNC4xMDktOS4xNzYtOS4xNzZ2LTc3LjYzMmMwLTExLjU0MS05LjM4OC0yMC45MzEtMjAuOTMxLTIwLjkzMUg5MS42Mzk5Yy0xMS41NDIsMC0yMC45MzIsOS4zOS0yMC45MzIsMjAuOTMxdjE0MS4xMzZjMCwxMS41NDEsOS4zOSwyMC45MzEsMjAuOTMyLDIwLjkzMWg3NC4wMTJjNS4wNjgsMCw5LjE3Niw0LjEwOSw5LjE3Niw5LjE3NnMtNC4xMDgsOS4xNzYtOS4xNzYsOS4xNzZaIi8+CiAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0xOTQuNTEzMywyNDIuNTE4OWMzMC4wNi03LjIxMiwzNy4wNzEtMTQuMjIzLDQ0LjI4My00NC4yODMuMjUxLTEuMDQ0LDEuNzMzLTEuMDQ0LDEuOTgyLDAsNy4yMTIsMzAuMDYsMTQuMjIzLDM3LjA3MSw0NC4yODUsNDQuMjgzLDEuMDQyLjI1MSwxLjA0MiwxLjczMywwLDEuOTgyLTMwLjA2Miw3LjIxMi0zNy4wNzMsMTQuMjIzLTQ0LjI4NSw0NC4yODUtLjI0OSwxLjA0Mi0xLjczMSwxLjA0Mi0xLjk4MiwwLTcuMjEyLTMwLjA2Mi0xNC4yMjMtMzcuMDczLTQ0LjI4My00NC4yODUtMS4wNDQtLjI0OS0xLjA0NC0xLjczMSwwLTEuOTgyWiIvPgogICAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjYxLjMzNDMsMjA1LjcwNzJjOC41NzQtMi4wNTUsMTAuNTc1LTQuMDU2LDEyLjYzLTEyLjYzLjA3Mi0uMjk4LjQ5Ni0uMjk4LjU2NywwLDIuMDU3LDguNTc0LDQuMDU2LDEwLjU3NSwxMi42MzIsMTIuNjMuMjk2LjA3MS4yOTYuNDk1LDAsLjU2Ny04LjU3NiwyLjA1Ny0xMC41NzUsNC4wNTYtMTIuNjMyLDEyLjYzMi0uMDcxLjI5Ni0uNDk2LjI5Ni0uNTY3LDAtMi4wNTUtOC41NzYtNC4wNTYtMTAuNTc1LTEyLjYzLTEyLjYzMi0uMjk4LS4wNzItLjI5OC0uNDk2LDAtLjU2NyIvPgogIDwvZz4KICA8Zz4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTEwMS40MDA0LDEwNy40NjMyaDIyLjE5OTJ2NDMuODAwM2w0LjY1MDQtMS4wNTAzYzguMTk4Mi0xLjY5OTIsMTQuNjQ4NC02LjA5ODEsMTkuMzQ5Ni0xMy4xOTk3LDQuNjk5Mi03LjA5OTEsOC40OTktMTYuOTUwMiwxMS40MDA0LTI5LjU1MDNoMjIuNjUwNGMtMi40MDA0LDExLjAwMi01LjUyNzMsMjAuNDUxNy05LjM3NSwyOC4zNTAxLTMuODUxNiw3LjkwMDktOC44MjcxLDE0LjM5OTktMTQuOTI1OCwxOS41bDI4LjgwMDgsNTYuODUwNmgtMjUuNWwtMjIuNS00NS45MDA0Yy0zLDEuMDAxLTYuMzAwOCwxLjkwMTQtOS45MDA0LDIuNzAwMmwtNC42NTA0LDEuMDQ5OHY0Mi4xNTA0aC0yMi4xOTkydi0xMDQuNzAwN1oiLz4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTE5OC41OTk2LDEwNy40NjMyaDIyLjE5OTJ2MTA0LjcwMDdoLTIyLjE5OTJ2LTEwNC43MDA3WiIvPgogIDwvZz4KPC9zdmc+', neg: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iRWJlbmVfMSIgZGF0YS1uYW1lPSJFYmVuZSAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMzI1LjA3NSAzMjMuMDc1Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjMDAxOTU3OwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICNmZmY7CiAgICAgIH0KCiAgICAgIC5jbHMtMyB7CiAgICAgICAgZmlsbDogbm9uZTsKICAgICAgfQoKICAgICAgLmNscy00IHsKICAgICAgICBjbGlwLXBhdGg6IHVybCgjY2xpcHBhdGgpOwogICAgICB9CiAgICA8L3N0eWxlPgogICAgPGNsaXBQYXRoIGlkPSJjbGlwcGF0aCI+CiAgICAgIDxyZWN0IGNsYXNzPSJjbHMtMyIgd2lkdGg9IjMyNS4wNzUiIGhlaWdodD0iMzIzLjA3NSIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPGcgY2xhc3M9ImNscy00Ij4KICAgIDxnPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik02My43NTUyLDcuMzMzMmgxOTYuMjMxYzMwLjc5MywwLDU1Ljc1NSwyNC45NjIsNTUuNzU1LDU1Ljc1NXYxOTYuMjMyYzAsMzAuNzkyLTI0Ljk2Miw1NS43NTUtNTUuNzU1LDU1Ljc1NUg2My43NTUyYy0zMC43OTMsMC01NS43NTUtMjQuOTYzLTU1Ljc1NS01NS43NTVWNjMuMDg4MmMwLTMwLjc5MywyNC45NjItNTUuNzU1LDU1Ljc1NS01NS43NTUiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY1LjY1MTksMjcxLjUyMWgtNzQuMDEyYy0yMS42NjEsMC0zOS4yODMtMTcuNjIyLTM5LjI4My0zOS4yODNWOTEuMTAyYzAtMjEuNjYxLDE3LjYyMi0zOS4yODMsMzkuMjgzLTM5LjI4M2gxNDEuMTM1YzIxLjY2MSwwLDM5LjI4MywxNy42MjIsMzkuMjgzLDM5LjI4M3Y3Ny42MzJjMCw1LjA2Ny00LjEwNyw5LjE3Ni05LjE3Niw5LjE3NnMtOS4xNzYtNC4xMDktOS4xNzYtOS4xNzZ2LTc3LjYzMmMwLTExLjU0MS05LjM4OC0yMC45MzEtMjAuOTMxLTIwLjkzMUg5MS42Mzk5Yy0xMS41NDIsMC0yMC45MzIsOS4zOS0yMC45MzIsMjAuOTMxdjE0MS4xMzZjMCwxMS41NDEsOS4zOSwyMC45MzEsMjAuOTMyLDIwLjkzMWg3NC4wMTJjNS4wNjgsMCw5LjE3Niw0LjEwOSw5LjE3Niw5LjE3NnMtNC4xMDgsOS4xNzYtOS4xNzYsOS4xNzZaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTE5NC41MTMzLDI0Mi41MTg5YzMwLjA2LTcuMjEyLDM3LjA3MS0xNC4yMjMsNDQuMjgzLTQ0LjI4My4yNTEtMS4wNDQsMS43MzMtMS4wNDQsMS45ODIsMCw3LjIxMiwzMC4wNiwxNC4yMjMsMzcuMDcxLDQ0LjI4NSw0NC4yODMsMS4wNDIuMjUxLDEuMDQyLDEuNzMzLDAsMS45ODItMzAuMDYyLDcuMjEyLTM3LjA3MywxNC4yMjMtNDQuMjg1LDQ0LjI4NS0uMjQ5LDEuMDQyLTEuNzMxLDEuMDQyLTEuOTgyLDAtNy4yMTItMzAuMDYyLTE0LjIyMy0zNy4wNzMtNDQuMjgzLTQ0LjI4NS0xLjA0NC0uMjQ5LTEuMDQ0LTEuNzMxLDAtMS45ODJoMFoiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMjYxLjMzNDMsMjA1LjcwNzJjOC41NzQtMi4wNTUsMTAuNTc1LTQuMDU2LDEyLjYzLTEyLjYzLjA3Mi0uMjk4LjQ5Ni0uMjk4LjU2NywwLDIuMDU3LDguNTc0LDQuMDU2LDEwLjU3NSwxMi42MzIsMTIuNjMuMjk2LjA3MS4yOTYuNDk1LDAsLjU2Ny04LjU3NiwyLjA1Ny0xMC41NzUsNC4wNTYtMTIuNjMyLDEyLjYzMi0uMDcxLjI5Ni0uNDk2LjI5Ni0uNTY3LDAtMi4wNTUtOC41NzYtNC4wNTYtMTAuNTc1LTEyLjYzLTEyLjYzMi0uMjk4LS4wNzItLjI5OC0uNDk2LDAtLjU2NyIvPgogICAgPC9nPgogIDwvZz4KICA8Zz4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEwMS40MDA0LDEwNy40NjMyaDIyLjE5OTJ2NDMuODAwM2w0LjY1MDQtMS4wNTAzYzguMTk4Mi0xLjY5OTIsMTQuNjQ4NC02LjA5ODEsMTkuMzQ5Ni0xMy4xOTk3LDQuNjk5Mi03LjA5OTEsOC40OTktMTYuOTUwMiwxMS40MDA0LTI5LjU1MDNoMjIuNjUwNGMtMi40MDA0LDExLjAwMi01LjUyNzMsMjAuNDUxNy05LjM3NSwyOC4zNTAxLTMuODUxNiw3LjkwMDktOC44MjcxLDE0LjM5OTktMTQuOTI1OCwxOS41bDI4LjgwMDgsNTYuODUwNmgtMjUuNWwtMjIuNS00NS45MDA0Yy0zLDEuMDAxLTYuMzAwOCwxLjkwMTQtOS45MDA0LDIuNzAwMmwtNC42NTA0LDEuMDQ5OHY0Mi4xNTA0aC0yMi4xOTkyczAtMTA0LjcwMDcsMC0xMDQuNzAwN1oiLz4KICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTE5OC41OTk2LDEwNy40NjMyaDIyLjE5OTJ2MTA0LjcwMDdoLTIyLjE5OTJ2LTEwNC43MDA3WiIvPgogIDwvZz4KPC9zdmc+' };
+/* Farbwelten: Grund, Form, Piktogramm, dunkel (für die Wahl des KI-Labels) */
+var PH_PAL = {
+  navy: ['#001957', '#155784', '#ffffff', 1], blue: ['#155784', '#3875a6', '#ffffff', 1], sky: ['#bee0f5', '#7db5d7', '#001957', 0],
+  brown: ['#583720', '#a45f33', '#fbe5c7', 1], sand: ['#fff4e0', '#fbe5c7', '#001957', 0], copper: ['#c47d47', '#a45f33', '#ffffff', 1],
+  green: ['#5b7a03', '#759a03', '#ffffff', 1], leaf: ['#f0f8e3', '#c5e878', '#5b7a03', 0], orange: ['#f79506', '#eabe8d', '#001957', 0]
 };
-function placeholder(topic) {
-  var s = TOPIC_STYLE[topic];
-  if (!s) { var keys = Object.keys(TOPIC_STYLE), hsh = 0; for (var i = 0; i < topic.length; i++) hsh = (hsh * 31 + topic.charCodeAt(i)) % 9973; s = TOPIC_STYLE[keys[hsh % keys.length]]; }
-  return h('div', { class: 'ph', style: 'background:' + s[0], 'aria-hidden': 'true', html: ico(s[2]) });
+/* Formen: Kreis angeschnitten, Viertelkreis, schräges Band, zwei Kreise */
+var PH_SHAPE = [
+  function (c) { return '<circle cx="250" cy="70" r="120" fill="' + c + '"/>'; },
+  function (c) { return '<path d="M0 320V150a170 170 0 0 1 170 170z" fill="' + c + '"/>'; },
+  function (c) { return '<path d="M0 230L320 90v120L0 350z" fill="' + c + '"/>'; },
+  function (c) { return '<circle cx="60" cy="270" r="90" fill="' + c + '"/><circle cx="285" cy="40" r="55" fill="' + c + '"/>'; }
+];
+/* [Kennung, Bezeichnung, Glyphe (Unicode im Iconfont), Farbwelt, Form, Suchbegriffe] */
+var PH_LIB = [
+  ['wissen', 'Wissen teilen', 'E9DA', 'navy', 0, 'buch lernen fachlich schulung wissen lesen'],
+  ['gespraech', 'Kundengespräch', 'E95C', 'blue', 1, 'vertrieb beratung gespräch sprechen austausch'],
+  ['handschlag', 'Vertrauen', 'E9BB', 'navy', 2, 'vertrieb abschluss kunde handschlag partnerschaft'],
+  ['ziel', 'Ziele erreichen', 'E999', 'orange', 3, 'ziel erfolg vertrieb strategie'],
+  ['wachstum', 'Wachstum', 'E983', 'green', 0, 'erfolg zahlen kurve entwicklung vertrieb'],
+  ['auswertung', 'Auswertung', 'E91E', 'sky', 1, 'zahlen statistik analyse diagramm fachlich'],
+  ['kreis', 'Anteile', 'E91D', 'blue', 2, 'zahlen statistik anteil diagramm'],
+  ['rechner', 'Tarif berechnen', 'E955', 'sand', 0, 'tarif beitrag rechnen fachlich kalkulation'],
+  ['dokument', 'Vertrag', 'E932', 'sky', 3, 'vertrag dokument antrag police fachlich'],
+  ['recht', 'Recht und Regeln', 'E951', 'navy', 1, 'recht paragraph compliance regeln idd'],
+  ['schutz', 'Absicherung', 'E922', 'navy', 3, 'versicherung schutz sicherheit cyber'],
+  ['schirm', 'Rundum geschützt', 'E97F', 'blue', 0, 'versicherung schutz regen schirm'],
+  ['haus', 'Wohngebäude', 'E928', 'copper', 2, 'haus wohngebäude hausrat immobilie'],
+  ['neubau', 'Neubau', 'E9CA', 'sand', 1, 'haus bauen neubau immobilie'],
+  ['auto', 'Kfz', 'E97E', 'navy', 2, 'auto kfz fahrzeug mobilität'],
+  ['unfall', 'Unfall', 'E915', 'orange', 0, 'unfall schaden kfz regulierung'],
+  ['gesundheit', 'Gesundheit', 'E9C9', 'leaf', 3, 'gesundheit herz krankenversicherung fit'],
+  ['arzt', 'Krankenversicherung', 'E988', 'blue', 1, 'gesundheit arzt kranken stethoskop'],
+  ['geld', 'Finanzen', 'E920', 'green', 2, 'geld finanzen vorsorge rente sparen'],
+  ['bank', 'Bank und Vorsorge', 'E923', 'navy', 0, 'bank vorsorge genossenschaft finanzen'],
+  ['betrieb', 'Firmenkunden', 'E9BF', 'blue', 3, 'firma betrieb gewerbe firmenkunden'],
+  ['landwirtschaft', 'Landwirtschaft', 'E91C', 'green', 1, 'landwirtschaft traktor agrar'],
+  ['team', 'Im Team', 'E9C6', 'orange', 2, 'team gemeinschaft kollegen austausch'],
+  ['kalender', 'Termin', 'E9BC', 'sand', 3, 'termin kalender planung organisation'],
+  ['zeit', 'Zeitmanagement', 'E942', 'sky', 0, 'zeit wecker morgen organisation'],
+  ['telefon', 'Telefonakquise', 'E911', 'navy', 1, 'telefon anruf akquise vertrieb'],
+  ['social', 'Social Selling', 'E99E', 'blue', 2, 'social media netzwerk linkedin sichtbarkeit'],
+  ['idee', 'Gute Idee', 'E9AF', 'orange', 1, 'idee stern best practice tipp'],
+  ['rad', 'Radfahren', 'E912', 'green', 3, 'sport fahrrad rad bewegung'],
+  ['tennis', 'Ballsport', 'E90F', 'leaf', 0, 'sport tennis ball spiel'],
+  ['wandern', 'Unterwegs', 'E92D', 'brown', 1, 'wandern kompass natur reisen outdoor'],
+  ['reise', 'Reisen', 'E913', 'sky', 2, 'reisen flugzeug urlaub fliegen'],
+  ['boot', 'Am Wasser', 'E91B', 'blue', 3, 'boot segeln wasser urlaub'],
+  ['welt', 'Die Welt entdecken', 'E92E', 'navy', 2, 'reisen welt länder entdecken'],
+  ['garten', 'Garten und Natur', 'E91A', 'green', 0, 'garten baum natur pflanzen'],
+  ['klee', 'Glück', 'E917', 'leaf', 1, 'garten klee glück natur'],
+  ['genuss', 'Genuss', 'E90E', 'brown', 2, 'essen trinken wein genuss trauben'],
+  ['kochen', 'Essen und Einkauf', 'E9CD', 'copper', 3, 'essen kochen einkaufen meal prep'],
+  ['foto', 'Fotografie', 'E908', 'brown', 0, 'foto kamera fotografie freizeit'],
+  ['musik', 'Musik und Podcast', 'E9D1', 'orange', 3, 'musik podcast mikrofon singen'],
+  ['hund', 'Mit dem Hund', 'E964', 'sand', 2, 'hund tier haustier'],
+  ['katze', 'Katzenfreunde', 'E963', 'copper', 1, 'katze tier haustier'],
+  ['pferd', 'Reiten', 'E960', 'brown', 3, 'pferd reiten tier sport'],
+  ['familie', 'Familie', 'E92B', 'sky', 1, 'familie kinder eltern'],
+  ['baby', 'Nachwuchs', 'E943', 'leaf', 2, 'baby kinderwagen eltern familie'],
+  ['ehrenamt', 'Ehrenamt', 'E92A', 'green', 2, 'ehrenamt engagement gemeinschaft helfen'],
+  ['abend', 'Feierabend', 'E993', 'navy', 0, 'abend mond feierabend entspannung'],
+  ['spass', 'Gute Laune', 'E930', 'orange', 0, 'freizeit spaß lachen gute laune'],
+  ['energie', 'Energie', 'E918', 'leaf', 3, 'energie windrad nachhaltigkeit umwelt'],
+  ['motorrad', 'Zweirad', 'E925', 'copper', 0, 'motorrad roller zweirad mobilität']
+];
+var PH_BY = {}; PH_LIB.forEach(function (p) { PH_BY[p[0]] = p; });
+/* Standardmotiv je Thema, falls weder Bild noch Platzhalter gewählt wurde */
+var PH_TOPIC = { 'fachlich': 'wissen', 'vertrieblich': 'gespraech', 'Sport': 'rad', 'Freizeit': 'foto', 'Essen & Trinken': 'genuss', 'Reisen': 'reise', 'Sonstiges': 'idee' };
+/* Passendes Motiv zu einem Titel (für Testdaten): erstes Motiv, dessen Suchbegriffe im Titel vorkommen */
+function phGuess(title, topic) { var t = title.toLowerCase(), hit = PH_LIB.filter(function (p) { return p[5].split(' ').some(function (w) { return w.length > 3 && t.indexOf(w) >= 0; }); })[0]; return hit ? hit[0] : phFor(topic); }
+function phFor(topic) { if (PH_TOPIC[topic]) return PH_TOPIC[topic]; var hsh = 0; for (var i = 0; i < topic.length; i++) hsh = (hsh * 31 + topic.charCodeAt(i)) % 9973; return PH_LIB[hsh % PH_LIB.length][0]; }
+function phNode(id, small) {
+  var p = PH_BY[id] || PH_LIB[0], pal = PH_PAL[p[3]];
+  return h('div', { class: 'ph' + (small ? ' small' : ''), style: 'background:' + pal[0], role: 'img', 'aria-label': 'Platzhalterbild ' + p[1] + ', mit KI gestaltet', html:
+    '<svg class="ph-deco" viewBox="0 0 320 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + PH_SHAPE[p[4]](pal[1]) + '</svg>' +
+    '<i class="ruv-i" aria-hidden="true" style="color:' + pal[2] + '">&#x' + p[2] + ';</i>' +
+    '<img class="ki-label" src="' + (pal[3] ? KI_LABEL.neg : KI_LABEL.pos) + '" alt="KI" title="Mit KI gestaltet">' });
 }
-function cover(e) { return e.image ? h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }) : placeholder(e.topic); }
+function placeholder(topic) { return phNode(phFor(topic)); }
+function cover(e) { return e.image ? h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }) : phNode(e.placeholder && PH_BY[e.placeholder] ? e.placeholder : phFor(e.topic)); }
+/* Auswahl eines Platzhalterbildes mit Suche */
+function openPhPicker(current, onPick) {
+  var q = h('input', { type: 'search', id: 'ph-q', placeholder: 'Motiv suchen, z. B. Reisen, Vertrieb oder Sport', 'aria-label': 'Platzhalterbilder durchsuchen' });
+  var grid = h('div', { class: 'ph-grid', role: 'listbox', 'aria-label': 'Platzhalterbilder' }), count = h('span', { class: 'hint', 'aria-live': 'polite' });
+  var body = h('div', { class: 'modal-body' }, [h('h2', { text: 'Platzhalterbild wählen', style: 'padding-right:44px' }), h('p', { class: 'hint', text: 'Die Motive folgen der R+V-Bildwelt. Sie sind mit KI gestaltet und tragen deshalb das KI-Label.' }), q, count, grid]);
+  var m = openModal(body, { wide: true, label: 'Platzhalterbild wählen' });
+  function render() {
+    clear(grid); var t = q.value.trim().toLowerCase(), n = 0;
+    PH_LIB.forEach(function (p) {
+      if (t && (p[1] + ' ' + p[5]).toLowerCase().indexOf(t) < 0) return; n++;
+      grid.appendChild(h('button', { type: 'button', class: 'ph-opt', role: 'option', 'aria-selected': String(p[0] === current), title: p[1], onclick: function () { onPick(p[0]); m.close(); } }, [h('span', { class: 'ph-box' }, phNode(p[0], true)), h('span', { class: 'ph-name', text: p[1] })]));
+    });
+    count.textContent = n + (n === 1 ? ' Motiv' : ' Motive');
+    if (!n) grid.appendChild(h('p', { class: 'hint', text: 'Kein Motiv gefunden. Probiere einen anderen Begriff.' }));
+  }
+  q.addEventListener('input', render); render();
+}
 
 /* ====================================================== Abzeichen, Anmeldestatus, Bewertungssterne */
 /* Stufen 1 bis 6: Bronze, Silber, Gold (Medaillen), Stern, Krone, Diamant. Die Rakete steht fuer den Expertenstatus in einem Thema. */
 var BADGE_NAMES = ['Bronzene Medaille', 'Silberne Medaille', 'Goldene Medaille', 'Stern', 'Krone', 'Diamant'];
-function medalSvg(c1, c2) {
-  return '<path d="M7 2h4l1.4 5.2-3.4 1.3z" fill="#155784"/><path d="M17 2h-4l-1.4 5.2 3.4 1.3z" fill="#f79506"/><circle cx="12" cy="15" r="7" fill="' + c1 + '" stroke="' + c2 + '" stroke-width="1.6"/><circle cx="12" cy="15" r="4.3" fill="none" stroke="' + c2 + '" stroke-width="1.1" opacity=".75"/><path d="M12 11.9l1 2 2.2.3-1.6 1.5.4 2.2-2-1.1-2 1.1.4-2.2-1.6-1.5 2.2-.3z" fill="' + c2 + '" opacity=".85"/>';
-}
+/* Flache, runde Störer im R+V-Stil: farbige Scheibe mit weißem Rand, Piktogramm zweifarbig, keine Verläufe */
+function discSvg(bg, inner) { return '<circle cx="12" cy="12" r="11" fill="' + bg + '" stroke="#ffffff" stroke-width="1.4"/>' + inner; }
+function medalIn(c) { return '<path d="M8.6 4.6h2.6l1.3 4.1-2.4.8zM15.4 4.6h-2.6l-1.3 4.1 2.4.8z" fill="' + c + '" opacity=".75"/><circle cx="12" cy="13.6" r="4.6" fill="' + c + '"/>'; }
+var STAR_P = '<path d="M12 5.4l2 4.1 4.5.6-3.3 3.1.8 4.5L12 15.5l-4 2.2.8-4.5-3.3-3.1 4.5-.6z"';
 var BADGE_SVG = [
-  medalSvg('#c47d47', '#583720'), medalSvg('#ececec', '#707070'), medalSvg('#ffc83a', '#b07c00'),
-  '<path d="M12 1.8l3 6.6 7.2.8-5.4 4.9 1.5 7.1-6.3-3.6-6.3 3.6 1.5-7.1L1.8 9.2l7.2-.8z" fill="#ffc83a" stroke="#b07c00" stroke-width="1.4" stroke-linejoin="round"/>',
-  '<path d="M2.5 19.5l-1-12 5.6 4.4L12 3.5l4.9 8.4 5.6-4.4-1 12z" fill="#ffc83a" stroke="#b07c00" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="3.2" r="1.4" fill="#eb6504"/><circle cx="1.8" cy="7" r="1.2" fill="#eb6504"/><circle cx="22.2" cy="7" r="1.2" fill="#eb6504"/><rect x="3" y="20.3" width="18" height="2" rx=".8" fill="#b07c00"/>',
-  '<path d="M6.2 3h11.6l4.4 6.2L12 21.5 1.8 9.2z" fill="#bee0f5" stroke="#155784" stroke-width="1.4" stroke-linejoin="round"/><path d="M1.8 9.2h20.4M9 3l-2.2 6.2L12 21.5M15 3l2.2 6.2L12 21.5" fill="none" stroke="#155784" stroke-width="1" stroke-linejoin="round" opacity=".8"/>'
+  discSvg('#c47d47', medalIn('#ffffff')), discSvg('#888888', medalIn('#ffffff')), discSvg('#f79506', medalIn('#001957')),
+  discSvg('#155784', STAR_P + ' fill="#f79506"/>'),
+  discSvg('#583720', '<path d="M6.6 15.6l-.8-6.6 3.3 2.5L12 6.6l2.9 4.9 3.3-2.5-.8 6.6z" fill="#f79506"/><rect x="6.6" y="16.4" width="10.8" height="1.8" fill="#f79506"/>'),
+  discSvg('#001957', '<path d="M8.4 7h7.2l2.8 3.8L12 18.2l-6.4-7.4z" fill="#ffffff"/><path d="M5.6 10.8h12.8M10.2 7L9 10.8l3 7.4 3-7.4L13.8 7" fill="none" stroke="#001957" stroke-width=".9" stroke-linejoin="round"/>')
 ];
-var ROCKET_SVG = '<path d="M12 1.5c3.4 2.4 5 6 5 9.5 0 2-.5 3.8-1.3 5.3H8.3C7.5 14.8 7 13 7 11c0-3.5 1.6-7.1 5-9.500z" fill="#eef1f7" stroke="#001957" stroke-width="1.3" stroke-linejoin="round"/><circle cx="12" cy="9.3" r="2" fill="#bee0f5" stroke="#001957" stroke-width="1.1"/><path d="M7.8 12.500L4.5 16l.8 3.2 3.3-2zM16.2 12.500l3.3 3.5-.8 3.2-3.3-2z" fill="#eb6504" stroke="#001957" stroke-width="1.1" stroke-linejoin="round"/><path d="M10 17.300h4l-2 4.700z" fill="#f79506" stroke="#001957" stroke-width="1" stroke-linejoin="round"/>';
+var ROCKET_SVG = discSvg('#001957', '<path d="M12 4.6c2.1 1.5 3.1 3.8 3.1 6.1 0 1.2-.3 2.3-.8 3.3H9.7c-.5-1-.8-2.1-.8-3.3 0-2.3 1-4.6 3.1-6.1z" fill="#ffffff"/><circle cx="12" cy="9.9" r="1.3" fill="#001957"/><path d="M9.5 11.9l-1.9 2.2.5 1.9 2-1.3zM14.5 11.9l1.9 2.2-.5 1.9-2-1.3z" fill="#ffffff"/><path d="M10.7 14.8h2.6L12 18.6z" fill="#f79506"/>');
 function badgeLabel(level) { return level >= 1 && level <= 6 ? 'Stufe ' + level + ': ' + BADGE_NAMES[level - 1] : ''; }
 function badgeNode(level, big) {
   if (!level || level < 1 || level > 6) return null;
@@ -1522,7 +1689,7 @@ function userTag(name, level, expert, cls, pub) {
 }
 /* Oeffentliches Profil als Popup: zeigt nur, was die Person freigegeben hat */
 function openPublicProfile(username) {
-  var body = h('div', { class: 'modal-body pubprof' }, loading()), m = openModal(body, { wide: true, label: 'Profil von ' + username });
+  var body = h('div', { class: 'modal-body pubprof' }, loading()), m = openModal(body, { wide: true, label: 'Profil von ' + username }); m.node.classList.add('pwide');
   Api.publicProfile(username).then(function (r) {
     var p = r.profile; clear(body);
     body.appendChild(h('div', { class: 'prof-name' }, [h('h2', { text: p.username, style: 'margin:0;overflow-wrap:anywhere' }), badgeNode(p.level, true), (p.experts && p.experts.length) ? rocketNode(true) : null]));
@@ -1544,7 +1711,7 @@ function openPublicProfile(username) {
     }
     if (p.experts) body.appendChild(h('p', { class: 'hint', text: p.experts.length ? 'Expertenstatus in: ' + p.experts.map(function (x) { return capFirst(x.topic); }).join(', ') : 'Noch kein Expertenstatus.' }));
     if (p.upcoming) {
-      body.appendChild(h('h3', { text: 'Kommende Veranstaltungen', style: 'margin:8px 0 0' }));
+      body.appendChild(h('h3', { text: 'Anstehende Veranstaltungen', style: 'margin:8px 0 0' }));
       if (!p.upcoming.length) body.appendChild(h('p', { class: 'hint', text: 'Zurzeit sind keine Veranstaltungen geplant.' }));
       else {
         var tb = h('tbody');
@@ -1562,9 +1729,9 @@ function openPublicProfile(username) {
             } }));
           }
           paint();
-          tb.appendChild(h('tr', null, [h('td', { text: CAT_LABEL[e.category] }), h('td', null, h('b', { text: e.title })), h('td', { text: capFirst(e.topic) }), h('td', { text: e.type }), h('td', { text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr' }), cell]));
+          tb.appendChild(h('tr', null, [h('td', { text: CAT_LABEL[e.category] }), h('td', { class: 'pp-title' }, h('b', { text: e.title })), h('td', { text: capFirst(e.topic) }), h('td', { text: e.type }), h('td', { class: 'pp-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '\u2013' + endHm(e) + ' Uhr' })]), cell]));
         });
-        body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, ['Bereich', 'Titel', 'Thema', 'Art', 'Datum und Uhrzeit', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
+        body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl pp-tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, ['Bereich', 'Titel', 'Thema', 'Art', 'Termin', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
     }
     body.appendChild(h('div', null, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Schließen', onclick: m.close })));
@@ -1696,7 +1863,7 @@ function weekdayOptions(selected, admin) {
 }
 function buildEventForm(o) {
   o = o || {}; var ev = o.event || {}, admin = !!o.admin;
-  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false };
+  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '' };
   var existingImg = ev.image || '', srcImg = null, previewSrc = existingImg;
   var f = {}; // Felder
   var form = h('form', { class: 'form', novalidate: true });
@@ -1733,14 +1900,16 @@ function buildEventForm(o) {
 
   var prev = h('div', { class: 'imgprev' });
   var file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'sr', id: 'f-img', tabindex: '-1' });
-  var pickBtn = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Bild auswählen' });
+  var pickBtn = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Bild hochladen' });
+  var phBtn = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Platzhalterbild wählen' }), phName = h('span', { class: 'hint' });
   var recropBtn = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Ausschnitt anpassen', hidden: true });
   var delBtn = h('button', { type: 'button', class: 'btn btn-secondary', text: 'Bild entfernen', hidden: true });
-  f.image = field('Bild (optional)', h('div', { class: 'imgpick' }, [prev, h('div', { style: 'display:flex;flex-direction:column;gap:10px;align-items:flex-start' }, [pickBtn, recropBtn, delBtn, file])]), { legend: true, hint: 'Das Bild wird quadratisch angezeigt. Beim Hochladen kannst Du Ausschnitt und Zoom anpassen. Ohne Bild zeigt der Katalog ein Platzhalterbild.' });
+  f.image = field('Bild (optional)', h('div', { class: 'imgpick' }, [prev, h('div', { style: 'display:flex;flex-direction:column;gap:10px;align-items:flex-start' }, [pickBtn, phBtn, recropBtn, delBtn, phName, file])]), { legend: true, hint: 'Das Bild wird quadratisch angezeigt. Beim Hochladen kannst Du Ausschnitt und Zoom anpassen. Ohne eigenes Bild wählst Du ein Platzhalterbild, sonst erscheint das Standardmotiv zum Thema.' });
 
   function renderPrev() {
     clear(prev);
-    if (previewSrc) prev.appendChild(h('img', { src: previewSrc, alt: 'Vorschau des Veranstaltungsbildes' })); else prev.textContent = 'Kein Bild gewählt';
+    if (previewSrc) { prev.appendChild(h('img', { src: previewSrc, alt: 'Vorschau des Veranstaltungsbildes' })); phName.textContent = ''; }
+    else { var id = v.placeholder && PH_BY[v.placeholder] ? v.placeholder : phFor(v.topic || ''); prev.appendChild(phNode(id, true)); phName.textContent = (v.placeholder ? 'Platzhalterbild: ' : 'Standardmotiv zum Thema: ') + PH_BY[id][1]; }
     recropBtn.hidden = !srcImg; delBtn.hidden = !previewSrc;
   }
   function pick(fileObj) {
@@ -1757,6 +1926,7 @@ function buildEventForm(o) {
   file.addEventListener('change', function () { pick(file.files[0]); });
   recropBtn.addEventListener('click', crop);
   delBtn.addEventListener('click', function () { v.imageData = ''; v.removeImage = true; previewSrc = ''; srcImg = null; renderPrev(); });
+  phBtn.addEventListener('click', function () { openPhPicker(v.placeholder, function (id) { v.placeholder = id; if (previewSrc) { v.imageData = ''; v.removeImage = true; previewSrc = ''; srcImg = null; } renderPrev(); f.image.setErr(''); }); });
   renderPrev();
 
   function fillDur() {
@@ -1795,7 +1965,7 @@ function buildEventForm(o) {
   });
   startSel.addEventListener('change', function () { v.start = startSel.value; f.start.setErr(''); });
   typeSel.addEventListener('change', function () { v.type = typeSel.value; f.type.setErr(''); });
-  topicSel.addEventListener('change', function () { v.topic = topicSel.value; f.topic.setErr(''); });
+  topicSel.addEventListener('change', function () { v.topic = topicSel.value; f.topic.setErr(''); renderPrev(); });
   title.addEventListener('input', function () { f.title.setErr(''); });
   cap.addEventListener('input', function () { f.capacity.setErr(''); }); link.addEventListener('input', function () { f.teamsLink.setErr(''); });
   rte.area.addEventListener('input', function () { f.description.setErr(''); });
@@ -1820,7 +1990,7 @@ function buildEventForm(o) {
     e.preventDefault(); box.hidden = true;
     if (!validate()) return;
     submit.disabled = true; var old = submit.textContent; submit.textContent = 'Wird gespeichert …';
-    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage };
+    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder };
     Promise.resolve(o.onSubmit(payload)).catch(function (err) { box.hidden = false; box.textContent = err.message || 'Das Speichern ist fehlgeschlagen.'; box.scrollIntoView({ block: 'center', behavior: 'smooth' }); }).then(function () { submit.disabled = false; submit.textContent = old; });
   });
   return form;
@@ -1831,6 +2001,14 @@ function loading() { return h('div', { class: 'empty' }, [h('p', { text: 'Wird g
 
 /* ---- Katalog ---- */
 var filters = { cat: 'dienstlich', q: '', types: [], topic: 'all', dur: 'all', tod: 'all' };
+/* Hinweis auf der Startseite: Profil veröffentlichen (dauerhaft ausblendbar, gespeichert im Konto) */
+function pubHint() {
+  var me = state.me; if (!me || me.profilePublic || me.publicHintOff) return null;
+  var box = h('div', { class: 'pub-hint', role: 'status' }, [h('div', { class: 'pub-hint-t' }, [h('b', { text: 'Zeig der Community, was Du kannst' }), h('span', { text: 'Veröffentliche Dein Profil. Dann sehen andere Deine Themen und Abzeichen und finden Dich leichter.' })]),
+    h('a', { class: 'btn btn-primary btn-sm', href: '#/profil?tab=oeffentlich', text: 'Profil veröffentlichen' }),
+    h('button', { type: 'button', class: 'pub-x', 'aria-label': 'Hinweis ausblenden', title: 'Hinweis ausblenden', text: '\u00d7', onclick: function () { box.remove(); me.publicHintOff = true; Api.dismissHint().catch(function () { }); } })]);
+  return box;
+}
 function viewCatalog() {
   if (filters.topic !== 'all' && TOPICS[filters.cat].indexOf(filters.topic) < 0) filters.topic = 'all';
   filters.types = filters.types.filter(function (t) { return TYPES.indexOf(t) >= 0; });
@@ -1863,7 +2041,7 @@ function viewCatalog() {
 
   root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [topline('Informelles Lernen im Außendienst'), h('h1', { html: hlHtml(HERO.title) }),
     h('p', { text: HERO.text }),
-    h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' }))])));
+    h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' })), pubHint()])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Bereich' }), switchSeg]), h('div', { class: 'search', html: ico('search') }, search)]),
     typeChips,
@@ -1928,17 +2106,18 @@ function openBooking(e, onChange) {
   var wrapper = h('div', { class: 'bk' }, [head, body]);
   var m = openModal(wrapper, { xwide: true, label: 'Anmeldung: ' + e.title, onClose: onChange });
   function showForm() {
-    clear(body);
+    clear(body); body.classList.add('bk-form');
     var f = freeOf(e);
     body.appendChild(h('div', null, [h('h2', { text: e.title }), h('div', { class: 'chips-inline', style: 'margin-top:8px' }, chipEl('topic', capFirst(e.topic)))]));
     body.appendChild(h('div', { class: 'rich bk-desc', tabindex: '0', html: sanitizeHtml(e.description) }));
-    if (e.own) { body.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Das ist Deine eigene Veranstaltung. Die Teilnehmenden siehst Du unter „Meine Veranstaltungen“.' })); body.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-veranstaltungen', text: 'Meine Veranstaltungen öffnen' }))); return; }
-    if (e.mine) { body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Du bist für diese Veranstaltung angemeldet.' })); body.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-anmeldungen', text: 'Meine Anmeldungen öffnen' }))); return; }
-    body.appendChild(h('h3', { text: 'Jetzt anmelden' }));
+    var foot = h('div', { class: 'bk-foot' }); body.appendChild(foot);
+    if (e.own) { foot.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Das ist Deine eigene Veranstaltung. Die Teilnehmenden siehst Du unter „Meine Veranstaltungen“.' })); foot.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-veranstaltungen', text: 'Meine Veranstaltungen öffnen' }))); return; }
+    if (e.mine) { foot.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Du bist für diese Veranstaltung angemeldet.' })); foot.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-anmeldungen', text: 'Meine Anmeldungen öffnen' }))); return; }
+    foot.appendChild(h('h3', { text: 'Jetzt anmelden' }));
     if (!state.me) {
       var nx = encodeURIComponent('/');
-      body.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Zum Anmelden brauchst Du ein Konto. Die Registrierung dauert eine Minute. Öffentlich sichtbar ist nur Dein Benutzername.' }));
-      body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [h('a', { class: 'btn btn-primary', href: '#/anmelden?next=' + nx, text: 'Anmelden' }), h('a', { class: 'btn btn-secondary', href: '#/registrieren?next=' + nx, text: 'Neu registrieren' }), h('span', { class: 'bk-free' + (f <= 5 ? ' few' : ''), text: 'Freie Plätze: ' + f + ' von ' + e.capacity })]));
+      foot.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Zum Anmelden brauchst Du ein Konto. Die Registrierung dauert eine Minute. Öffentlich sichtbar ist nur Dein Benutzername.' }));
+      foot.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [h('a', { class: 'btn btn-primary', href: '#/anmelden?next=' + nx, text: 'Anmelden' }), h('a', { class: 'btn btn-secondary', href: '#/registrieren?next=' + nx, text: 'Neu registrieren' }), h('span', { class: 'bk-free' + (f <= 5 ? ' few' : ''), text: 'Freie Plätze: ' + f + ' von ' + e.capacity })]));
       return;
     }
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
@@ -1952,19 +2131,19 @@ function openBooking(e, onChange) {
         msg.hidden = false; msg.textContent = er.message;
       });
     });
-    body.appendChild(h('p', { class: 'hint', text: 'Du meldest Dich als ' + state.me.username + ' an. Abmelden kannst Du Dich jederzeit unter „Meine Anmeldungen“.' }));
-    body.appendChild(msg);
-    body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [go, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: m.close }), h('span', { class: 'bk-free' + (f <= 5 ? ' few' : ''), text: 'Freie Plätze: ' + f + ' von ' + e.capacity })]));
+    foot.appendChild(h('p', { class: 'hint', text: 'Du meldest Dich als ' + state.me.username + ' an. Abmelden kannst Du Dich jederzeit unter „Meine Anmeldungen“.' }));
+    foot.appendChild(msg);
+    foot.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [go, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: m.close }), h('span', { class: 'bk-free' + (f <= 5 ? ' few' : ''), text: 'Freie Plätze: ' + f + ' von ' + e.capacity })]));
   }
   function showDone(r) {
-    clear(body); e.mine = true;
+    clear(body); body.classList.remove('bk-form'); e.mine = true;
     body.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Die Anmeldung war erfolgreich. Dein Platz ist reserviert.' }));
     body.appendChild(participationCard(r.eventInfo, r.bookingId, { compact: true }));
     body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center' }, [h('button', { class: 'btn btn-primary', type: 'button', text: 'Schließen', onclick: m.close }), h('a', { class: 'btn btn-secondary', href: '#/meine-anmeldungen', text: 'Meine Anmeldungen öffnen' }), h('span', { class: 'hint', text: 'Teams-Link und Kalenderdatei findest Du dort jederzeit wieder.' })]));
     refreshMe();
   }
   function showFail(er) {
-    clear(body);
+    clear(body); body.classList.remove('bk-form');
     body.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message }));
     body.appendChild(h('div', null, h('button', { class: 'btn btn-primary', type: 'button', text: 'Zurück zum Katalog', onclick: m.close })));
   }
@@ -2041,7 +2220,7 @@ function viewRegister(q) {
   mk('username', 'Benutzername', { autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', maxlength: '24' }, { hint: 'Frei wählbar, 3 bis 24 Zeichen (Buchstaben, Ziffern, Punkt, Unterstrich, Bindestrich). Er muss einmalig sein und lässt sich später nicht ändern. Nur er ist für andere sichtbar.' });
   mk('firstName', 'Vorname', { autocomplete: 'given-name', maxlength: '60' }, { hint: 'Dein echter Vorname. Er ist nur für die Administration sichtbar.' });
   mk('lastName', 'Nachname', { autocomplete: 'family-name', maxlength: '60' }, { hint: 'Dein echter Nachname. Er ist nur für die Administration sichtbar.' });
-  mk('xv', 'XV- oder XVG-Nummer', { autocomplete: 'off', autocapitalize: 'characters', maxlength: '14' }, { hint: 'Zum Beispiel XV12345. Sie ist nur für die Administration sichtbar.' });
+  mk('xv', 'XV-Nummer', { autocomplete: 'off', autocapitalize: 'characters', maxlength: '14' }, { hint: 'Zum Beispiel XV12345 oder XVG12345. Sie ist nur für die Administration sichtbar.' });
   mk('email', 'E-Mail-Adresse', { type: 'email', autocomplete: 'email', maxlength: '200' }, { hint: 'Du kannst Dich damit auch anmelden. Es werden keine E-Mails verschickt.' });
   mk('password', 'Passwort', { type: 'password', autocomplete: 'new-password', maxlength: '128' }, { hint: 'Mindestens 10 Zeichen. Es darf weder Deinen Benutzernamen noch ein bekanntes Passwort enthalten.' });
   mk('password2', 'Passwort wiederholen', { type: 'password', autocomplete: 'new-password', maxlength: '128' });
@@ -2054,7 +2233,7 @@ function viewRegister(q) {
     var un = I.username.value.trim(), xv = I.xv.value.toUpperCase().replace(/[\s\-]/g, '');
     need('username', /^[A-Za-z0-9][A-Za-z0-9._-]{2,23}$/.test(un), 'Der Benutzername muss 3 bis 24 Zeichen lang sein und darf nur Buchstaben, Ziffern, Punkt, Unterstrich und Bindestrich enthalten.');
     need('firstName', I.firstName.value.trim().length >= 1, 'Bitte gib Deinen Vornamen an.'); need('lastName', I.lastName.value.trim().length >= 1, 'Bitte gib Deinen Nachnamen an.');
-    need('xv', /^XVG?[0-9]{2,8}$/.test(xv), 'Bitte gib eine gültige XV- oder XVG-Nummer an (z. B. XV12345).');
+    need('xv', /^XVG?[0-9]{2,8}$/.test(xv), 'Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).');
     need('email', validEmail(I.email.value.trim()), 'Bitte gib eine gültige E-Mail-Adresse an.');
     need('password', I.password.value.length >= 10, 'Das Passwort muss mindestens 10 Zeichen lang sein.');
     need('password2', I.password.value === I.password2.value, 'Die beiden Passwörter stimmen nicht überein.');
@@ -2072,7 +2251,7 @@ function viewRegister(q) {
 
 /* ---- Veranstaltung anbieten ---- */
 function viewCreate() {
-  var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' }));
+  var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' }));
   var wrap = root.firstChild;
   if (!state.me) {
     wrap.appendChild(topline('Mitmachen')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
@@ -2100,10 +2279,27 @@ function viewCreate() {
 }
 
 /* ---- Gemeinsame Bausteine fuer die Listen ---- */
-function pageShell(kicker, titleHtml, lead) {
-  var root = h('div', { class: 'page' }, h('div', { class: 'wrap narrow' })), wrap = root.firstChild;
+function pageShell(kicker, titleHtml, lead, wide) {
+  var root = h('div', { class: 'page' }, h('div', { class: 'wrap' + (wide ? ' wide' : ' narrow') })), wrap = root.firstChild;
   wrap.appendChild(topline(kicker)); wrap.appendChild(h('h1', { html: titleHtml })); if (lead) wrap.appendChild(h('p', { class: 'lead', text: lead }));
   return { root: root, wrap: wrap };
+}
+/* Umschaltbare Bereiche (z. B. Anstehend und Vergangen); die Auswahl bleibt in der Sitzung erhalten */
+function tabs(key, defs) {
+  var cur = sess.get(key), bar = h('div', { class: 'seg tabs-seg', role: 'group', 'aria-label': 'Bereich wählen' }), host = h('div', { class: 'tab-host' });
+  if (!defs.some(function (d) { return d[0] === cur; })) cur = defs[0][0];
+  function show(id) {
+    cur = id; sess.set(key, id);
+    $$('button', bar).forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === id)); });
+    clear(host); host.appendChild(defs.filter(function (d) { return d[0] === id; })[0][3]());
+  }
+  defs.forEach(function (d) { bar.appendChild(h('button', { type: 'button', 'data-t': d[0], text: d[1] + (d[2] != null ? ' (' + d[2] + ')' : ''), onclick: function () { show(d[0]); } })); });
+  show(cur);
+  return h('div', { class: 'ptabs' }, [bar, host]);
+}
+function cardList(nodes, emptyText, extra) {
+  if (!nodes.length) return h('div', { class: 'empty-list' }, [h('p', { class: 'hint', text: emptyText }), extra || null]);
+  return h('div', { class: 'cardlist' }, nodes);
 }
 function twoStep(btn, label, confirmLabel, run) {
   btn.addEventListener('click', function () {
@@ -2111,11 +2307,6 @@ function twoStep(btn, label, confirmLabel, run) {
     btn.disabled = true; run(function () { btn.disabled = false; btn._c = false; btn.removeAttribute('data-c'); btn.textContent = label; });
   });
   return btn;
-}
-function listSection(title, count, nodes, emptyText) {
-  var s = h('section', { style: 'margin-top:36px' }, [h('h2', { text: title + (count != null ? ' (' + count + ')' : ''), style: 'font-size:1.35rem;margin-bottom:14px' })]);
-  if (!nodes.length) s.appendChild(h('p', { class: 'hint', text: emptyText })); else s.appendChild(h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, nodes));
-  return s;
 }
 var NOTE_TEXT = {
   cancelled: function (n) { return { t: 'Abgesagt: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. ' + (n.reason ? 'Grund: ' + n.reason : 'Der Termin findet nicht statt.') }; },
@@ -2125,7 +2316,7 @@ var NOTE_TEXT = {
 
 /* ---- Meine Anmeldungen ---- */
 function viewMyBookings() {
-  var ps = pageShell('Teilnehmen', 'Meine <span class="accent">Anmeldungen</span>', 'Hier siehst Du, wo Du angemeldet bist, kannst Dich abmelden und besuchte Veranstaltungen mit Sternen bewerten.');
+  var ps = pageShell('Teilnehmen', 'Meine <span class="accent">Anmeldungen</span>', 'Hier siehst Du, wo Du angemeldet bist, kannst Dich abmelden und besuchte Veranstaltungen mit Sternen bewerten.', true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function load() {
@@ -2170,9 +2361,9 @@ function viewMyBookings() {
     }
     var up = r.bookings.filter(function (b) { return !b.ended; }).sort(function (a, b) { return startDate(a) - startDate(b); });
     var past = r.bookings.filter(function (b) { return b.ended; }).sort(function (a, b) { return startDate(b) - startDate(a); });
-    box.appendChild(listSection('Anstehend', up.length, up.map(bookingCard), 'Du bist für keine Veranstaltung angemeldet. Im Katalog findest Du passende Termine.'));
-    if (!up.length) box.appendChild(h('p', { style: 'margin-top:12px' }, h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' })));
-    box.appendChild(listSection('Vergangen', past.length, past.map(pastCard), 'Noch keine besuchten Veranstaltungen. Nach dem Termin kannst Du hier Sterne vergeben.'));
+    box.appendChild(tabs('lt_tab_mb', [
+      ['up', 'Anstehend', up.length, function () { return cardList(up.map(bookingCard), 'Du bist für keine Veranstaltung angemeldet. Im Katalog findest Du passende Termine.', h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' })); }],
+      ['past', 'Vergangen', past.length, function () { return cardList(past.map(pastCard), 'Noch keine besuchten Veranstaltungen. Nach dem Termin kannst Du hier Sterne vergeben.'); }]]));
   }
   load();
   return ps.root;
@@ -2180,7 +2371,7 @@ function viewMyBookings() {
 
 /* ---- Meine Veranstaltungen ---- */
 function viewMyEvents() {
-  var ps = pageShell('Für Anbietende', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, kannst Veranstaltungen absagen und die Bewertungen Deiner Sessions einsehen. Änderungen übernimmt die Administration.');
+  var ps = pageShell('Für Anbietende', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, kannst Veranstaltungen absagen und die Bewertungen Deiner Sessions einsehen. Änderungen übernimmt die Administration.', true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function load() { Api.myEvents().then(function (r) { clear(box); render(r.events); }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
@@ -2188,7 +2379,7 @@ function viewMyEvents() {
     var node = h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:14px' });
     node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(ev.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[ev.category]), chipEl('type', ev.type), chipEl('type', ev.topic), ev.cancelled ? chipEl('full', 'Abgesagt') : null, ev.isTest ? chipEl('type', 'Testdaten') : null]));
     node.appendChild(h('h3', { text: ev.title, style: 'overflow-wrap:anywhere' }));
-    node.appendChild(h('dl', { class: 'facts f4' }, [h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(ev.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: ev.start + ' – ' + endHm(ev) + ' Uhr' })]),
+    node.appendChild(h('dl', { class: 'facts f4 facts-wide' }, [h('div', null, [h('dt', { text: 'Datum' }), h('dd', { class: 'nowrap', text: dateFull(ev.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { class: 'nowrap', text: ev.start + ' – ' + endHm(ev) + ' Uhr' })]),
       h('div', null, [h('dt', { text: 'Angemeldet' }), h('dd', { text: ev.booked + ' von ' + ev.capacity })]), h('div', null, [h('dt', { text: ev.ended ? 'Bewertung' : 'Teams-Sitzung' }), h('dd', null, ev.ended ? (ev.cancelled ? '–' : ratingNode(ev.ratingAvg, ev.ratingCount)) : h('a', { href: ev.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Link öffnen' }))])]));
     if (ev.cancelled) node.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Diese Veranstaltung ist abgesagt' }), h('div', { text: (ev.cancelReason ? 'Grund: ' + ev.cancelReason + ' ' : '') + (ev.booked ? 'Die ' + ev.booked + ' angemeldeten Personen sehen die Absage unter „Meine Anmeldungen“.' : 'Es gab keine Anmeldungen.') })])));
     node.appendChild(h('h4', { text: 'Teilnehmende', style: 'margin:0' }));
@@ -2200,31 +2391,30 @@ function viewMyEvents() {
   function cancelBox(ev) {
     var reason = h('textarea', { id: 'v-reason-' + ev.id, rows: '2', maxlength: '300', placeholder: 'Zum Beispiel: Ich bin erkrankt. Ein neuer Termin folgt.' });
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
-    var go = twoStep(h('button', { class: 'btn btn-danger', type: 'button', text: 'Veranstaltung absagen' }), 'Veranstaltung absagen', 'Wirklich absagen?', function (reset) {
-      Api.cancelEvent(ev.id, reason.value).then(function () { toast('Die Veranstaltung wurde abgesagt.'); load(); }, function (er) { reset(); if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; });
-    });
-    return h('details', { class: 'cancel-box' }, [h('summary', { text: 'Veranstaltung absagen' }),
-      h('p', { class: 'hint', text: ev.booked ? 'Es gibt bereits ' + ev.booked + ' Anmeldung(en). Sie sehen die Absage unter „Meine Anmeldungen“. Es werden keine E-Mails verschickt.' : 'Noch niemand hat sich angemeldet. Die Veranstaltung verschwindet aus dem Katalog.' }),
-      field('Grund (freiwillig, sichtbar für angemeldete Personen)', reason, { id: 'v-reason-' + ev.id }), msg, h('div', null, go)]);
+    var go = h('button', { class: 'btn btn-danger', type: 'button', text: 'Absage bestätigen' }), back = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abbrechen' });
+    var form = h('div', { class: 'cancel-box', hidden: true }, [h('p', { class: 'hint', text: ev.booked ? 'Es gibt bereits ' + ev.booked + ' Anmeldung(en). Sie sehen die Absage unter „Meine Anmeldungen“. Es werden keine E-Mails verschickt.' : 'Noch niemand hat sich angemeldet. Die Veranstaltung verschwindet aus dem Katalog.' }),
+      field('Grund (freiwillig, sichtbar für angemeldete Personen)', reason, { id: 'v-reason-' + ev.id }), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, back])]);
+    var open = h('button', { class: 'btn btn-danger cancel-open', type: 'button', text: 'Veranstaltung absagen', onclick: function () { form.hidden = false; open.hidden = true; reason.focus(); } });
+    back.addEventListener('click', function () { form.hidden = true; open.hidden = false; msg.hidden = true; });
+    go.addEventListener('click', function () { go.disabled = true; Api.cancelEvent(ev.id, reason.value).then(function () { toast('Die Veranstaltung wurde abgesagt.'); load(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; }); });
+    return h('div', { class: 'cancel-wrap' }, [h('div', null, open), form]);
   }
   function render(list) {
-    var up = list.filter(function (e) { return !e.ended && !e.cancelled; }).sort(function (a, b) { return startDate(a) - startDate(b); });
-    var can = list.filter(function (e) { return e.cancelled; }).sort(function (a, b) { return startDate(b) - startDate(a); });
-    var past = list.filter(function (e) { return e.ended && !e.cancelled; }).sort(function (a, b) { return startDate(b) - startDate(a); });
-    var running = up.filter(function (e) { return startDate(e) <= new Date(); });
+    /* Abgesagte Termine stehen je nach Datum unter Anstehend oder Vergangen */
+    var up = list.filter(function (e) { return !e.ended; }).sort(function (a, b) { return startDate(a) - startDate(b); });
+    var past = list.filter(function (e) { return e.ended; }).sort(function (a, b) { return startDate(b) - startDate(a); });
     box.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/anbieten', text: 'Neue Veranstaltung anbieten' })));
-    box.appendChild(listSection('Anstehend', up.length, up.map(card), 'Du hast keine anstehende Veranstaltung. Biete gern eine an.'));
-    box.appendChild(listSection('Vergangen', past.length, past.map(card), 'Noch keine abgeschlossenen Veranstaltungen.'));
-    if (can.length) box.appendChild(listSection('Abgesagt', can.length, can.map(card), ''));
-    if (running.length) $$('h2', box)[0].insertAdjacentElement('afterend', h('p', { class: 'hint', text: 'Läuft gerade: ' + running.map(function (e) { return e.title; }).join(', ') }));
+    box.appendChild(tabs('lt_tab_me', [
+      ['up', 'Anstehend', up.length, function () { return cardList(up.map(card), 'Du hast keine anstehende Veranstaltung. Biete gern eine an.'); }],
+      ['past', 'Vergangen', past.length, function () { return cardList(past.map(card), 'Noch keine abgeschlossenen Veranstaltungen.'); }]]));
   }
   load();
   return ps.root;
 }
 
 /* ---- Profil ---- */
-function viewProfile() {
-  var ps = pageShell('Konto', 'Mein <span class="accent">Profil</span>');
+function viewProfile(q) {
+  var ps = pageShell('Konto', 'Mein <span class="accent">Profil</span>', null, true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function tile(label, value, sub) { return h('div', { class: 'st-kpi' }, [h('b', null, value), h('span', { text: label }), sub ? h('span', { class: 'hint', text: sub }) : null]); }
@@ -2242,17 +2432,32 @@ function viewProfile() {
     function sync() { subs.forEach(function (c) { c.disabled = !v.isPublic; }); }
     var bio = h('textarea', { id: 'pp-bio', rows: '4', maxlength: '300', placeholder: 'Zum Beispiel: Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.' }); bio.value = pub.bio || '';
     var count = h('span', { class: 'hint' }); function upd() { count.textContent = bio.value.length + ' / 300 Zeichen'; } bio.addEventListener('input', upd); upd();
-    var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Freigaben speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
-    var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil öffentlich zugänglich machen', 'Dein Benutzername wird auf Deinen Kacheln anklickbar und öffnet Dein Profil.', true),
-      chk('showRating', 'Gesamtbewertung anzeigen'), chk('showExpert', 'Themen mit Expertenstatus anzeigen'), chk('showEmail', 'E-Mail-Adresse anzeigen', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Zukünftige Veranstaltungen anzeigen', 'Mit Button „Buchen“ für alle, die noch nicht angemeldet sind.')]);
+    var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
+    var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil veröffentlichen', null, true),
+      chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen')]);
     sync();
     go.addEventListener('click', function () {
       go.disabled = true; var p = Object.assign({ bio: bio.value }, v);
-      Api.saveProfile(p).then(function () { go.disabled = false; msg.hidden = false; msg.className = 'notice ok'; msg.textContent = v.isPublic ? 'Gespeichert. Dein Profil ist öffentlich.' : 'Gespeichert. Dein Profil ist nicht öffentlich.'; toast('Freigaben gespeichert.'); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+      Api.saveProfile(p).then(function () { go.disabled = false; msg.hidden = false; msg.className = 'notice ok'; msg.textContent = v.isPublic ? 'Gespeichert. Dein Profil ist öffentlich.' : 'Gespeichert. Dein Profil ist nicht öffentlich.'; toast('Gespeichert.'); refreshMe(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
     });
-    return h('section', { style: 'margin-top:36px', id: 'pub-box' }, [h('h2', { text: 'Öffentliches Profil', style: 'font-size:1.35rem;margin-bottom:6px' }),
+    return h('section', { class: 'prof-sec', id: 'pub-box' }, [h('h2', { text: 'Öffentliches Profil' }),
       h('p', { class: 'hint', text: 'Wenn Du Dein Profil öffentlich machst, sehen andere Deinen Benutzernamen, Dein Abzeichen, die Zahl Deiner angebotenen Veranstaltungen und Deine Themen mit der Zahl der Veranstaltungen. Alles Weitere gibst Du einzeln frei.' }),
       h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px;max-width:760px' }, [list, field('Beschreibung (wie eine Bio)', bio, { id: 'pp-bio', hint: 'Frei formulierter Text für Dein öffentliches Profil, bis zu 300 Zeichen. Er erscheint nur, wenn Dein Profil öffentlich ist.' }), count, msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, view])])]);
+  }
+  function accountBox(me) {
+    var I = {}, F = {};
+    function mk(k, label, val, attrs) { I[k] = h('input', Object.assign({ id: 'ac-' + k, type: 'text', value: val || '', maxlength: '200' }, attrs || {})); F[k] = field(label, I[k], { id: 'ac-' + k, req: true }); return F[k]; }
+    mk('firstName', 'Vorname', me.firstName, { autocomplete: 'given-name', maxlength: '60' }); mk('lastName', 'Nachname', me.lastName, { autocomplete: 'family-name', maxlength: '60' });
+    mk('xv', 'XV-Nummer', me.xv, { autocomplete: 'off', maxlength: '14' }); mk('email', 'E-Mail-Adresse', me.email, { type: 'email', autocomplete: 'email' });
+    mk('password', 'Aktuelles Passwort zur Bestätigung', '', { type: 'password', autocomplete: 'current-password', maxlength: '128' });
+    var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Daten speichern' });
+    var form = h('form', { class: 'form panel', style: 'gap:16px', novalidate: true }, [h('div', { class: 'grid2' }, [F.firstName, F.lastName]), h('div', { class: 'grid2' }, [F.xv, F.email]), h('div', { class: 'grid2' }, [F.password, h('div')]), msg, h('div', null, go)]);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault(); msg.hidden = true; go.disabled = true;
+      Api.updateAccount({ firstName: I.firstName.value, lastName: I.lastName.value, xv: I.xv.value, email: I.email.value, password: I.password.value }).then(function (j) { go.disabled = false; I.password.value = ''; setMe(j.me); toast('Deine Daten sind gespeichert.'); msg.hidden = false; msg.className = 'notice ok'; msg.textContent = 'Deine Daten sind gespeichert.'; },
+        function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+    });
+    return h('section', { class: 'prof-sec', id: 'acc-box' }, [h('h2', { text: 'Meine Daten ändern' }), h('p', { class: 'hint', text: 'Der Benutzername bleibt. XV-Nummer und E-Mail-Adresse dürfen nur zu einem Konto gehören. Bestätige Änderungen mit Deinem Passwort.' }), form]);
   }
   function passwordBox(forced) {
     var cur = h('input', { type: 'password', id: 'p-cur', autocomplete: 'current-password', maxlength: '128' }), n1 = h('input', { type: 'password', id: 'p-new', autocomplete: 'new-password', maxlength: '128' }), n2 = h('input', { type: 'password', id: 'p-new2', autocomplete: 'new-password', maxlength: '128' });
@@ -2265,7 +2470,7 @@ function viewProfile() {
       go.disabled = true;
       Api.changePassword(cur.value, n1.value).then(function () { go.disabled = false; say('ok', 'Das Passwort wurde geändert.'); cur.value = n1.value = n2.value = ''; return refreshMe(); }, function (er) { go.disabled = false; if (authFail(er)) return; say('bad', er.message); });
     });
-    return h('section', { style: 'margin-top:36px', id: 'pw-box' }, [h('h2', { text: 'Passwort ändern', style: 'font-size:1.35rem;margin-bottom:12px' }), forced ? h('div', { class: 'notice warn', role: 'alert', style: 'margin-bottom:12px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Bitte vergib ein eigenes Passwort' }), h('div', { text: 'Dein Konto nutzt noch ein vorläufiges Passwort. Wähle jetzt ein neues, bevor Du weitermachst.' })])) : null, form]);
+    return h('section', { class: 'prof-sec', id: 'pw-box' }, [h('h2', { text: 'Passwort ändern' }), forced ? h('div', { class: 'notice warn', role: 'alert', style: 'margin-bottom:12px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Bitte vergib ein eigenes Passwort' }), h('div', { text: 'Dein Konto nutzt noch ein vorläufiges Passwort. Wähle jetzt ein neues, bevor Du weitermachst.' })])) : null, form]);
   }
   Api.profile().then(function (r) {
     clear(box); var me = r.me, b = r.badge, o = r.offered, a = r.attended;
@@ -2273,11 +2478,9 @@ function viewProfile() {
     /* Kopf: Benutzername mit Abzeichen und Expertenstatus */
     box.appendChild(h('div', { class: 'panel prof-head' }, [h('div', { class: 'prof-name' }, [h('span', { class: 'prof-un', text: me.username }), badgeNode(b.level, true), experts.length ? rocketNode(true) : null, h('button', { type: 'button', class: 'btn btn-secondary btn-sm prof-out', text: 'Abmelden', onclick: function () { Api.logout().then(function () { setMe(null); toast('Du bist abgemeldet.'); location.hash = '#/'; }); } })]),
       h('div', { class: 'hint', text: (b.level ? badgeLabel(b.level) + '. ' : 'Noch kein Abzeichen. ') + (b.next ? 'Noch ' + (b.next - b.offered) + ' durchgeführte Veranstaltung' + (b.next - b.offered === 1 ? '' : 'en') + ' bis zur nächsten Stufe.' : 'Höchste Stufe erreicht.') })]));
-    box.appendChild(h('dl', { class: 'facts f4 panel', style: 'margin-top:16px' }, [
-      h('div', null, [h('dt', { text: 'Benutzername' }), h('dd', { text: me.username }), h('div', { class: 'hint', text: 'nicht änderbar' })]), h('div', null, [h('dt', { text: 'Name' }), h('dd', { text: me.firstName + ' ' + me.lastName })]),
-      h('div', null, [h('dt', { text: 'XV-/XVG-Nummer' }), h('dd', { text: me.xv || '–' })]), h('div', null, [h('dt', { text: 'E-Mail-Adresse' }), h('dd', { text: me.email })])]));
-    box.appendChild(h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername.' }));
-    /* Zaehler */
+    var facts = h('dl', { class: 'facts f4 panel' }, [
+      h('div', null, [h('dt', { text: 'Benutzername' }), h('dd', { text: me.username })]), h('div', null, [h('dt', { text: 'Name' }), h('dd', { text: me.firstName + ' ' + me.lastName })]),
+      h('div', null, [h('dt', { text: 'XV-Nummer' }), h('dd', { text: me.xv || '–' })]), h('div', null, [h('dt', { text: 'E-Mail-Adresse' }), h('dd', { class: 'dd-mail', text: me.email, title: me.email })])]);
     var kp = h('div', { class: 'st-kpis', style: 'margin-top:28px' }, [
       tile('Angebotene Sessions', String(o.held), o.upcoming ? o.upcoming + ' geplant' + (o.cancelled ? ', ' + o.cancelled + ' abgesagt' : '') : (o.cancelled ? o.cancelled + ' abgesagt' : 'durchgeführt')),
       tile('Teilgenommen', String(a.held), a.upcoming ? a.upcoming + ' angemeldet' : 'besuchte Sessions'),
@@ -2285,20 +2488,25 @@ function viewProfile() {
       tile('Teilnehmende bei mir', String(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0)), o.held ? 'Ø ' + fmtAvg(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0) / Math.max(1, o.list.filter(function (x) { return !x.cancelled; }).length)) + ' je Session' : null),
       tile('Meine Bewertungen', String(a.rated), a.held ? 'von ' + a.held + ' besuchten Sessions' : null),
       tile('Expertenstatus', String(experts.length), experts.length ? experts.map(function (t) { return capFirst(t.topic); }).join(', ') : 'ab ' + b.expertMin + ' Sessions je Thema')]);
-    box.appendChild(kp);
-    /* Abzeichen */
     var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }));
-    box.appendChild(h('section', { style: 'margin-top:36px' }, [h('h2', { text: 'Abzeichen', style: 'font-size:1.35rem;margin-bottom:6px' }), h('p', { class: 'hint', text: 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen.' }), lv]));
-    /* Themen */
-    box.appendChild(h('section', { style: 'margin-top:36px' }, [h('h2', { text: 'Themen und Expertenstatus', style: 'font-size:1.35rem;margin-bottom:6px' }), h('p', { class: 'hint', text: 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.' }),
-      r.topics.length ? table(['Bereich', 'Thema', 'Sessions', 'Status'], r.topics.slice().sort(function (x, y) { return y.count - x.count; }).map(function (t) { return [CAT_LABEL[t.category] || t.category, capFirst(t.topic), String(t.count), t.expert ? h('span', { class: 'utag' }, [rocketNode(), ' Experte']) : 'noch ' + (b.expertMin - t.count) + ' bis zum Expertenstatus']; })) : h('p', { class: 'hint', text: 'Du hast noch keine Veranstaltung durchgeführt.' })]));
-    /* Archiv */
-    box.appendChild(h('section', { style: 'margin-top:36px' }, [h('h2', { text: 'Archiv: Angeboten', style: 'font-size:1.35rem;margin-bottom:6px' }), h('p', { class: 'hint', text: 'Alle Deine durchgeführten und abgesagten Sessions mit der Bewertung durch die Teilnehmenden.' }),
-      o.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Teilnehmende', 'Bewertung'], o.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [dateFull(x.date), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), x.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : String(x.booked), x.cancelled ? '–' : ratingNode(x.ratingAvg, x.ratingCount)]; })) : h('p', { class: 'hint', text: 'Noch nichts im Archiv.' })]));
-    box.appendChild(h('section', { style: 'margin-top:36px' }, [h('h2', { text: 'Archiv: Teilgenommen', style: 'font-size:1.35rem;margin-bottom:6px' }),
-      a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [dateFull(x.date), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]));
-    box.appendChild(publicBox(r.pub, me));
-    box.appendChild(passwordBox(!!me.mustChange));
+    function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', { text: title }), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
+    function overview() {
+      return h('div', null, [facts, h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername. Ändern kannst Du sie unter „Konto“.' }), kp,
+        sec('Abzeichen', 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen.', [lv]),
+        sec('Themen und Expertenstatus', 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.',
+          [r.topics.length ? table(['Bereich', 'Thema', 'Sessions', 'Status'], r.topics.slice().sort(function (x, y) { return y.count - x.count; }).map(function (t) { return [CAT_LABEL[t.category] || t.category, capFirst(t.topic), String(t.count), t.expert ? h('span', { class: 'utag' }, [rocketNode(), ' Experte']) : 'noch ' + (b.expertMin - t.count) + ' bis zum Expertenstatus']; })) : h('p', { class: 'hint', text: 'Du hast noch keine Veranstaltung durchgeführt.' })])]);
+    }
+    function offeredTab() {
+      return sec('Meine Veranstaltungen', 'Alle Deine durchgeführten und abgesagten Sessions mit der Bewertung durch die Teilnehmenden.', [
+        o.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Teilnehmende', 'Bewertung'], o.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), x.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : String(x.booked), x.cancelled ? '–' : ratingNode(x.ratingAvg, x.ratingCount)]; })) : h('p', { class: 'hint', text: 'Noch nichts im Archiv.' })]);
+    }
+    function attendedTab() {
+      return sec('Meine Teilnahmen', 'Alle Veranstaltungen, die Du besucht hast, mit Deiner Bewertung.', [
+        a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]);
+    }
+    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange)]); }
+    if (me.mustChange) sess.set('lt_tab_prof', 'konto'); else if (q && q.tab) sess.set('lt_tab_prof', q.tab);
+    box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me); }], ['konto', 'Konto', null, accountTab]]));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
   }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); });
   return ps.root;
@@ -3128,7 +3336,7 @@ function route() {
     case '/registrieren': node = viewRegister(r.q); break;
     case '/meine-anmeldungen': case '/anmeldung': case '/stornieren': r.path = '/meine-anmeldungen'; node = viewMyBookings(); break;
     case '/meine-veranstaltungen': case '/veranstaltung': r.path = '/meine-veranstaltungen'; node = viewMyEvents(); break;
-    case '/profil': node = viewProfile(); break;
+    case '/profil': node = viewProfile(r.q); break;
     case '/handbuch': node = viewManual(); break;
     case '/admin': node = viewAdmin(); break;
     default: r.path = '/'; node = viewCatalog();

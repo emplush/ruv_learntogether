@@ -1,5 +1,17 @@
 # Änderungen
 
+## 0.24.0 (02.10.2026)
+- **Breitere Ansichten:** „Veranstaltung anbieten“, „Meine Anmeldungen“, „Meine Veranstaltungen“ und das Profil nutzen die volle Breite.
+- **Umschaltbare Bereiche:** „Anstehend“ und „Vergangen“ in „Meine Anmeldungen“ und „Meine Veranstaltungen“. Termin und Uhrzeit stehen jeweils in einer Zeile.
+- **Absagen als Button:** „Veranstaltung absagen“ öffnet Grund und „Absage bestätigen“.
+- **Katalog:** Öffentlicher Benutzername in Mint ohne Unterstreichung. Hinweis „Profil veröffentlichen“ auf der Startseite, dauerhaft ausblendbar (im Konto gespeichert).
+- **Buchungs-Popup:** Aktionszeile immer unten, die Beschreibung scrollt bei Bedarf.
+- **Profil-Popup:** breiter, breite Titelspalte, Datum und Uhrzeit untereinander, „Anstehende Veranstaltungen“.
+- **Platzhalterbilder:** 50 Motive in der R+V-Bildwelt (flache Markenfarben, RuV-Icons), Auswahl mit Suche beim Anbieten. KI-Label der R+V auf jedem Motiv. Standardmotiv je Thema.
+- **Profil in Bereichen:** Übersicht, Veranstaltungen, Teilnahmen, Veröffentlichung, Konto. Name, XV-Nummer und E-Mail-Adresse änderbar (mit Passwort, XV-Nummer und E-Mail einmalig). Bezeichnung „XV-Nummer“, ohne „nicht änderbar“. E-Mail ohne Umbruch, bei Bedarf gekürzt. Alle sechs Abzeichen in einer Zeile. Vereinfachte Texte bei den Freigaben, Button „Speichern“.
+- **Abzeichen neu gezeichnet:** runde, flache Störer in Markenfarben (Bronze, Silber, Gold, Stern, Krone, Diamant, Rakete).
+- Testbilder ohne Verläufe, Testveranstaltungen mit passenden Platzhaltern.
+
 ## 0.23.0 (02.10.2026)
 - **Wording nach R+V Corporate Wording:** Anredepronomen durchgehend groß (Du, Dein, Dir, Dich, Euch) in App, Servermeldungen, Testdaten und Handbüchern. „Leider“ entfernt, „Nutzer“ in Fließtexten durch „Konten“ oder „Personen“ ersetzt.
 - **Design:** Medaillen-Bänder in Blau und Orange statt Rot (Rot nur für Fehler), Bronze und Silber aus der Markenpalette, Diamant und Rakete in Illustrationsblau statt Mint (Mint nur für Interaktion). Chip „Du bist angemeldet“ in Sand statt Mint. Zähler in der Navigation mit Dunkelblau auf Orange Hell (Kontrast). Sterne auf hellem Grund in Orange Dunkel. Radien 4 px auch bei neuen Elementen, keine Schatten.

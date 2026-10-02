@@ -98,6 +98,7 @@ def main():
     want_pdf = '--no-pdf' not in sys.argv
     css0 = rd(SRC, 'app.css')
     js = rd(SRC, 'app.js').replace('/*__STATS__*/', rd(SRC, 'stats.js'))
+    js = js.replace('/*__KI_POS__*/', data_uri(os.path.join(SRC, 'assets', 'ki-label-positiv.svg'), 'image/svg+xml')).replace('/*__KI_NEG__*/', data_uri(os.path.join(SRC, 'assets', 'ki-label-negativ.svg'), 'image/svg+xml'))
     tpl = rd(SRC, 'app.html')
     logo_d = os.path.join(SRC, 'assets', 'ruv-logo-dunkelblau.png')
     logo_w = os.path.join(SRC, 'assets', 'ruv-logo-weiss.png')

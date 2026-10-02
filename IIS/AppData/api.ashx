@@ -48,6 +48,7 @@ namespace LearnTogether
         public bool showEmail { get; set; }
         public bool showUpcoming { get; set; }
         public string bio { get; set; }
+        public bool publicHintOff { get; set; }   // Hinweis zum Veroeffentlichen weggeklickt
         public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); }
     }
 
@@ -67,6 +68,7 @@ namespace LearnTogether
         public string teamsLink { get; set; }
         public string description { get; set; }
         public bool hasImage { get; set; }
+        public string placeholder { get; set; }   // Kennung des gewaehlten Platzhalterbildes (ohne eigenes Bild)
         public long imgVer { get; set; }
         public bool isTest { get; set; }
         public string created { get; set; }
@@ -187,7 +189,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.23.0";
+        const string Version = "0.24.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -238,6 +240,8 @@ namespace LearnTogether
                     case "markRead": MarkRead(); break;
                     case "profile": Profile(); break;
                     case "saveProfile": SaveProfile(); break;
+                    case "updateAccount": UpdateAccount(); break;
+                    case "dismissHint": DismissHint(); break;
                     case "publicProfile": PublicProfile(); break;
                     default:
                         AdminAction(action);
@@ -804,6 +808,7 @@ namespace LearnTogether
             foreach (NoteRec n in d.notes) if (n.userId == u.id && !n.read) unread++;
             x["id"] = u.id; x["username"] = u.username; x["firstName"] = u.firstName; x["lastName"] = u.lastName; x["xv"] = u.xv; x["email"] = u.email;
             x["role"] = u.role; x["level"] = bd.Level(u.id); x["mustChange"] = u.mustChange; x["unread"] = unread; x["created"] = u.created;
+            x["profilePublic"] = u.profilePublic; x["publicHintOff"] = u.publicHintOff;
             return x;
         }
 
@@ -826,7 +831,7 @@ namespace LearnTogether
             if (Array.IndexOf(ReservedNames, username.ToLowerInvariant()) >= 0) throw new ApiException("invalid", "Dieser Benutzername ist reserviert. Bitte wähle einen anderen.");
             if (!ValidPersonName(first)) throw new ApiException("invalid", "Bitte gib Deinen Vornamen an.");
             if (!ValidPersonName(last)) throw new ApiException("invalid", "Bitte gib Deinen Nachnamen an.");
-            if (!ValidXv(xv)) throw new ApiException("invalid", "Bitte gib eine gültige XV- oder XVG-Nummer an (z. B. XV12345).");
+            if (!ValidXv(xv)) throw new ApiException("invalid", "Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).");
             if (!ValidEmail(email)) throw new ApiException("invalid", "Bitte gib eine gültige E-Mail-Adresse an.");
             string pr = PasswordProblem(pw, username, email);
             if (pr != null) throw new ApiException("invalid", pr);
@@ -835,7 +840,7 @@ namespace LearnTogether
                 DataFile d = LoadData();
                 if (d.users.Exists(delegate (UserRec x) { return x.username.ToLowerInvariant() == username.ToLowerInvariant(); })) throw new ApiException("taken", "Dieser Benutzername ist bereits vergeben.");
                 if (d.users.Exists(delegate (UserRec x) { return x.email.ToLowerInvariant() == email; })) throw new ApiException("taken", "Mit dieser E-Mail-Adresse gibt es bereits ein Konto.");
-                if (d.users.Exists(delegate (UserRec x) { return x.xv == xv; })) throw new ApiException("taken", "Zu dieser XV-/XVG-Nummer gibt es bereits ein Konto.");
+                if (d.users.Exists(delegate (UserRec x) { return x.xv == xv; })) throw new ApiException("taken", "Zu dieser XV-Nummer gibt es bereits ein Konto.");
                 UserRec u = new UserRec();
                 u.id = NewId(); u.username = username; u.firstName = first; u.lastName = last; u.xv = xv; u.email = email; u.pwHash = HashPassword(pw);
                 u.created = NowIso(); u.lastLogin = u.created;
@@ -935,6 +940,7 @@ namespace LearnTogether
             { UserRec ho = FindUser(d, e.ownerId); x["hostPublic"] = ho != null && ho.profilePublic && !ho.locked; }
             x["category"] = e.category; x["type"] = e.type; x["topic"] = e.topic; x["date"] = e.date; x["start"] = e.start; x["duration"] = e.duration; x["capacity"] = e.capacity;
             x["description"] = e.description; x["isTest"] = e.isTest;
+            x["placeholder"] = e.placeholder ?? "";
             x["image"] = e.hasImage ? "AppData/api.ashx?action=img&id=" + e.id + "&v=" + e.imgVer : null;
             x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
             return x;
@@ -988,7 +994,9 @@ namespace LearnTogether
             if (!admin && StartOfSafe(date, start) <= NowBerlin()) throw new ApiException("invalid", "Der Termin muss in der Zukunft liegen.");
 
             r.title = title; r.category = cat; r.type = type; r.topic = topic;
-            r.date = date; r.start = start; r.duration = dur; r.capacity = cap; r.teamsLink = link; r.description = desc;
+            string ph = S(e, "placeholder");
+            if (!Regex.IsMatch(ph, "^[a-z0-9-]{0,40}$")) ph = "";
+            r.date = date; r.start = start; r.duration = dur; r.capacity = cap; r.teamsLink = link; r.description = desc; r.placeholder = ph;
             return r;
         }
 
@@ -1234,6 +1242,41 @@ namespace LearnTogether
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
                 me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.bio = bio.Trim();
                 SaveData(d);
+                Send(new { ok = true });
+            }
+        }
+
+        // Name, XV-Nummer und E-Mail-Adresse aendern (mit dem aktuellen Passwort bestaetigt)
+        void UpdateAccount()
+        {
+            Dictionary<string, object> b = Body();
+            string first = S(b, "firstName"), last = S(b, "lastName"), xv = NormXv(S(b, "xv")), email = S(b, "email").ToLowerInvariant();
+            string pw = Convert.ToString(b.ContainsKey("password") ? b["password"] : "", CultureInfo.InvariantCulture) ?? "";
+            if (!ValidPersonName(first)) throw new ApiException("invalid", "Bitte gib Deinen Vornamen an.");
+            if (!ValidPersonName(last)) throw new ApiException("invalid", "Bitte gib Deinen Nachnamen an.");
+            if (!ValidXv(xv)) throw new ApiException("invalid", "Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).");
+            if (!ValidEmail(email)) throw new ApiException("invalid", "Bitte gib eine gültige E-Mail-Adresse an.");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                ThrottleCheck("p:" + me.id);
+                if (!CheckPassword(pw, me.pwHash)) { ThrottleFail("p:" + me.id); Thread.Sleep(500); throw new ApiException("password", "Das Passwort stimmt nicht."); }
+                ThrottleClear("p:" + me.id);
+                if (d.users.Exists(delegate (UserRec x) { return x.id != me.id && x.email.ToLowerInvariant() == email; })) throw new ApiException("taken", "Mit dieser E-Mail-Adresse gibt es bereits ein Konto.");
+                if (d.users.Exists(delegate (UserRec x) { return x.id != me.id && x.xv == xv; })) throw new ApiException("taken", "Zu dieser XV-Nummer gibt es bereits ein Konto.");
+                me.firstName = first; me.lastName = last; me.xv = xv; me.email = email;
+                SaveData(d);
+                Send(new { ok = true, me = MeInfo(d, BuildBadges(d, LoadSettings(), NowBerlin()), me) });
+            }
+        }
+
+        // Hinweis "Profil veroeffentlichen" auf der Startseite dauerhaft ausblenden
+        void DismissHint()
+        {
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                me.publicHintOff = true; SaveData(d);
                 Send(new { ok = true });
             }
         }

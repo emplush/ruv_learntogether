@@ -37,13 +37,14 @@ await p.selectOption('#f-dur', '60'); await p.selectOption('#f-start', '17:30');
 await p.fill('#f-cap', '12');
 await p.waitForTimeout(200);
 await shot('anbieten', { fullPage: false, clip: { x: 0, y: 60, width: 1280, height: 800 } });
+await p.click('button:has-text("Platzhalterbild wählen")'); await p.waitForSelector('.ph-grid'); await p.waitForTimeout(300); await p.locator('.modal').screenshot({ path: path.join(out, 'platzhalter.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
 if (testImg) { await p.setInputFiles('#f-img', testImg); await p.waitForSelector('.crop-box'); await p.fill('.zoomrow input[type=range]', '1.6'); await p.locator('.zoomrow input[type=range]').dispatchEvent('input'); await p.locator('.modal').screenshot({ path: path.join(out, 'zuschneiden.jpg'), type: 'jpeg', quality: 80 }); }
 await go('#/meine-veranstaltungen'); await p.waitForSelector('.panel h3'); await p.waitForTimeout(300);
-await p.locator('.panel:has-text("Social Selling") summary').click().catch(() => {});
-await shot('meine-veranstaltungen', { fullPage: false, clip: { x: 200, y: 60, width: 880, height: 800 } });
+await p.locator('.cancel-open').first().click().catch(() => {});
+await shot('meine-veranstaltungen', { fullPage: false, clip: { x: 0, y: 60, width: 1280, height: 800 } });
 await go('#/profil'); await p.waitForSelector('.prof-head'); await p.waitForTimeout(300); await p.setViewportSize({ width: 1280, height: 1250 });
-await shot('profil', { clip: { x: 200, y: 60, width: 880, height: 1180 } }); await p.setViewportSize({ width: 1280, height: 900 });
-await p.locator('#pub-box').scrollIntoViewIfNeeded(); await p.locator('#pub-box').screenshot({ path: path.join(out, 'profil-freigaben.jpg'), type: 'jpeg', quality: 80 });
+await shot('profil', { clip: { x: 0, y: 60, width: 1280, height: 1180 } }); await p.setViewportSize({ width: 1280, height: 900 });
+await go('#/profil?tab=oeffentlich'); await p.waitForSelector('#pub-box'); await p.locator('#pub-box').scrollIntoViewIfNeeded(); await p.locator('#pub-box').screenshot({ path: path.join(out, 'profil-freigaben.jpg'), type: 'jpeg', quality: 80 });
 await p.click('#pub-box button:has-text("So sehen andere")'); await p.waitForSelector('.pubprof h2'); await p.waitForTimeout(200); await p.locator('.modal').screenshot({ path: path.join(out, 'profil-oeffentlich.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
 await p.click('.navout'); await p.waitForTimeout(300);
 // ---- Administration
