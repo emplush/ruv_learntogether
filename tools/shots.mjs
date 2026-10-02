@@ -44,6 +44,7 @@ await p.locator('.cancel-open').first().click().catch(() => {});
 await shot('meine-veranstaltungen', { fullPage: false, clip: { x: 0, y: 60, width: 1280, height: 800 } });
 await go('#/profil'); await p.waitForSelector('.prof-head'); await p.waitForTimeout(300); await p.setViewportSize({ width: 1280, height: 1250 });
 await shot('profil', { clip: { x: 0, y: 60, width: 1280, height: 1180 } }); await p.setViewportSize({ width: 1280, height: 900 });
+await p.click('#av-edit'); await p.click('.modal button:has-text("Aus Bildern auswählen")'); await p.waitForSelector('.av-grid'); await p.waitForTimeout(300); await p.locator('.modal').last().screenshot({ path: path.join(out, 'profilbild.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape'); await p.keyboard.press('Escape');
 await go('#/profil?tab=oeffentlich'); await p.waitForSelector('#pub-box'); await p.locator('#pub-box').scrollIntoViewIfNeeded(); await p.locator('#pub-box').screenshot({ path: path.join(out, 'profil-freigaben.jpg'), type: 'jpeg', quality: 80 });
 await p.click('#pub-box button:has-text("So sehen andere")'); await p.waitForSelector('.pubprof h2'); await p.waitForTimeout(200); await p.locator('.modal').screenshot({ path: path.join(out, 'profil-oeffentlich.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
 await p.click('.navout'); await p.waitForTimeout(300);
@@ -60,6 +61,7 @@ await nav('Statistik'); await p.waitForSelector('.st-card'); await shot('adm-sta
 await nav('Texte'); await p.waitForSelector('#h-title'); await shot('adm-texte', { clip: { x: 0, y: 60, width: 1280, height: 700 } });
 await nav('Themen'); await shot('adm-themen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await nav('Arten'); await shot('adm-arten', { clip: { x: 0, y: 60, width: 1280, height: 600 } });
+await nav('Fotos'); await p.waitForSelector('#fo-name'); await shot('adm-fotos', { clip: { x: 0, y: 60, width: 1280, height: 700 } });
 await nav('Abzeichen'); await p.waitForSelector('#bd-1'); await shot('adm-abzeichen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await nav('Archiv'); await p.waitForSelector('#ar-q'); await shot('adm-archiv', { clip: { x: 0, y: 60, width: 1280, height: 640 } });
 await b.close(); console.log('Screenshots in', out);

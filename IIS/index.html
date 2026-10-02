@@ -668,11 +668,57 @@ nav.main a .cnt { background: #f79506; color: #001957; font-weight: 700; }
 .pub-x:hover { background: var(--surface-2); }
 .st-kpi .stars { color: #eb6504; } .st-kpi .rating { color: var(--text); }
 
+/* ---- 0.25: Profilbilder, Fotos, Karten mit Bild, Navigation, Statistik-Bereiche ---- */
+.av { position: relative; display: inline-flex; flex: none; border-radius: 50%; }
+.av > .av-img, .av > .av-svg, .av > .av-ico { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: block; }
+.av > .av-img { object-fit: cover; }
+.av-svg svg { width: 100%; height: 100%; display: block; }
+.av-ico { display: grid !important; place-items: center; }
+.av-ico .ruv-i { font-size: 52cqw; font-size: min(52cqw, 90px); line-height: 1; }
+.av { container-type: inline-size; }
+.av-ki { position: absolute; right: -2%; bottom: -2%; width: 26%; min-width: 14px; max-width: 30px; height: auto; }
+.av-empty { background: var(--surface-2); color: var(--muted); display: inline-grid; place-items: center; }
+.av-empty .ruv-i { font-size: 46cqw; }
+.prof-head { flex-direction: row; align-items: center; gap: 24px; flex-wrap: wrap; }
+.prof-av { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.prof-head-main { flex: 1 1 300px; display: flex; flex-direction: column; gap: 6px; }
+.prof-av-big { display: flex; justify-content: center; padding: 8px 0; }
+.av-group { margin-top: 12px; }
+.av-group h3, .ph-head { grid-column: 1 / -1; font-size: 1.05rem; margin: 8px 0 2px; }
+.av-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; margin-top: 8px; }
+.av-opt { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px; border: 2px solid transparent; border-radius: var(--r); background: none; cursor: pointer; color: var(--text); font-size: .82rem; font-weight: 700; text-align: center; }
+.av-opt:hover { border-color: var(--line); }
+.av-opt[aria-selected="true"] { border-color: var(--text); }
+.au-av { float: left; margin: 2px 10px 0 0; }
+.pubprof .prof-name .av { margin-right: 8px; }
+.ph-photo img.cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.adm-photos .ph-opt { cursor: default; }
+/* Karten mit Bild der Veranstaltung */
+.evcard { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; align-items: start; }
+.evcard-img { position: relative; aspect-ratio: 1; border-radius: var(--r); overflow: hidden; background: var(--surface-2); container-type: inline-size; }
+.evcard-body { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 700px) { .evcard { grid-template-columns: minmax(0, 1fr); } .evcard-img { width: 140px; } }
+/* Navigation: Konto-Bereich abgesetzt, Handbuch am Ende */
+nav.main .navsep { width: 1px; align-self: stretch; margin: 6px 6px; background: var(--line); }
+nav.main .acct { background: var(--blue); color: #fff; border-color: var(--blue); }
+nav.main .acct .utag-n { color: #fff; }
+nav.main .acct[aria-current="page"] { background: var(--text); }
+nav.main .acct.reg { background: var(--mint); color: var(--on-mint); border-color: var(--mint); }
+nav.main a.acct:not(.reg):not([href="#/profil"]) { background: transparent; color: var(--text); border-color: var(--line); }
+nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
+@media (max-width: 720px) { nav.main .navsep { display: none; } }
+/* Statistik-Bereiche */
+.st-sec { display: flex; flex-direction: column; gap: 16px; }
+.st-sec-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.st-sec-head h3 { font-size: 1.25rem; }
+.prof-sec h2 .bdg { margin-right: 2px; }
+.au-row { display: flex; gap: 10px; align-items: flex-start; } .au-noav { width: 44px; flex: none; }
+
 </style>
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.24.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.25.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -758,6 +804,7 @@ var MAX_CAP = 50;
 var MAX_TYPES = 50;
 var DEFAULT_HERO = { title: 'Voneinander lernen. *Miteinander wachsen.*', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde Dich in zwei Klicks an oder teile selbst, was Du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
 var BADGES = { levels: [1, 5, 10, 20, 40, 80], expertMin: 5 };
+var AVATAR_UPLOAD = true, PHOTOS = []; /* Hochladen von Profilbildern erlaubt; eigene Fotos als Platzhalterbilder (Admin) */
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
 var COLORS = { dienstlich: '#001957', privat: '#583720' };
 var HEADINGS = { dienstlich: '#f79506', privat: '#f79506' };
@@ -775,6 +822,8 @@ function applyTaxonomy(t) {
     if (t.texts && t.texts[c]) TEXTS[c] = t.texts[c];
   });
   if (t.types && t.types.length) TYPES = t.types.slice().sort(function (a, b) { return a.localeCompare(b, 'de', { sensitivity: 'base' }); });
+  if (t.avatarUpload != null) AVATAR_UPLOAD = !!t.avatarUpload;
+  if (t.photos) PHOTOS = t.photos.slice();
   if (t.badges) { if (t.badges.levels && t.badges.levels.length === 6) BADGES.levels = t.badges.levels.slice(); if (t.badges.expertMin) BADGES.expertMin = t.badges.expertMin; }
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
 }
@@ -915,7 +964,7 @@ function buildTestData() {
   var L = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_TESTDATEN%40thread.v2/0';
   var TU = [['anna.b', 'Anna', 'Berger'], ['markus_v', 'Markus', 'Vogel'], ['sabine.k', 'Sabine', 'Krüger'], ['tobias_l', 'Tobias', 'Lang'], ['julia.n', 'Julia', 'Neumann'], ['stefan_r', 'Stefan', 'Roth'], ['katrin.a', 'Katrin', 'Albrecht'], ['jonas.p', 'Jonas', 'Peters'], ['miriam.k', 'Miriam', 'Kessler'], ['oliver_s', 'Oliver', 'Sander'],
     ['lena.h', 'Lena', 'Hoffmann'], ['paul_r', 'Paul', 'Richter'], ['nina.w', 'Nina', 'Wagner'], ['felix.b', 'Felix', 'Braun'], ['clara_s', 'Clara', 'Schulz'], ['max.keller', 'Max', 'Keller'], ['sophie.l', 'Sophie', 'Lorenz'], ['david_w', 'David', 'Winter'], ['emma.f', 'Emma', 'Fuchs'], ['lukas.b', 'Lukas', 'Brandt']];
-  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
+  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', avatar: ['p-frau-1', 'p-mann-2', 't-katze', 'p-mann-3', '', 'p-mann-1', 'm-schirm', '', 'p-frau-4', 'p-mann-6', 'p-frau-2'][i] || '', showAvatar: i < 3, isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
   var RATE = [5, 4, 5, 3, 4, 5, 4, 2, 5, 4];
   // [Titel, Host, Kategorie, Art, Thema, Tag-Index, Start, Dauer, Kapazitaet, gebucht, Bild, Beschreibung]
   var rows = [
@@ -1020,7 +1069,7 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe Deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, badges: j.badges }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, badges: j.badges, avatarUpload: j.avatarUpload, photos: j.photos }; }); },
   register: function (p) { return this.call('register', p); },
   login: function (id, pw) { return this.call('login', { id: id, password: pw }); },
   logout: function () { return this.call('logout', {}); },
@@ -1039,6 +1088,10 @@ var Server = {
   saveProfile: function (p) { return this.call('saveProfile', p); },
   updateAccount: function (p) { return this.call('updateAccount', p); },
   dismissHint: function () { return this.call('dismissHint', {}); },
+  setAvatar: function (p) { return this.call('setAvatar', p); },
+  adminDeleteAvatar: function (id) { return this.call('adminDeleteAvatar', { id: id }); },
+  adminSavePhoto: function (p) { return this.call('adminSavePhoto', p); },
+  adminDeletePhoto: function (id) { return this.call('adminDeletePhoto', { id: id }); },
   publicProfile: function (username) { return this.call('publicProfile&username=' + encodeURIComponent(username)).then(function (j) { return j; }); },
   adminEvents: function () { return this.call('adminEvents').then(function (j) { return j.events; }); },
   adminUsers: function () { return this.call('adminUsers').then(function (j) { return j.users; }); },
@@ -1095,7 +1148,7 @@ var Local = (function () {
   function insertTest() {
     removeTest();
     var t = buildTestData(), ids = {}, now = nowIso(), pw = hashPw(TEST_PW);
-    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, bio: x.bio || '' }; data.users.push(u); ids[x.username] = u.id; });
+    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
     t.events.forEach(function (x) {
       var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true);
       if (x.cancelled) { e.cancelled = true; e.cancelledAt = now; e.cancelReason = x.cancelReason || ''; }
@@ -1183,6 +1236,7 @@ var Local = (function () {
   }
   function levelOf(B, uid) { var n = (uid && B.offered[uid]) || 0, lv = 0; BADGES.levels.forEach(function (t, i) { if (n >= t) lv = i + 1; }); return lv; }
   function expertOf(B, uid, cat, tp) { return !!uid && (B.topic[uid + '|' + cat + '|' + tp] || 0) >= BADGES.expertMin; }
+  function avInfo(u, own) { if (!u.avatar) return null; if (u.avatar === 'upload') { if (cfg.avatarUploadOff && !own) return null; return { kind: 'upload', url: u.avatarData || '', hidden: !!cfg.avatarUploadOff }; } return { kind: 'ph', id: u.avatar }; }
   function hostPublic(e) { var u = userById(e.ownerId); return !!u && !!u.profilePublic && !u.locked; }
   function hostName(e) { var u = userById(e.ownerId); return u ? u.username : (e.host || 'Unbekannt'); }
   function ratingOf(eventId) { var s = 0, c = 0; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; } }); return { avg: c ? Math.round(s / c * 100) / 100 : 0, count: c }; }
@@ -1208,7 +1262,7 @@ var Local = (function () {
   var authFails = {};
   function throttle(key, check) { var f = authFails[key]; if (check) { if (f && f.n >= 5 && Date.now() - f.t < 300000) throw ApiErr('locked', 'Zu viele Fehlversuche. Bitte warte fünf Minuten und versuche es dann erneut.'); return; } if (!f || Date.now() - f.t > 600000) f = authFails[key] = { n: 0, t: 0 }; f.n++; f.t = Date.now(); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, badges: cfg.badges }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, badges: cfg.badges, avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
         function names(list, what, max, old, usedFn, map) {
@@ -1264,6 +1318,7 @@ var Local = (function () {
           lv.forEach(function (n, i) { if (!(n >= 1 && n <= 100000) || Math.floor(n) !== n) throw ApiErr('invalid', 'Die Grenzen der Stufen müssen ganze Zahlen von 1 bis 100000 sein.'); if (i && n <= lv[i - 1]) throw ApiErr('invalid', 'Die Grenzen müssen von Stufe zu Stufe ansteigen.'); });
           cfg.badges.levels = lv; applyTaxonomy(cfg);
         }
+        if ('avatarUpload' in s) { cfg.avatarUploadOff = !s.avatarUpload; applyTaxonomy({ avatarUpload: !!s.avatarUpload }); }
         if ('expertMin' in s) { var em = Number(s.expertMin); if (!(em >= 1 && em <= 1000) || Math.floor(em) !== em) throw ApiErr('invalid', 'Die Mindestzahl für den Expertenstatus muss zwischen 1 und 1000 liegen.'); cfg.badges.expertMin = em; applyTaxonomy(cfg); }
         save(); return {};
       });
@@ -1402,7 +1457,7 @@ var Local = (function () {
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(me.id + '|') !== 0) return; var p = k.split('|'); topics.push({ category: p[1], topic: p[2], count: B.topic[k], expert: B.topic[k] >= s.expertMin }); });
         var next = null; for (var i = 0; i < s.levels.length; i++) if (heldOffered < s.levels[i]) { next = s.levels[i]; break; }
         return { me: meInfo(me, B), badge: { level: levelOf(B, me.id), offered: heldOffered, levels: s.levels, next: next, expertMin: s.expertMin },
-          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, bio: me.bio || '' } };
+          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, bio: me.bio || '' }, avatar: avInfo(me, true), avatarUpload: !cfg.avatarUploadOff };
       });
     },
     updateAccount: function (p) {
@@ -1418,13 +1473,37 @@ var Local = (function () {
         me.firstName = fn; me.lastName = ln; me.xv = xv; me.email = em; save(); return { me: meInfo(me, badges()) };
       });
     },
+    setAvatar: function (p) {
+      return wrap(function () {
+        var me = curUser(true);
+        if (p.kind === 'upload') { if (cfg.avatarUploadOff) throw ApiErr('forbidden', 'Das Hochladen von Profilbildern ist zurzeit abgeschaltet.'); if (!/^data:image\/jpeg;base64,/.test(p.imageData || '')) throw ApiErr('invalid', 'Das Bildformat wird nicht unterstützt.'); me.avatar = 'upload'; me.avatarData = p.imageData; }
+        else if (p.kind === 'ph') { if (!/^[a-z0-9-]{1,40}$/.test(p.id || '')) throw ApiErr('invalid', 'Unbekanntes Profilbild.'); me.avatar = p.id; delete me.avatarData; }
+        else { me.avatar = ''; me.showAvatar = false; delete me.avatarData; }
+        me.avatarVer = Date.now(); save(); return { avatar: avInfo(me, true) };
+      });
+    },
+    adminDeleteAvatar: function (id) { return wrap(function () { needAdmin(); var u = userById(id); if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.'); u.avatar = ''; u.showAvatar = false; delete u.avatarData; save(); return {}; }); },
+    adminSavePhoto: function (p) {
+      return wrap(function () {
+        needAdmin(); cfg.photos = cfg.photos || [];
+        var name = String(p.name || '').trim(), kw = String(p.keywords || '').trim();
+        if (name.length < 2 || name.length > 40) throw ApiErr('invalid', 'Der Name muss zwischen 2 und 40 Zeichen lang sein.');
+        var f = cfg.photos.filter(function (x) { return x.id === p.id; })[0];
+        if (!f) { if (!p.imageData) throw ApiErr('invalid', 'Bitte wähle ein Foto aus.'); f = { id: 'f-' + rid(8) }; cfg.photos.push(f); }
+        if (p.imageData) { f.data = p.imageData; f.ver = Date.now(); }
+        f.name = name; f.keywords = kw; save(); applyTaxonomy({ photos: this.settingsPhotos() });
+        return { photos: this.settingsPhotos() };
+      }.bind(this));
+    },
+    adminDeletePhoto: function (id) { return wrap(function () { needAdmin(); cfg.photos = (cfg.photos || []).filter(function (x) { return x.id !== id; }); save(); applyTaxonomy({ photos: this.settingsPhotos() }); return { photos: this.settingsPhotos() }; }.bind(this)); },
+    settingsPhotos: function () { return (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }); },
     dismissHint: function () { return wrap(function () { var me = curUser(true); me.publicHintOff = true; save(); return {}; }); },
     saveProfile: function (p) {
       return wrap(function () {
         var me = curUser(true), bio = String(p.bio || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
         if (bio.length > 300) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 300 Zeichen lang sein.');
         if ((bio.match(/\n/g) || []).length > 6) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 7 Zeilen haben.');
-        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.bio = bio.trim(); save(); return {};
+        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.showAvatar = !!p.showAvatar && !!me.avatar; me.bio = bio.trim(); save(); return {};
       });
     },
     publicProfile: function (username) {
@@ -1433,6 +1512,7 @@ var Local = (function () {
         var u = data.users.filter(function (x) { return x.username.toLowerCase() === key; })[0];
         if (!u || !u.profilePublic || u.locked) throw ApiErr('notfound', 'Dieses Profil ist nicht öffentlich oder gibt es nicht.');
         var p = { username: u.username, level: levelOf(B, u.id), bio: u.bio || '', offered: B.offered[u.id] || 0, topics: [] }, experts = [];
+        if (u.showAvatar) { var av = avInfo(u, false); if (av) p.avatar = av; }
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(u.id + '|') !== 0) return; var q = k.split('|'); p.topics.push({ category: q[1], topic: q[2], count: B.topic[k] }); if (B.topic[k] >= s.expertMin) experts.push({ category: q[1], topic: q[2] }); });
         if (u.showExpert) p.experts = experts;
         if (u.showEmail) p.email = u.email;
@@ -1458,7 +1538,7 @@ var Local = (function () {
         needAdmin(); var B = badges();
         return data.users.map(function (u) {
           var att = u.legacyAttended || 0; data.bookings.forEach(function (b) { if (b.userId === u.id) { var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0]; if (ev && !ev.cancelled && eventEnded(ev)) att++; } });
-          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, lastLogin: u.lastLogin || '', isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, attended: att };
+          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, lastLogin: u.lastLogin || '', isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, attended: att, profilePublic: !!u.profilePublic, avatar: avInfo(u, true) };
         });
       });
     },
@@ -1506,7 +1586,7 @@ var Local = (function () {
         save(); return {};
       });
     },
-    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW }; }); },
+    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminTestData: function (m) {
       return wrap(function () {
         needAdmin();
@@ -1627,7 +1707,27 @@ var PH_LIB = [
   ['abend', 'Feierabend', 'E993', 'navy', 0, 'abend mond feierabend entspannung'],
   ['spass', 'Gute Laune', 'E930', 'orange', 0, 'freizeit spaß lachen gute laune'],
   ['energie', 'Energie', 'E918', 'leaf', 3, 'energie windrad nachhaltigkeit umwelt'],
-  ['motorrad', 'Zweirad', 'E925', 'copper', 0, 'motorrad roller zweirad mobilität']
+  ['motorrad', 'Zweirad', 'E925', 'copper', 0, 'motorrad roller zweirad mobilität'],
+  ['lesen', 'Lesen', 'E9DA', 'brown', 3, 'lesen buch bücher literatur privat'],
+  ['spiele', 'Spieleabend', 'E9BE', 'orange', 1, 'spiele brettspiel darts spieleabend freizeit'],
+  ['film', 'Film und Serie', 'E99C', 'navy', 2, 'film serie kino video freizeit'],
+  ['handwerk', 'Heimwerken', 'E965', 'copper', 0, 'heimwerken handwerk werkzeug basteln'],
+  ['draussen', 'Draußen', 'E945', 'sky', 3, 'wetter draußen natur wolken'],
+  ['ausflug', 'Ausflug', 'E95E', 'green', 1, 'ausflug route wandern reisen'],
+  ['wohnmobil', 'Mit dem Wohnmobil', 'E9B7', 'leaf', 2, 'camping wohnmobil reisen urlaub'],
+  ['reiseziel', 'Reiseziel', 'E9B9', 'orange', 2, 'reisen ziel ort urlaub städtereise'],
+  ['video', 'Video und Fotografie', 'E9CB', 'blue', 0, 'video kamera filmen foto'],
+  ['sprache', 'Sprachen lernen', 'E9C7', 'sand', 1, 'sprachen lernen sprechen gespräch'],
+  ['smartphone', 'Smartphone-Tipps', 'E954', 'navy', 3, 'smartphone handy apps digital'],
+  ['digital', 'Digital arbeiten', 'E952', 'blue', 1, 'digital computer fenster online'],
+  ['schreiben', 'Schreiben', 'E981', 'sand', 2, 'schreiben stift notizen texte'],
+  ['zahn', 'Zahngesundheit', 'E940', 'leaf', 0, 'gesundheit zahn zähne'],
+  ['nachhaltig', 'Nachhaltig leben', 'E91A', 'green', 2, 'nachhaltigkeit umwelt natur baum'],
+  ['haustiere', 'Haustiere', 'E921', 'copper', 3, 'haustier pfote tier hund katze'],
+  ['entspannung', 'Entspannung', 'E993', 'blue', 3, 'entspannung ruhe schlaf mond yoga'],
+  ['feiern', 'Gemeinsam feiern', 'E9C6', 'orange', 1, 'feiern gemeinsam team party'],
+  ['jubilaeum', 'Jubiläum', 'E9C0', 'navy', 3, 'jubiläum hundert jahre feier'],
+  ['sicher', 'Sicher unterwegs', 'E9C8', 'brown', 0, 'sicherheit prävention schutz unterwegs']
 ];
 var PH_BY = {}; PH_LIB.forEach(function (p) { PH_BY[p[0]] = p; });
 /* Standardmotiv je Thema, falls weder Bild noch Platzhalter gewählt wurde */
@@ -1643,19 +1743,117 @@ function phNode(id, small) {
     '<img class="ki-label" src="' + (pal[3] ? KI_LABEL.neg : KI_LABEL.pos) + '" alt="KI" title="Mit KI gestaltet">' });
 }
 function placeholder(topic) { return phNode(phFor(topic)); }
-function cover(e) { return e.image ? h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }) : phNode(e.placeholder && PH_BY[e.placeholder] ? e.placeholder : phFor(e.topic)); }
+/* Eigene Fotos der Administration (z. B. aus der R+V-Mediendatenbank) */
+function photoBy(id) { return PHOTOS.filter(function (f) { return f.id === id; })[0]; }
+function photoSrc(f) { return f.url ? f.url : rel('AppData/api.ashx?action=photo&id=' + encodeURIComponent(f.id) + '&v=' + f.ver); }
+function phLabel(id) { var f = photoBy(id); return f ? f.name : (PH_BY[id] || PH_LIB[0])[1]; }
+function phAny(id, small) { var f = photoBy(id); return f ? h('div', { class: 'ph ph-photo' + (small ? ' small' : '') }, h('img', { class: 'cover', src: photoSrc(f), alt: '', loading: 'lazy' })) : phNode(id, small); }
+function cover(e) { if (e.image) return h('img', { class: 'cover', src: rel(e.image), alt: '', loading: 'lazy' }); var f = e.placeholder && photoBy(e.placeholder); if (f) return h('img', { class: 'cover', src: photoSrc(f), alt: '', loading: 'lazy' }); return phNode(e.placeholder && PH_BY[e.placeholder] ? e.placeholder : phFor(e.topic)); }
+/* ====================================================== Profilbilder: illustrierte Personen, Figuren, Tiere und R+V-Motive (mit KI gestaltet, daher mit KI-Label) */
+var AV_SKIN = ['#f6d5bd', '#e8b48f', '#c98a5a', '#8d5a3b', '#5e3a26'];
+var AV_HAIR = { dunkel: '#2b1d16', braun: '#6b4423', rot: '#a45f33', blond: '#e2b765', grau: '#9a9a9a', schwarz: '#141414' };
+var AV_BG = ['#bee0f5', '#fff4e0', '#f0f8e3', '#fbe5c7', '#ececec', '#7db5d7', '#c5e878', '#eabe8d'];
+var AV_SHIRT = ['#001957', '#155784', '#a45f33', '#5b7a03', '#f79506', '#3875a6', '#583720', '#759a03'];
+/* Frisuren: [hinter dem Kopf, über dem Kopf] */
+var AV_HAIRSTYLE = {
+  kurz: ['', '<path d="M33 43c-1-13 7-22 17-22s18 9 17 22c-4-7-10-10-17-10s-13 3-17 10z"/>'],
+  lang: ['<path d="M30 46c0-16 9-25 20-25s20 9 20 25v24H30z"/>', '<path d="M33 42c0-12 8-20 17-20s17 8 17 20c-5-5-11-8-17-8s-12 3-17 8z"/>'],
+  zopf: ['<circle cx="50" cy="20" r="8"/>', '<path d="M33 43c-1-13 7-22 17-22s18 9 17 22c-4-7-10-10-17-10s-13 3-17 10z"/>'],
+  locken: ['', '<circle cx="36" cy="33" r="7"/><circle cx="44" cy="26" r="7"/><circle cx="54" cy="25" r="7"/><circle cx="63" cy="31" r="7"/><circle cx="67" cy="40" r="5"/><circle cx="33" cy="41" r="5"/>'],
+  bob: ['<path d="M31 44c0-14 8-23 19-23s19 9 19 23v12H31z"/>', '<path d="M33 41c1-11 8-18 17-18s16 7 17 18c-6-4-11-6-17-6s-11 2-17 6z"/>'],
+  glatze: ['', '']
+};
+/* [Kennung, Bezeichnung, Haut, Frisur, Haarfarbe, Grund, Shirt, Extras (bart, brille, ohrringe), Suchbegriffe] */
+var AV_PEOPLE = [
+  ['p-frau-1', 'Frau mit langen Haaren', 0, 'lang', 'braun', 0, 0, '', 'frau person lange haare'],
+  ['p-mann-1', 'Mann mit kurzen Haaren', 1, 'kurz', 'dunkel', 1, 1, '', 'mann person kurze haare'],
+  ['p-frau-2', 'Frau mit Zopf', 2, 'zopf', 'schwarz', 2, 4, 'ohrringe', 'frau person zopf'],
+  ['p-mann-2', 'Mann mit Bart', 0, 'kurz', 'rot', 3, 3, 'bart', 'mann person bart'],
+  ['p-frau-3', 'Frau mit Locken', 3, 'locken', 'schwarz', 4, 2, '', 'frau person locken'],
+  ['p-mann-3', 'Mann mit Brille', 1, 'kurz', 'grau', 0, 0, 'brille', 'mann person brille grau'],
+  ['p-frau-4', 'Frau mit Bob', 1, 'bob', 'blond', 5, 5, 'brille', 'frau person bob brille'],
+  ['p-mann-4', 'Mann mit Glatze', 4, 'glatze', 'dunkel', 6, 6, 'bart', 'mann person glatze bart'],
+  ['p-frau-5', 'Frau mit blonden Haaren', 0, 'lang', 'blond', 7, 1, 'ohrringe', 'frau person blond'],
+  ['p-mann-5', 'Mann mit Locken', 2, 'locken', 'braun', 1, 7, '', 'mann person locken'],
+  ['p-frau-6', 'Frau mit grauen Haaren', 1, 'bob', 'grau', 2, 3, 'brille', 'frau person grau'],
+  ['p-mann-6', 'Mann mit dunklem Bart', 3, 'kurz', 'schwarz', 5, 4, 'bart', 'mann person bart'],
+  ['p-person-1', 'Person mit kurzen Haaren', 4, 'kurz', 'schwarz', 3, 5, 'brille', 'person divers kurze haare'],
+  ['p-person-2', 'Person mit Zopf', 2, 'zopf', 'rot', 6, 0, '', 'person divers zopf']
+];
+function avPersonSvg(a) {
+  var skin = AV_SKIN[a[2]], hs = AV_HAIRSTYLE[a[3]], hair = AV_HAIR[a[4]], extra = a[7];
+  var o = '<rect width="100" height="100" fill="' + AV_BG[a[5]] + '"/>';
+  o += '<g fill="' + hair + '">' + hs[0] + '</g>';
+  o += '<path d="M16 100c0-21 15-33 34-33s34 12 34 33z" fill="' + AV_SHIRT[a[6]] + '"/><path d="M43 60h14v10c0 4-3 7-7 7s-7-3-7-7z" fill="' + skin + '"/>';
+  o += '<circle cx="50" cy="44" r="17" fill="' + skin + '"/>';
+  if (extra.indexOf('bart') >= 0) o += '<path d="M34 46c1 12 8 18 16 18s15-6 16-18c-4 4-9 6-16 6s-12-2-16-6z" fill="' + hair + '"/>';
+  o += '<g fill="' + hair + '">' + hs[1] + '</g>';
+  o += '<circle cx="44" cy="45" r="1.8" fill="#001957"/><circle cx="56" cy="45" r="1.8" fill="#001957"/><path d="M45 53q5 4 10 0" fill="none" stroke="#001957" stroke-width="1.6" stroke-linecap="round"/>';
+  if (extra.indexOf('brille') >= 0) o += '<g fill="none" stroke="#001957" stroke-width="1.6"><circle cx="44" cy="45" r="5"/><circle cx="56" cy="45" r="5"/><path d="M49 45h2"/></g>';
+  if (extra.indexOf('ohrringe') >= 0) o += '<circle cx="33" cy="50" r="2" fill="#f79506"/><circle cx="67" cy="50" r="2" fill="#f79506"/>';
+  return o;
+}
+/* Tiere, Figuren und R+V-Motive als Piktogramm auf farbigem Grund: [Kennung, Bezeichnung, Glyphe, Grund, Farbe, Suchbegriffe] */
+var AV_ICONS = [
+  ['t-hund', 'Hund', 'E964', '#fbe5c7', '#583720', 'tier hund'], ['t-katze', 'Katze', 'E963', '#ececec', '#001957', 'tier katze'], ['t-pferd', 'Pferd', 'E960', '#eabe8d', '#583720', 'tier pferd'],
+  ['t-hase', 'Hase', 'E961', '#f0f8e3', '#5b7a03', 'tier hase'], ['t-schwein', 'Glücksschwein', 'E962', '#fff4e0', '#a45f33', 'tier schwein glück'], ['t-pfote', 'Pfote', 'E921', '#bee0f5', '#155784', 'tier pfote haustier'],
+  ['t-hirsch', 'Hirsch', 'E99F', '#c5e878', '#5b7a03', 'tier hirsch geweih natur'],
+  ['f-smiley', 'Gute Laune', 'E930', '#f79506', '#001957', 'figur smiley lachen'], ['f-person', 'Silhouette', 'E92C', '#001957', '#ffffff', 'figur person silhouette'], ['f-team', 'Teamplayer', 'E92A', '#155784', '#ffffff', 'figur team gemeinschaft'],
+  ['f-held', 'Superheld', 'E9C8', '#a45f33', '#fff4e0', 'figur held schutz prävention'],
+  ['m-schirm', 'Schirm', 'E97F', '#001957', '#f79506', 'r+v motiv schirm schutz versicherung'], ['m-schutz', 'Schutzschild', 'E922', '#155784', '#ffffff', 'r+v motiv schutz sicherheit'],
+  ['m-haus', 'Zuhause', 'E928', '#fff4e0', '#001957', 'r+v motiv haus wohnen'], ['m-klee', 'Kleeblatt', 'E917', '#f0f8e3', '#5b7a03', 'r+v motiv glück klee'],
+  ['m-hand', 'Handschlag', 'E9BB', '#001957', '#ffffff', 'r+v motiv vertrauen partnerschaft'], ['m-herz', 'Gesundheit', 'E9C9', '#fbe5c7', '#a45f33', 'r+v motiv herz gesundheit'],
+  ['m-auto', 'Auto', 'E97E', '#bee0f5', '#001957', 'r+v motiv auto kfz'], ['m-stern', 'Stern', 'E9AF', '#001957', '#f79506', 'r+v motiv stern'],
+  ['m-100', '100 Jahre', 'E9C0', '#f79506', '#001957', 'r+v motiv jubiläum hundert'], ['m-kompass', 'Kompass', 'E92D', '#583720', '#fbe5c7', 'r+v motiv kompass orientierung']
+];
+var AV_BY = {}; AV_PEOPLE.forEach(function (a) { AV_BY[a[0]] = { kind: 'p', a: a, name: a[1], kw: a[8] }; }); AV_ICONS.forEach(function (a) { AV_BY[a[0]] = { kind: 'i', a: a, name: a[1], kw: a[5] }; });
+/* Profilbild als Kreis; uploaded: { kind: 'upload', url }, Platzhalter: { kind: 'ph', id } */
+function avatarNode(av, size, alt) {
+  var box = h('span', { class: 'av', style: 'width:' + size + 'px;height:' + size + 'px' });
+  if (av && av.kind === 'upload' && av.url) { box.appendChild(h('img', { class: 'av-img', src: rel(av.url), alt: alt || 'Profilbild' })); return box; }
+  var d = av && AV_BY[av.id];
+  if (!d) { box.classList.add('av-empty'); box.appendChild(h('span', { class: 'ruv-i', 'aria-hidden': 'true', html: '&#xE92C;' })); if (alt) box.setAttribute('aria-label', alt); return box; }
+  if (d.kind === 'p') box.appendChild(h('span', { class: 'av-svg', role: 'img', 'aria-label': (alt ? alt + ': ' : '') + d.name, html: '<svg viewBox="0 0 100 100" aria-hidden="true">' + avPersonSvg(d.a) + '</svg>' }));
+  else box.appendChild(h('span', { class: 'av-ico', role: 'img', 'aria-label': (alt ? alt + ': ' : '') + d.name, style: 'background:' + d.a[3] + ';color:' + d.a[4], html: '<i class="ruv-i" aria-hidden="true">&#x' + d.a[2] + ';</i>' }));
+  box.appendChild(h('img', { class: 'av-ki', src: KI_LABEL.pos, alt: 'KI', title: 'Mit KI gestaltet' }));
+  return box;
+}
+function openAvatarPicker(current, onPick) {
+  var q = h('input', { type: 'search', id: 'av-q', placeholder: 'Suchen, z. B. Frau, Mann, Tier oder Schirm', 'aria-label': 'Profilbilder durchsuchen' });
+  var host = h('div'), count = h('span', { class: 'hint', 'aria-live': 'polite' });
+  var body = h('div', { class: 'modal-body' }, [h('h2', { text: 'Profilbild auswählen', style: 'padding-right:44px' }), h('p', { class: 'hint', text: 'Illustrierte Personen, Figuren, Tiere und R+V-Motive. Sie sind mit KI gestaltet und tragen deshalb das KI-Label.' }), q, count, host]);
+  var m = openModal(body, { wide: true, label: 'Profilbild auswählen' });
+  function group(title, ids) {
+    if (!ids.length) return null;
+    return h('div', { class: 'av-group' }, [h('h3', { text: title }), h('div', { class: 'av-grid', role: 'listbox', 'aria-label': title }, ids.map(function (id) {
+      return h('button', { type: 'button', class: 'av-opt', role: 'option', 'aria-selected': String(id === current), title: AV_BY[id].name, onclick: function () { onPick(id); m.close(); } }, [avatarNode({ kind: 'ph', id: id }, 84), h('span', { text: AV_BY[id].name })]);
+    }))]);
+  }
+  function render() {
+    clear(host); var t = q.value.trim().toLowerCase();
+    function hit(id) { return !t || (AV_BY[id].name + ' ' + AV_BY[id].kw).toLowerCase().indexOf(t) >= 0; }
+    var pe = AV_PEOPLE.map(function (a) { return a[0]; }).filter(hit), ti = AV_ICONS.filter(function (a) { return a[0][0] === 't'; }).map(function (a) { return a[0]; }).filter(hit);
+    var fi = AV_ICONS.filter(function (a) { return a[0][0] === 'f'; }).map(function (a) { return a[0]; }).filter(hit), mo = AV_ICONS.filter(function (a) { return a[0][0] === 'm'; }).map(function (a) { return a[0]; }).filter(hit);
+    var n = pe.length + ti.length + fi.length + mo.length; count.textContent = n + (n === 1 ? ' Bild' : ' Bilder');
+    [group('Personen', pe), group('Figuren', fi), group('Tiere', ti), group('R+V-Motive', mo)].forEach(function (g) { if (g) host.appendChild(g); });
+    if (!n) host.appendChild(h('p', { class: 'hint', text: 'Nichts gefunden. Probiere einen anderen Begriff.' }));
+  }
+  q.addEventListener('input', render); render();
+}
 /* Auswahl eines Platzhalterbildes mit Suche */
 function openPhPicker(current, onPick) {
   var q = h('input', { type: 'search', id: 'ph-q', placeholder: 'Motiv suchen, z. B. Reisen, Vertrieb oder Sport', 'aria-label': 'Platzhalterbilder durchsuchen' });
   var grid = h('div', { class: 'ph-grid', role: 'listbox', 'aria-label': 'Platzhalterbilder' }), count = h('span', { class: 'hint', 'aria-live': 'polite' });
-  var body = h('div', { class: 'modal-body' }, [h('h2', { text: 'Platzhalterbild wählen', style: 'padding-right:44px' }), h('p', { class: 'hint', text: 'Die Motive folgen der R+V-Bildwelt. Sie sind mit KI gestaltet und tragen deshalb das KI-Label.' }), q, count, grid]);
+  var body = h('div', { class: 'modal-body' }, [h('h2', { text: 'Platzhalterbild wählen', style: 'padding-right:44px' }), h('p', { class: 'hint', text: 'Fotos stellt die Administration bereit. Die Illustrationen folgen der R+V-Bildwelt. Sie sind mit KI gestaltet und tragen deshalb das KI-Label.' }), q, count, grid]);
   var m = openModal(body, { wide: true, label: 'Platzhalterbild wählen' });
+  function opt(id, label, node) { return h('button', { type: 'button', class: 'ph-opt', role: 'option', 'aria-selected': String(id === current), title: label, onclick: function () { onPick(id); m.close(); } }, [h('span', { class: 'ph-box' }, node), h('span', { class: 'ph-name', text: label })]); }
   function render() {
     clear(grid); var t = q.value.trim().toLowerCase(), n = 0;
-    PH_LIB.forEach(function (p) {
-      if (t && (p[1] + ' ' + p[5]).toLowerCase().indexOf(t) < 0) return; n++;
-      grid.appendChild(h('button', { type: 'button', class: 'ph-opt', role: 'option', 'aria-selected': String(p[0] === current), title: p[1], onclick: function () { onPick(p[0]); m.close(); } }, [h('span', { class: 'ph-box' }, phNode(p[0], true)), h('span', { class: 'ph-name', text: p[1] })]));
-    });
+    var fotos = PHOTOS.filter(function (f) { return !t || (f.name + ' ' + (f.keywords || '')).toLowerCase().indexOf(t) >= 0; });
+    var ills = PH_LIB.filter(function (p) { return !t || (p[1] + ' ' + p[5]).toLowerCase().indexOf(t) >= 0; });
+    if (fotos.length) { grid.appendChild(h('h3', { class: 'ph-head', text: 'Fotos' })); fotos.forEach(function (f) { grid.appendChild(opt(f.id, f.name, phAny(f.id, true))); }); }
+    if (ills.length) { if (fotos.length) grid.appendChild(h('h3', { class: 'ph-head', text: 'Illustrationen' })); ills.forEach(function (p) { grid.appendChild(opt(p[0], p[1], phNode(p[0], true))); }); }
+    n = fotos.length + ills.length;
     count.textContent = n + (n === 1 ? ' Motiv' : ' Motive');
     if (!n) grid.appendChild(h('p', { class: 'hint', text: 'Kein Motiv gefunden. Probiere einen anderen Begriff.' }));
   }
@@ -1692,7 +1890,7 @@ function openPublicProfile(username) {
   var body = h('div', { class: 'modal-body pubprof' }, loading()), m = openModal(body, { wide: true, label: 'Profil von ' + username }); m.node.classList.add('pwide');
   Api.publicProfile(username).then(function (r) {
     var p = r.profile; clear(body);
-    body.appendChild(h('div', { class: 'prof-name' }, [h('h2', { text: p.username, style: 'margin:0;overflow-wrap:anywhere' }), badgeNode(p.level, true), (p.experts && p.experts.length) ? rocketNode(true) : null]));
+    body.appendChild(h('div', { class: 'prof-name' }, [p.avatar ? avatarNode(p.avatar, 88, 'Profilbild von ' + p.username) : null, h('h2', { text: p.username, style: 'margin:0;overflow-wrap:anywhere' }), badgeNode(p.level, true), (p.experts && p.experts.length) ? rocketNode(true) : null]));
     if (p.level) body.appendChild(h('div', { class: 'hint', text: badgeLabel(p.level) }));
     if (p.bio) body.appendChild(h('p', { class: 'bio', text: p.bio }));
     var facts = [h('div', null, [h('dt', { text: 'Angebotene Veranstaltungen' }), h('dd', { text: String(p.offered) })])];
@@ -1826,8 +2024,9 @@ function makeRte(initial) {
 }
 
 /* ====================================================== Bild-Zuschnitt */
-function openCropper(img, onDone) {
-  var SIZE = 360, box = h('div', { class: 'crop-box' }), cv = h('canvas', { width: SIZE * 2, height: SIZE * 2, role: 'img', 'aria-label': 'Bildausschnitt. Mit der Maus oder dem Finger verschieben.' });
+function openCropper(img, onDone, opt) {
+  opt = opt || {};
+  var SIZE = 360, box = h('div', { class: 'crop-box' + (opt.round ? ' round' : '') }), cv = h('canvas', { width: SIZE * 2, height: SIZE * 2, role: 'img', 'aria-label': 'Bildausschnitt. Mit der Maus oder dem Finger verschieben.' });
   box.appendChild(cv);
   var ctx = cv.getContext('2d'), W = cv.width;
   var min = W / Math.min(img.width, img.height), sc = min, ox = 0, oy = 0; // ox/oy: Verschiebung des Bildmittelpunkts in Canvas-Pixeln
@@ -1845,12 +2044,12 @@ function openCropper(img, onDone) {
   zoom.addEventListener('input', function () { setZoom(Number(zoom.value)); });
   var done = h('button', { class: 'btn btn-primary', type: 'button', text: 'Ausschnitt übernehmen' });
   var cancel = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abbrechen' });
-  var content = h('div', { class: 'modal-body' }, [h('h2', { text: 'Bild zuschneiden' }), h('p', { class: 'hint', text: 'Ziehe das Bild, um den Ausschnitt zu wählen, und nutze den Regler zum Zoomen. Das Bild wird quadratisch gespeichert.' }),
+  var content = h('div', { class: 'modal-body' }, [h('h2', { text: 'Bild zuschneiden' }), h('p', { class: 'hint', text: opt.round ? 'Ziehe das Bild, um den Ausschnitt zu wählen, und nutze den Regler zum Zoomen. Das Profilbild wird quadratisch gespeichert und als Kreis angezeigt.' : 'Ziehe das Bild, um den Ausschnitt zu wählen, und nutze den Regler zum Zoomen. Das Bild wird quadratisch gespeichert.' }),
     h('div', { class: 'crop' }, [box, h('div', { class: 'zoomrow' }, [h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'aria-label': 'Verkleinern', html: ico('minus'), onclick: function () { setZoom(Number(zoom.value) - .2); } }), zoom, h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'aria-label': 'Vergrößern', html: ico('plus'), onclick: function () { setZoom(Number(zoom.value) + .2); } })])]),
     h('div', { style: 'display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap' }, [cancel, done])]);
   var m = openModal(content, { label: 'Bild zuschneiden' });
   cancel.addEventListener('click', m.close);
-  done.addEventListener('click', function () { var o = document.createElement('canvas'); o.width = o.height = 640; draw(o.getContext('2d'), 640); onDone(o.toDataURL('image/jpeg', .86)); m.close(); });
+  done.addEventListener('click', function () { var out = opt.size || 640, o = document.createElement('canvas'); o.width = o.height = out; draw(o.getContext('2d'), out); onDone(o.toDataURL('image/jpeg', .86)); m.close(); });
   render();
 }
 
@@ -1909,7 +2108,7 @@ function buildEventForm(o) {
   function renderPrev() {
     clear(prev);
     if (previewSrc) { prev.appendChild(h('img', { src: previewSrc, alt: 'Vorschau des Veranstaltungsbildes' })); phName.textContent = ''; }
-    else { var id = v.placeholder && PH_BY[v.placeholder] ? v.placeholder : phFor(v.topic || ''); prev.appendChild(phNode(id, true)); phName.textContent = (v.placeholder ? 'Platzhalterbild: ' : 'Standardmotiv zum Thema: ') + PH_BY[id][1]; }
+    else { var id = v.placeholder && (PH_BY[v.placeholder] || photoBy(v.placeholder)) ? v.placeholder : phFor(v.topic || ''); prev.appendChild(phAny(id, true)); phName.textContent = (v.placeholder ? 'Platzhalterbild: ' : 'Standardmotiv zum Thema: ') + phLabel(id); }
     recropBtn.hidden = !srcImg; delBtn.hidden = !previewSrc;
   }
   function pick(fileObj) {
@@ -2297,6 +2496,12 @@ function tabs(key, defs) {
   show(cur);
   return h('div', { class: 'ptabs' }, [bar, host]);
 }
+/* Karte mit dem Bild der Veranstaltung links */
+function withThumb(node, ev) {
+  var b = h('div', { class: 'evcard-body' }); while (node.firstChild) b.appendChild(node.firstChild);
+  node.removeAttribute('style'); node.classList.add('evcard');
+  node.appendChild(h('div', { class: 'evcard-img' }, cover(ev))); node.appendChild(b); return node;
+}
 function cardList(nodes, emptyText, extra) {
   if (!nodes.length) return h('div', { class: 'empty-list' }, [h('p', { class: 'hint', text: emptyText }), extra || null]);
   return h('div', { class: 'cardlist' }, nodes);
@@ -2362,8 +2567,8 @@ function viewMyBookings() {
     var up = r.bookings.filter(function (b) { return !b.ended; }).sort(function (a, b) { return startDate(a) - startDate(b); });
     var past = r.bookings.filter(function (b) { return b.ended; }).sort(function (a, b) { return startDate(b) - startDate(a); });
     box.appendChild(tabs('lt_tab_mb', [
-      ['up', 'Anstehend', up.length, function () { return cardList(up.map(bookingCard), 'Du bist für keine Veranstaltung angemeldet. Im Katalog findest Du passende Termine.', h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' })); }],
-      ['past', 'Vergangen', past.length, function () { return cardList(past.map(pastCard), 'Noch keine besuchten Veranstaltungen. Nach dem Termin kannst Du hier Sterne vergeben.'); }]]));
+      ['up', 'Anstehend', up.length, function () { return cardList(up.map(function (b) { return withThumb(bookingCard(b), b); }), 'Du bist für keine Veranstaltung angemeldet. Im Katalog findest Du passende Termine.', h('a', { class: 'btn btn-primary', href: '#/', text: 'Zum Katalog' })); }],
+      ['past', 'Vergangen', past.length, function () { return cardList(past.map(function (b) { return withThumb(pastCard(b), b); }), 'Noch keine besuchten Veranstaltungen. Nach dem Termin kannst Du hier Sterne vergeben.'); }]]));
   }
   load();
   return ps.root;
@@ -2405,8 +2610,8 @@ function viewMyEvents() {
     var past = list.filter(function (e) { return e.ended; }).sort(function (a, b) { return startDate(b) - startDate(a); });
     box.appendChild(h('p', { style: 'margin-top:20px' }, h('a', { class: 'btn btn-primary', href: '#/anbieten', text: 'Neue Veranstaltung anbieten' })));
     box.appendChild(tabs('lt_tab_me', [
-      ['up', 'Anstehend', up.length, function () { return cardList(up.map(card), 'Du hast keine anstehende Veranstaltung. Biete gern eine an.'); }],
-      ['past', 'Vergangen', past.length, function () { return cardList(past.map(card), 'Noch keine abgeschlossenen Veranstaltungen.'); }]]));
+      ['up', 'Anstehend', up.length, function () { return cardList(up.map(function (e) { return withThumb(card(e), e); }), 'Du hast keine anstehende Veranstaltung. Biete gern eine an.'); }],
+      ['past', 'Vergangen', past.length, function () { return cardList(past.map(function (e) { return withThumb(card(e), e); }), 'Noch keine abgeschlossenen Veranstaltungen.'); }]]));
   }
   load();
   return ps.root;
@@ -2419,8 +2624,9 @@ function viewProfile(q) {
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function tile(label, value, sub) { return h('div', { class: 'st-kpi' }, [h('b', null, value), h('span', { text: label }), sub ? h('span', { class: 'hint', text: sub }) : null]); }
   function table(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (c) { return h('th', { text: c }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (c) { return h('td', null, c); })); }))])); }
-  function publicBox(pub, me) {
-    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming };
+  function publicBox(pub, me, avatarOk) {
+    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming, showAvatar: !!pub.showAvatar };
+    var noAv = !avatarOk;
     var subs = [];
     function chk(key, label, hint, master) {
       var c = h('input', { type: 'checkbox', id: 'pp-' + key, checked: v[key] });
@@ -2429,12 +2635,12 @@ function viewProfile(q) {
       if (!master) subs.push(c);
       return node;
     }
-    function sync() { subs.forEach(function (c) { c.disabled = !v.isPublic; }); }
+    function sync() { subs.forEach(function (c) { c.disabled = !v.isPublic || (c.id === 'pp-showAvatar' && noAv); }); }
     var bio = h('textarea', { id: 'pp-bio', rows: '4', maxlength: '300', placeholder: 'Zum Beispiel: Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.' }); bio.value = pub.bio || '';
     var count = h('span', { class: 'hint' }); function upd() { count.textContent = bio.value.length + ' / 300 Zeichen'; } bio.addEventListener('input', upd); upd();
     var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
     var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil veröffentlichen', null, true),
-      chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen')]);
+      chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen'), chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : null)]);
     sync();
     go.addEventListener('click', function () {
       go.disabled = true; var p = Object.assign({ bio: bio.value }, v);
@@ -2443,6 +2649,26 @@ function viewProfile(q) {
     return h('section', { class: 'prof-sec', id: 'pub-box' }, [h('h2', { text: 'Öffentliches Profil' }),
       h('p', { class: 'hint', text: 'Wenn Du Dein Profil öffentlich machst, sehen andere Deinen Benutzernamen, Dein Abzeichen, die Zahl Deiner angebotenen Veranstaltungen und Deine Themen mit der Zahl der Veranstaltungen. Alles Weitere gibst Du einzeln frei.' }),
       h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px;max-width:760px' }, [list, field('Beschreibung (wie eine Bio)', bio, { id: 'pp-bio', hint: 'Frei formulierter Text für Dein öffentliches Profil, bis zu 300 Zeichen. Er erscheint nur, wenn Dein Profil öffentlich ist.' }), count, msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, view])])]);
+  }
+  function avatarDialog(r) {
+    var body = h('div', { class: 'modal-body' }), m;
+    var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
+    function done(p) { Api.setAvatar(p).then(function () { m.close(); toast(p.kind === 'none' ? 'Das Profilbild ist entfernt.' : 'Dein Profilbild ist gespeichert.'); route(); }, function (er) { if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; }); }
+    var file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'sr', tabindex: '-1' });
+    file.addEventListener('change', function () {
+      var f = file.files[0]; if (!f) return;
+      if (!/^image\/(png|jpe?g|webp)$/.test(f.type) || f.size > 12 * 1024 * 1024) { msg.hidden = false; msg.textContent = 'Bitte wähle ein Bild im Format JPG, PNG oder WebP mit höchstens 12 MB.'; return; }
+      var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { openCropper(im, function (data) { done({ kind: 'upload', imageData: data }); }, { round: true, size: 400 }); }; im.src = rd.result; }; rd.readAsDataURL(f);
+    });
+    var acts = h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [
+      r.avatarUpload ? h('button', { type: 'button', class: 'btn btn-primary', text: 'Bild hochladen', onclick: function () { file.value = ''; file.click(); } }) : null,
+      h('button', { type: 'button', class: r.avatarUpload ? 'btn btn-secondary' : 'btn btn-primary', text: 'Aus Bildern auswählen', onclick: function () { openAvatarPicker(r.avatar && r.avatar.kind === 'ph' ? r.avatar.id : '', function (id) { done({ kind: 'ph', id: id }); }); } }),
+      r.avatar ? h('button', { type: 'button', class: 'btn btn-danger', text: 'Profilbild löschen', onclick: function () { done({ kind: 'none' }); } }) : null, file]);
+    body.appendChild(h('h2', { text: 'Profilbild', style: 'padding-right:44px' }));
+    body.appendChild(h('div', { class: 'prof-av-big' }, avatarNode(r.avatar, 160, 'Dein Profilbild')));
+    body.appendChild(h('p', { class: 'hint', text: (r.avatarUpload ? 'Lade ein Foto hoch und wähle den Ausschnitt oder nimm eines unserer Bilder. ' : 'Das Hochladen eigener Fotos ist zurzeit abgeschaltet. Wähle eines unserer Bilder. ') + 'Andere sehen das Bild nur, wenn Du es unter „Veröffentlichung“ freigibst.' }));
+    body.appendChild(msg); body.appendChild(acts);
+    m = openModal(body, { label: 'Profilbild' });
   }
   function accountBox(me) {
     var I = {}, F = {};
@@ -2476,24 +2702,25 @@ function viewProfile(q) {
     clear(box); var me = r.me, b = r.badge, o = r.offered, a = r.attended;
     var experts = r.topics.filter(function (t) { return t.expert; });
     /* Kopf: Benutzername mit Abzeichen und Expertenstatus */
-    box.appendChild(h('div', { class: 'panel prof-head' }, [h('div', { class: 'prof-name' }, [h('span', { class: 'prof-un', text: me.username }), badgeNode(b.level, true), experts.length ? rocketNode(true) : null, h('button', { type: 'button', class: 'btn btn-secondary btn-sm prof-out', text: 'Abmelden', onclick: function () { Api.logout().then(function () { setMe(null); toast('Du bist abgemeldet.'); location.hash = '#/'; }); } })]),
-      h('div', { class: 'hint', text: (b.level ? badgeLabel(b.level) + '. ' : 'Noch kein Abzeichen. ') + (b.next ? 'Noch ' + (b.next - b.offered) + ' durchgeführte Veranstaltung' + (b.next - b.offered === 1 ? '' : 'en') + ' bis zur nächsten Stufe.' : 'Höchste Stufe erreicht.') })]));
+    var avBox = h('div', { class: 'prof-av' }, [avatarNode(r.avatar, 104, 'Dein Profilbild'), h('button', { type: 'button', class: 'linkbtn', id: 'av-edit', text: r.avatar ? 'Profilbild ändern' : 'Profilbild wählen', onclick: function () { avatarDialog(r); } })]);
+    box.appendChild(h('div', { class: 'panel prof-head' }, [avBox, h('div', { class: 'prof-head-main' }, [h('div', { class: 'prof-name' }, [h('span', { class: 'prof-un', text: me.username }), badgeNode(b.level, true), experts.length ? rocketNode(true) : null, h('button', { type: 'button', class: 'btn btn-secondary btn-sm prof-out', text: 'Abmelden', onclick: function () { Api.logout().then(function () { setMe(null); toast('Du bist abgemeldet.'); location.hash = '#/'; }); } })]),
+      h('div', { class: 'hint', text: (b.level ? badgeLabel(b.level) + '. ' : 'Noch kein Abzeichen. ') + (b.next ? 'Noch ' + (b.next - b.offered) + ' durchgeführte Veranstaltung' + (b.next - b.offered === 1 ? '' : 'en') + ' bis zur nächsten Stufe.' : 'Höchste Stufe erreicht.') }), r.avatar && r.avatar.hidden ? h('div', { class: 'hint', text: 'Hochgeladene Profilbilder sind zurzeit abgeschaltet. Dein Bild ist nur für Dich sichtbar.' }) : null])]));
     var facts = h('dl', { class: 'facts f4 panel' }, [
       h('div', null, [h('dt', { text: 'Benutzername' }), h('dd', { text: me.username })]), h('div', null, [h('dt', { text: 'Name' }), h('dd', { text: me.firstName + ' ' + me.lastName })]),
       h('div', null, [h('dt', { text: 'XV-Nummer' }), h('dd', { text: me.xv || '–' })]), h('div', null, [h('dt', { text: 'E-Mail-Adresse' }), h('dd', { class: 'dd-mail', text: me.email, title: me.email })])]);
     var kp = h('div', { class: 'st-kpis', style: 'margin-top:28px' }, [
       tile('Angebotene Sessions', String(o.held), o.upcoming ? o.upcoming + ' geplant' + (o.cancelled ? ', ' + o.cancelled + ' abgesagt' : '') : (o.cancelled ? o.cancelled + ' abgesagt' : 'durchgeführt')),
       tile('Teilgenommen', String(a.held), a.upcoming ? a.upcoming + ' angemeldet' : 'besuchte Sessions'),
-      tile('Meine Bewertung als Anbieter', ratingNode(o.ratingAvg, o.ratingCount), o.ratingCount ? o.ratingCount + ' Bewertung' + (o.ratingCount === 1 ? '' : 'en') + ' über alle Sessions' : null),
+      tile('Meine Bewertung als Anbieter', o.ratingCount ? ratingNode(o.ratingAvg, o.ratingCount) : h('span', { class: 'rating', title: 'Noch keine Bewertung' }, [h('span', { class: 'stars', 'aria-hidden': 'true', text: starsText(0) }), ' 0,0']), (function () { var ev = o.list.filter(function (x) { return !x.cancelled && x.ratingCount > 0; }).length; return o.ratingCount + ' Bewertung' + (o.ratingCount === 1 ? '' : 'en') + ' aus ' + ev + ' Veranstaltung' + (ev === 1 ? '' : 'en'); })()),
       tile('Teilnehmende bei mir', String(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0)), o.held ? 'Ø ' + fmtAvg(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0) / Math.max(1, o.list.filter(function (x) { return !x.cancelled; }).length)) + ' je Session' : null),
       tile('Meine Bewertungen', String(a.rated), a.held ? 'von ' + a.held + ' besuchten Sessions' : null),
       tile('Expertenstatus', String(experts.length), experts.length ? experts.map(function (t) { return capFirst(t.topic); }).join(', ') : 'ab ' + b.expertMin + ' Sessions je Thema')]);
     var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }));
-    function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', { text: title }), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
+    function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', null, title), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
     function overview() {
       return h('div', null, [facts, h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername. Ändern kannst Du sie unter „Konto“.' }), kp,
         sec('Abzeichen', 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen.', [lv]),
-        sec('Themen und Expertenstatus', 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.',
+        sec([rocketNode(), ' Themen und Expertenstatus'], 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.',
           [r.topics.length ? table(['Bereich', 'Thema', 'Sessions', 'Status'], r.topics.slice().sort(function (x, y) { return y.count - x.count; }).map(function (t) { return [CAT_LABEL[t.category] || t.category, capFirst(t.topic), String(t.count), t.expert ? h('span', { class: 'utag' }, [rocketNode(), ' Experte']) : 'noch ' + (b.expertMin - t.count) + ' bis zum Expertenstatus']; })) : h('p', { class: 'hint', text: 'Du hast noch keine Veranstaltung durchgeführt.' })])]);
     }
     function offeredTab() {
@@ -2506,7 +2733,7 @@ function viewProfile(q) {
     }
     function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange)]); }
     if (me.mustChange) sess.set('lt_tab_prof', 'konto'); else if (q && q.tab) sess.set('lt_tab_prof', q.tab);
-    box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me); }], ['konto', 'Konto', null, accountTab]]));
+    box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me, !!r.avatar && !r.avatar.hidden); }], ['konto', 'Konto', null, accountTab]]));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
   }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); });
   return ps.root;
@@ -2539,7 +2766,7 @@ function viewAdmin() {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' })), wrap = root.firstChild;
   var SECTIONS = [
     ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['users', 'Nutzer', 'Konten und Rechte'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
-    ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung'], ['badges', 'Abzeichen', 'Abzeichen und Expertenstatus']]],
+    ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung'], ['photos', 'Fotos', 'Fotos als Platzhalterbilder'], ['badges', 'Abzeichen', 'Abzeichen und Expertenstatus']]],
     ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
   ];
   var section = sess.get('lt_admin_sec') || 'events';
@@ -2558,7 +2785,7 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, users: adminUsers, general: adminGeneral, testdata: adminTest }[section];
+      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, photos: adminPhotos, users: adminUsers, general: adminGeneral, testdata: adminTest }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (authFail(er)) return; clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
@@ -2575,32 +2802,48 @@ function viewAdmin() {
   function stNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function stDec(n) { return (Math.round(n * 10) / 10).toString().replace('.', ','); }
 
-  /* Berechnet alle Kennzahlen und Auswertungen aus Veranstaltungen (mit Anmeldungen) */
+  /* Bereiche der Statistik: jede Kennzahl und jede Auswertung gehört zu genau einem Bereich */
+  var ST_GROUPS = [['ueberblick', 'Überblick'], ['veranstaltungen', 'Veranstaltungen'], ['themen', 'Themen und Formate'], ['nutzende', 'Nutzende'], ['bewertungen', 'Bewertungen'], ['daten', 'Datenschutz']];
+  /* Berechnet alle Kennzahlen und Auswertungen aus Veranstaltungen (mit Anmeldungen) und Konten */
   function computeStats(all, F, users) {
-    var cancelledN = 0;
+    var cancelledN = 0, kept = 0;
     var evs = all.filter(function (e) {
       if (F.cat && e.category !== F.cat) return false;
       if (F.from && e.date < F.from) return false;
       if (F.to && e.date > F.to) return false;
       if (F.noTest && e.isTest) return false;
+      kept++;
       if (e.cancelled) { cancelledN++; return false; }
       return true;
     }).map(function (e) { return { e: e, c: e.category === 'privat' ? 1 : 0, n: e.bookings ? e.bookings.length : e.booked, cap: e.capacity }; });
-    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]] };
-    var inRange = (users || []).filter(function (u) { var d = (u.created || '').slice(0, 10); return (!F.from || d >= F.from) && (!F.to || d <= F.to) && !(F.noTest && u.isTest); });
+    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]], ended: 0, ratedEv: 0 };
+    var acc = (users || []).filter(function (u) { return !(F.noTest && u.isTest); });
+    var inRange = acc.filter(function (u) { var d = (u.created || '').slice(0, 10); return (!F.from || d >= F.from) && (!F.to || d <= F.to); });
     evs.forEach(function (x) {
       tot.pt += x.n; tot.cap += x.cap; if (!x.n) tot.zero++; if (x.n >= x.cap) tot.full++;
       if (!x.e.anonymized) hosts[x.e.host.toLowerCase()] = 1;
-      (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { rt.sum += b.rating; rt.n++; rt.d[b.rating - 1][x.c]++; } });
+      var r = 0; (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { r++; rt.sum += b.rating; rt.n++; rt.d[b.rating - 1][x.c]++; } });
+      if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
+    var now = Date.now(), active30 = acc.filter(function (u) { return u.lastLogin && now - new Date(u.lastLogin) < 30 * 864e5; }).length;
+    var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
+    /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
+    var EX = {}; all.forEach(function (e) { if (e.cancelled || !eventEnded(e) || !e.ownerId) return; var k = e.ownerId + '|' + e.category + '|' + e.topic; EX[k] = (EX[k] || 0) + 1; });
+    var experts = {}; Object.keys(EX).forEach(function (k) { if (EX[k] >= BADGES.expertMin) experts[k.split('|')[0]] = 1; });
+    function kpi(group, label, value) { return { group: group, label: label, value: value }; }
     var kpis = [
-      { label: 'Veranstaltungen', value: stNum(tot.ev) }, { label: 'Anmeldungen', value: stNum(tot.pt) },
-      { label: 'Ø Anmeldungen je Veranstaltung', value: tot.ev ? stDec(tot.pt / tot.ev) : '–' }, { label: 'Ø Auslastung', value: tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–' },
-      { label: 'Anbietende (nicht anonymisiert)', value: stNum(Object.keys(hosts).length) }, { label: 'Registrierte Konten', value: stNum(inRange.length) }, { label: 'Ø Bewertung', value: rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–' }, { label: 'Abgegebene Bewertungen', value: stNum(rt.n) }, { label: 'Ohne Anmeldung', value: stNum(tot.zero) },
-      { label: 'Ausgebucht', value: stNum(tot.full) }, { label: 'Abgesagt', value: stNum(cancelledN) }, { label: 'Ø Vorlauf der Anmeldung', value: lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–' }];
+      kpi('ueberblick', 'Veranstaltungen', stNum(tot.ev)), kpi('ueberblick', 'Anmeldungen', stNum(tot.pt)), kpi('ueberblick', 'Ø Auslastung', tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–'),
+      kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'Anbietende', stNum(Object.keys(hosts).length)),
+      kpi('veranstaltungen', 'Ø Anmeldungen je Veranstaltung', tot.ev ? stDec(tot.pt / tot.ev) : '–'), kpi('veranstaltungen', 'Ohne Anmeldung', stNum(tot.zero)), kpi('veranstaltungen', 'Ausgebucht', stNum(tot.full)),
+      kpi('veranstaltungen', 'Abgesagt', stNum(cancelledN)), kpi('veranstaltungen', 'Absagequote', kept ? stPct(cancelledN, kept) + ' %' : '–'), kpi('veranstaltungen', 'Ø Vorlauf der Anmeldung', lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–'),
+      kpi('nutzende', 'Neue Konten im Zeitraum', stNum(inRange.length)), kpi('nutzende', 'Aktiv in den letzten 30 Tagen', stNum(active30)), kpi('nutzende', 'Öffentliche Profile', acc.length ? stPct(pubN, acc.length) + ' %' : '–'),
+      kpi('nutzende', 'Mit Profilbild', stNum(avN)), kpi('nutzende', 'Mit Expertenstatus', stNum(Object.keys(experts).length)),
+      kpi('bewertungen', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('bewertungen', 'Abgegebene Bewertungen', stNum(rt.n)), kpi('bewertungen', 'Bewertungsquote', rt.ended ? stPct(rt.n, rt.ended) + ' %' : '–'),
+      kpi('bewertungen', 'Bewertete Veranstaltungen', stNum(rt.ratedEv))];
     var names = stSeriesNames(), stats = [];
-    /* Monate lueckenlos */
+    function add(group, s) { s.group = group; stats.push(s); }
+    /* Monate lückenlos */
     var keys = evs.map(function (x) { return stMonthKey(x.e.date); }).sort(), months = [];
     if (keys.length) {
       var p = keys[0].split('-'), y = +p[0], m = +p[1], last = keys[keys.length - 1];
@@ -2611,53 +2854,71 @@ function viewAdmin() {
     evs.forEach(function (x) { var r = M[stMonthKey(x.e.date)]; if (!r) return; r.ev[x.c]++; r.pt[x.c] += x.n; r.cap += x.cap; });
     function ser(f) { return names.map(function (nm, i) { return { name: nm, values: months.map(function (k) { return f(M[k], i); }) }; }); }
     var mLabels = months.map(stMonthShort);
-    stats.push({ id: 'monat-veranstaltungen', title: 'Veranstaltungen pro Monat', hint: 'Anzahl der Termine nach Monat, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.ev[i]; }), wide: false });
-    stats.push({ id: 'monat-teilnehmende', title: 'Teilnehmende pro Monat', hint: 'Anmeldungen an allen Veranstaltungen eines Monats, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.pt[i]; }), wide: false });
-    stats.push({ id: 'monat-auslastung', title: 'Auslastung pro Monat', hint: 'Anmeldungen im Verhältnis zu den angebotenen Plätzen.', type: 'columns', unit: ' %', labels: mLabels, series: [{ name: 'Auslastung', values: months.map(function (k) { return stPct(M[k].pt[0] + M[k].pt[1], M[k].cap); }) }], wide: false });
-    stats.push({ id: 'monatsuebersicht', title: 'Monatsübersicht', hint: 'Alle Monatszahlen im Überblick.', type: 'table', wide: true,
+    add('ueberblick', { id: 'monat-veranstaltungen', title: 'Veranstaltungen pro Monat', hint: 'Anzahl der Termine nach Monat, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.ev[i]; }) });
+    add('ueberblick', { id: 'monat-teilnehmende', title: 'Teilnehmende pro Monat', hint: 'Anmeldungen an allen Veranstaltungen eines Monats, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.pt[i]; }) });
+    add('veranstaltungen', { id: 'monat-auslastung', title: 'Auslastung pro Monat', hint: 'Anmeldungen im Verhältnis zu den angebotenen Plätzen.', type: 'columns', unit: ' %', labels: mLabels, series: [{ name: 'Auslastung', values: months.map(function (k) { return stPct(M[k].pt[0] + M[k].pt[1], M[k].cap); }) }] });
+    add('veranstaltungen', { id: 'monatsuebersicht', title: 'Monatsübersicht', hint: 'Alle Monatszahlen im Überblick.', type: 'table', wide: true,
       head: ['Monat', 'Veranst. gesamt', names[0], names[1], 'Teiln. gesamt', names[0], names[1], 'Auslastung'], widths: [1.3, 1, 1, 1, 1, 1, 1, 1], align: ['l', 'r', 'r', 'r', 'r', 'r', 'r', 'r'],
       rows: months.map(function (k) { var r = M[k]; return [stMonthLong(k), r.ev[0] + r.ev[1], r.ev[0], r.ev[1], r.pt[0] + r.pt[1], r.pt[0], r.pt[1], stPct(r.pt[0] + r.pt[1], r.cap) + ' %']; }) });
-    /* Registrierungen je Monat (alle Konten, ohne Bezug zu einer Veranstaltung) */
-    if (inRange.length) {
-      var RK = {}; inRange.forEach(function (u) { var k = stMonthKey((u.created || '').slice(0, 10)); if (k.length === 7) RK[k] = (RK[k] || 0) + 1; });
-      var rk = Object.keys(RK).sort().slice(-24);
-      stats.push({ id: 'monat-registrierungen', title: 'Neue Registrierungen pro Monat', hint: 'Angelegte Konten nach Monat der Registrierung.', type: 'columns', labels: rk.map(stMonthShort), series: [{ name: 'Registrierungen', values: rk.map(function (k) { return RK[k]; }) }], wide: false });
-    }
-    stats.push({ id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Eine Bewertung gilt für eine besuchte Veranstaltung.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }), wide: false });
-    /* Gruppierungen */
-    function groupBars(keyFn, order) {
+    function groupBars(keyFn, order, val) {
       var G = {}, ks = [];
-      evs.forEach(function (x) { var k = keyFn(x); if (k == null) return; if (!G[k]) { G[k] = { label: k, ev: 0, v: [0, 0] }; ks.push(k); } G[k].ev++; G[k].v[x.c] += x.n; });
+      evs.forEach(function (x) { var k = keyFn(x); if (k == null) return; if (!G[k]) { G[k] = { label: k, ev: 0, v: [0, 0] }; ks.push(k); } G[k].ev++; G[k].v[x.c] += val ? val(x) : x.n; });
       var rows = ks.map(function (k) { return G[k]; });
       if (order) rows.sort(function (a, b) { return order.indexOf(a.label) - order.indexOf(b.label); }); else rows.sort(function (a, b) { return (b.v[0] + b.v[1]) - (a.v[0] + a.v[1]) || a.label.localeCompare(b.label, 'de'); });
       return rows.map(function (r) { return { label: r.label, sub: r.ev + (r.ev === 1 ? ' Veranstaltung' : ' Veranstaltungen'), v: r.v }; });
     }
-    stats.push({ id: 'thema', title: 'Teilnehmende nach Thema', hint: 'Anmeldungen je Thema, absteigend sortiert.', type: 'bars', series: names, rows: groupBars(function (x) { return capFirst(x.e.topic); }), wide: false });
-    stats.push({ id: 'art', title: 'Teilnehmende nach Art', hint: 'Anmeldungen je Art der Veranstaltung.', type: 'bars', series: names, rows: groupBars(function (x) { return x.e.type; }), wide: false });
-    var wd = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'];
-    var W = wd.map(function () { return { ev: [0, 0], pt: [0, 0] }; });
-    evs.forEach(function (x) { var d = parseYmd(x.e.date).getDay() - 1; if (d >= 0 && d < 5) { W[d].ev[x.c]++; W[d].pt[x.c] += x.n; } });
-    stats.push({ id: 'wochentag', title: 'Veranstaltungen nach Wochentag', hint: 'An welchen Tagen werden Termine angeboten?', type: 'columns', labels: wd.map(function (d) { return d.slice(0, 2); }), series: names.map(function (nm, i) { return { name: nm, values: W.map(function (r) { return r.ev[i]; }) }; }), wide: false });
-    stats.push({ id: 'tageszeit', title: 'Teilnehmende nach Tageszeit', hint: 'Morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).', type: 'bars', series: names, rows: groupBars(function (x) { return toMin(x.e.start) < 720 ? 'Morgens' : 'Nachmittags'; }, ['Morgens', 'Nachmittags']), wide: false });
+    add('themen', { id: 'thema', title: 'Teilnehmende nach Thema', hint: 'Anmeldungen je Thema, absteigend sortiert.', type: 'bars', series: names, rows: groupBars(function (x) { return capFirst(x.e.topic); }) });
+    add('themen', { id: 'art', title: 'Teilnehmende nach Art', hint: 'Anmeldungen je Art der Veranstaltung.', type: 'bars', series: names, rows: groupBars(function (x) { return x.e.type; }) });
+    add('themen', { id: 'angebot-thema', title: 'Angebot nach Thema', hint: 'Wie viele Veranstaltungen je Thema angeboten wurden.', type: 'bars', series: names, countUnit: 'Veranst.', rows: groupBars(function (x) { return capFirst(x.e.topic); }, null, function () { return 1; }) });
+    var wd = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'], W = wd.map(function () { return { ev: [0, 0] }; });
+    evs.forEach(function (x) { var d = parseYmd(x.e.date).getDay() - 1; if (d >= 0 && d < 5) W[d].ev[x.c]++; });
+    add('veranstaltungen', { id: 'wochentag', title: 'Veranstaltungen nach Wochentag', hint: 'An welchen Tagen werden Termine angeboten?', type: 'columns', labels: wd.map(function (d) { return d.slice(0, 2); }), series: names.map(function (nm, i) { return { name: nm, values: W.map(function (r) { return r.ev[i]; }) }; }) });
+    add('veranstaltungen', { id: 'tageszeit', title: 'Teilnehmende nach Tageszeit', hint: 'Morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).', type: 'bars', series: names, rows: groupBars(function (x) { return toMin(x.e.start) < 720 ? 'Morgens' : 'Nachmittags'; }, ['Morgens', 'Nachmittags']) });
     function dur(x) { var d = x.e.duration; return d <= 30 ? 'bis 30 Minuten' : d <= 60 ? '45 bis 60 Minuten' : d <= 90 ? '75 bis 90 Minuten' : '105 bis 120 Minuten'; }
-    stats.push({ id: 'dauer', title: 'Teilnehmende nach Dauer', hint: 'Welche Formate werden am meisten gebucht?', type: 'bars', series: names, rows: groupBars(dur, ['bis 30 Minuten', '45 bis 60 Minuten', '75 bis 90 Minuten', '105 bis 120 Minuten']), wide: false });
+    add('themen', { id: 'dauer', title: 'Teilnehmende nach Dauer', hint: 'Welche Formate werden am meisten gebucht?', type: 'bars', series: names, rows: groupBars(dur, ['bis 30 Minuten', '45 bis 60 Minuten', '75 bis 90 Minuten', '105 bis 120 Minuten']) });
     function util(x) { var p = x.cap ? x.n / x.cap : 0; return !x.n ? 'Keine Anmeldung' : p >= 1 ? 'Ausgebucht' : p >= .9 ? '90 bis 99 %' : p >= .5 ? '50 bis 89 %' : 'unter 50 %'; }
     var U = {}; evs.forEach(function (x) { var k = util(x); if (!U[k]) U[k] = { v: [0, 0] }; U[k].v[x.c]++; });
-    stats.push({ id: 'auslastung', title: 'Auslastung der Veranstaltungen', hint: 'Wie viele Termine sind wie stark belegt? (Anzahl Veranstaltungen)', type: 'bars', series: names, countUnit: 'Veranst.', rows: ['Keine Anmeldung', 'unter 50 %', '50 bis 89 %', '90 bis 99 %', 'Ausgebucht'].map(function (k) { return { label: k, sub: '', v: (U[k] || { v: [0, 0] }).v }; }), wide: false });
-    var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
-    evs.forEach(function (x) { DS[x.e.anonymized ? 'Anonymisiert' : 'Personenbezogen gespeichert'][x.c]++; });
-    stats.push({ id: 'datenstatus', title: 'Personenbezogene Daten', hint: 'Alle Veranstaltungen werden fünf Jahre nach dem Ende anonymisiert. (Anzahl Veranstaltungen)', type: 'bars', series: names, rows: Object.keys(DS).map(function (k) { return { label: k, sub: '', v: DS[k] }; }), wide: false });
-    /* Tabellen */
+    add('veranstaltungen', { id: 'auslastung', title: 'Auslastung der Veranstaltungen', hint: 'Wie viele Termine sind wie stark belegt? (Anzahl Veranstaltungen)', type: 'bars', series: names, countUnit: 'Veranst.', rows: ['Keine Anmeldung', 'unter 50 %', '50 bis 89 %', '90 bis 99 %', 'Ausgebucht'].map(function (k) { return { label: k, sub: '', v: (U[k] || { v: [0, 0] }).v }; }) });
+    var BI = {}; evs.forEach(function (x) { var k = x.e.image ? 'Eigenes Bild' : !x.e.placeholder ? 'Standardmotiv' : /^f-/.test(x.e.placeholder) ? 'Foto der Administration' : 'Illustration gewählt'; if (!BI[k]) BI[k] = [0, 0]; BI[k][x.c]++; });
+    add('veranstaltungen', { id: 'bildwahl', title: 'Bilder der Veranstaltungen', hint: 'Eigenes Bild, Foto, Illustration oder Standardmotiv? (Anzahl Veranstaltungen)', type: 'bars', series: names, rows: ['Eigenes Bild', 'Foto der Administration', 'Illustration gewählt', 'Standardmotiv'].map(function (k) { return { label: k, sub: '', v: BI[k] || [0, 0] }; }) });
     var top = evs.slice().sort(function (a, b) { return b.n - a.n || (b.n / b.cap) - (a.n / a.cap); }).slice(0, 10);
-    stats.push({ id: 'top-veranstaltungen', title: 'Die zehn gefragtesten Veranstaltungen', hint: 'Nach Anzahl der Anmeldungen.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Anmeldungen', 'Auslastung'], widths: [4, 1.6, 1.2, 1.3, 1.2], align: ['l', 'l', 'l', 'r', 'r'],
+    add('veranstaltungen', { id: 'top-veranstaltungen', title: 'Die zehn gefragtesten Veranstaltungen', hint: 'Nach Anzahl der Anmeldungen.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Anmeldungen', 'Auslastung'], widths: [4, 1.6, 1.2, 1.3, 1.2], align: ['l', 'l', 'l', 'r', 'r'],
       rows: top.map(function (x) { return [x.e.title, dateFull(x.e.date), CAT_LABEL[x.e.category], x.n + ' / ' + x.cap, stPct(x.n, x.cap) + ' %']; }) });
+    var nr = evs.filter(function (x) { return !x.n; }).sort(function (a, b) { return a.e.date < b.e.date ? -1 : 1; });
+    add('veranstaltungen', { id: 'ohne-anmeldung', title: 'Veranstaltungen ohne Anmeldung', hint: nr.length > 15 ? 'Die ersten 15 von ' + nr.length + ' Terminen, nach Datum.' : 'Termine, zu denen sich noch niemand angemeldet hat.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Benutzername'], widths: [4, 1.6, 1.2, 2.2], align: ['l', 'l', 'l', 'l'],
+      rows: nr.slice(0, 15).map(function (x) { return [x.e.title, dateFull(x.e.date), CAT_LABEL[x.e.category], x.e.host]; }) });
+    /* Nutzende */
+    if (inRange.length) {
+      var RK = {}; inRange.forEach(function (u) { var k = stMonthKey((u.created || '').slice(0, 10)); if (k.length === 7) RK[k] = (RK[k] || 0) + 1; });
+      var rk = Object.keys(RK).sort().slice(-24);
+      add('nutzende', { id: 'monat-registrierungen', title: 'Neue Registrierungen pro Monat', hint: 'Angelegte Konten nach Monat der Registrierung.', type: 'columns', labels: rk.map(stMonthShort), series: [{ name: 'Registrierungen', values: rk.map(function (k) { return RK[k]; }) }] });
+    }
+    function lastLog(u) { if (!u.lastLogin) return 'Noch nie angemeldet'; var d = (now - new Date(u.lastLogin)) / 864e5; return d < 7 ? 'In den letzten 7 Tagen' : d < 30 ? 'Vor 7 bis 30 Tagen' : d < 90 ? 'Vor 30 bis 90 Tagen' : 'Vor mehr als 90 Tagen'; }
+    var LL = {}; acc.forEach(function (u) { var k = lastLog(u); LL[k] = (LL[k] || 0) + 1; });
+    add('nutzende', { id: 'aktivitaet', title: 'Letzte Anmeldung', hint: 'Wann sich die Konten zuletzt angemeldet haben. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['In den letzten 7 Tagen', 'Vor 7 bis 30 Tagen', 'Vor 30 bis 90 Tagen', 'Vor mehr als 90 Tagen', 'Noch nie angemeldet'].map(function (k) { return { label: k, sub: '', v: [LL[k] || 0, 0] }; }) });
+    var LV = [0, 0, 0, 0, 0, 0, 0]; acc.forEach(function (u) { LV[u.level || 0]++; });
+    add('nutzende', { id: 'abzeichen', title: 'Konten nach Abzeichen', hint: 'Verteilung der Abzeichenstufen. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['Ohne Abzeichen'].concat(BADGE_NAMES).map(function (k, i) { return { label: k, sub: i ? 'Stufe ' + i + ', ab ' + BADGES.levels[i - 1] + ' Sessions' : '', v: [LV[i], 0] }; }) });
+    add('nutzende', { id: 'profile', title: 'Profile und Profilbilder', hint: 'Freiwillige Angaben der Nutzenden. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: [['Profil öffentlich', pubN], ['Profil nicht öffentlich', acc.length - pubN], ['Mit Profilbild', avN], ['Ohne Profilbild', acc.length - avN]].map(function (r) { return { label: r[0], sub: '', v: [r[1], 0] }; }) });
     var HS = {}; evs.forEach(function (x) { if (x.e.anonymized) return; var k = x.e.host.toLowerCase(); if (!HS[k]) HS[k] = { name: x.e.host, ev: 0, pt: 0, rs: 0, rn: 0 }; HS[k].ev++; HS[k].pt += x.n; (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { HS[k].rs += b.rating; HS[k].rn++; } }); });
     var hl = Object.keys(HS).map(function (k) { return HS[k]; }).sort(function (a, b) { return b.pt - a.pt || b.ev - a.ev || a.name.localeCompare(b.name, 'de'); }).slice(0, 10);
-    stats.push({ id: 'top-anbieter', title: 'Die aktivsten Anbietenden', hint: 'Nach Anzahl der Teilnehmenden. Anonymisierte Veranstaltungen sind nicht enthalten.', type: 'table', wide: true, head: ['Benutzername', 'Veranstaltungen', 'Teilnehmende', 'Ø je Veranstaltung', 'Ø Bewertung'], widths: [3.2, 1.5, 1.5, 1.8, 1.5], align: ['l', 'r', 'r', 'r', 'r'],
+    add('nutzende', { id: 'top-anbieter', title: 'Die aktivsten Anbietenden', hint: 'Nach Anzahl der Teilnehmenden. Anonymisierte Veranstaltungen sind nicht enthalten.', type: 'table', wide: true, head: ['Benutzername', 'Veranstaltungen', 'Teilnehmende', 'Ø je Veranstaltung', 'Ø Bewertung'], widths: [3.2, 1.5, 1.5, 1.8, 1.5], align: ['l', 'r', 'r', 'r', 'r'],
       rows: hl.map(function (r) { return [r.name, r.ev, r.pt, stDec(r.pt / r.ev), r.rn ? stDec(r.rs / r.rn) : '–']; }) });
-    var nr = evs.filter(function (x) { return !x.n; }).sort(function (a, b) { return a.e.date < b.e.date ? -1 : 1; });
-    stats.push({ id: 'ohne-anmeldung', title: 'Veranstaltungen ohne Anmeldung', hint: nr.length > 15 ? 'Die ersten 15 von ' + nr.length + ' Terminen, nach Datum.' : 'Termine, zu denen sich noch niemand angemeldet hat.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Benutzername'], widths: [4, 1.6, 1.2, 2.2], align: ['l', 'l', 'l', 'l'],
-      rows: nr.slice(0, 15).map(function (x) { return [x.e.title, dateFull(x.e.date), CAT_LABEL[x.e.category], x.e.host]; }) });
+    /* Bewertungen */
+    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Eine Bewertung gilt für eine besuchte Veranstaltung.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
+    var RT = {}; evs.forEach(function (x) { (x.e.bookings || []).forEach(function (b) { if (b.rating > 0) { var k = CAT_LABEL[x.e.category] + '|' + capFirst(x.e.topic); if (!RT[k]) RT[k] = { s: 0, n: 0 }; RT[k].s += b.rating; RT[k].n++; } }); });
+    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
+      rows: Object.keys(RT).sort(function (a, b) { return RT[b].s / RT[b].n - RT[a].s / RT[a].n; }).map(function (k) { var p = k.split('|'); return [p[0], p[1], RT[k].n, stDec(RT[k].s / RT[k].n)]; }) });
+    var best = evs.filter(function (x) { return x.e.ratingCount; }).sort(function (a, b) { return b.e.ratingAvg - a.e.ratingAvg || b.e.ratingCount - a.e.ratingCount; }).slice(0, 10);
+    add('bewertungen', { id: 'top-bewertet', title: 'Die zehn am besten bewerteten Veranstaltungen', hint: 'Nach durchschnittlicher Bewertung, bei Gleichstand nach Zahl der Bewertungen.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Benutzername', 'Bewertungen', 'Ø Sterne'], widths: [4, 1.6, 2, 1.3, 1.1], align: ['l', 'l', 'l', 'r', 'r'],
+      rows: best.map(function (x) { return [x.e.title, dateFull(x.e.date), x.e.host, x.e.ratingCount, stDec(x.e.ratingAvg)]; }) });
+    /* Datenschutz */
+    var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
+    evs.forEach(function (x) { DS[x.e.anonymized ? 'Anonymisiert' : 'Personenbezogen gespeichert'][x.c]++; });
+    kpis.push(kpi('daten', 'Personenbezogen gespeichert', stNum(DS['Personenbezogen gespeichert'][0] + DS['Personenbezogen gespeichert'][1])), kpi('daten', 'Anonymisiert', stNum(DS['Anonymisiert'][0] + DS['Anonymisiert'][1])));
+    add('daten', { id: 'datenstatus', title: 'Personenbezogene Daten', hint: 'Alle Veranstaltungen werden fünf Jahre nach dem Ende anonymisiert. (Anzahl Veranstaltungen)', type: 'bars', series: names, rows: Object.keys(DS).map(function (k) { return { label: k, sub: '', v: DS[k] }; }) });
+    var soon = evs.filter(function (x) { return !x.e.anonymized && eventEnded(x.e); }).map(function (x) { return { x: x, d: anonymizeOn(x.e) }; }).sort(function (a, b) { return a.d - b.d; }).slice(0, 10);
+    add('daten', { id: 'anonymisierung', title: 'Nächste Anonymisierungen', hint: 'Die zehn Veranstaltungen, deren Daten als Nächstes anonymisiert werden.', type: 'table', wide: true, head: ['Veranstaltung', 'Datum', 'Bereich', 'Anonymisierung am'], widths: [4, 1.6, 1.2, 1.8], align: ['l', 'l', 'l', 'l'],
+      rows: soon.map(function (o) { var d = o.d; return [o.x.e.title, dateFull(o.x.e.date), CAT_LABEL[o.x.e.category], pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear()]; }) });
     return { kpis: kpis, stats: stats, count: evs.length };
   }
 
@@ -2841,19 +3102,25 @@ function viewAdmin() {
       function render() {
         clear(host); cur = computeStats(list, F, users);
         if (!cur.count && !cur.stats.length) { host.appendChild(h('div', { class: 'empty' }, [h('h2', { text: 'Keine Daten' }), h('p', { text: 'Für diese Auswahl gibt es keine Veranstaltungen. Passe den Zeitraum an oder lade Testdaten.' })])); return; }
-        host.appendChild(h('div', { class: 'st-kpis' }, cur.kpis.map(function (k) { return h('div', { class: 'st-kpi' }, [h('b', { text: k.value }), h('span', { text: k.label })]); })));
-        var grid = h('div', { class: 'st-grid-wrap' });
-        cur.stats.forEach(function (s) { grid.appendChild(stCard(s, function () { pdf(s.title, null, [s], s.id); })); });
-        host.appendChild(grid);
+        /* Bereiche statt einer langen Seite: je Bereich Kennzahlen, Auswertungen und ein eigener PDF-Bericht */
+        host.appendChild(tabs('lt_tab_stat', ST_GROUPS.map(function (g) {
+          var ks = cur.kpis.filter(function (k) { return k.group === g[0]; }), ss = cur.stats.filter(function (x) { return x.group === g[0]; });
+          return [g[0], g[1], null, function () {
+            var grid = h('div', { class: 'st-grid-wrap' });
+            ss.forEach(function (x) { grid.appendChild(stCard(x, function () { pdf(x.title, null, [x], x.id); })); });
+            return h('div', { class: 'st-sec' }, [h('div', { class: 'st-sec-head' }, [h('h3', { text: g[1] }), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', 'data-pdf-group': g[0], text: 'Bereich als PDF', onclick: function () { pdf('Statistik: ' + g[1], ks, ss, 'Bereich_' + g[0]); } })]),
+              ks.length ? h('div', { class: 'st-kpis' }, ks.map(function (k) { return h('div', { class: 'st-kpi' }, [h('b', { text: k.value }), h('span', { text: k.label })]); })) : null, grid]);
+          }];
+        })));
       }
       from.addEventListener('input', function () { F.from = from.value; render(); }); to.addEventListener('input', function () { F.to = to.value; render(); });
       cat.addEventListener('change', function () { F.cat = cat.value; render(); }); noTest.addEventListener('change', function () { F.noTest = noTest.checked; render(); });
       function fld(l, c) { return h('div', { class: 'afld' }, [h('label', { text: l }), c]); }
-      var all = h('button', { type: 'button', class: 'btn btn-primary', id: 'st-pdf-all', text: 'Gesamtbericht als PDF', onclick: function () { if (cur && cur.count) pdf('Statistik und Berichte', cur.kpis, cur.stats, 'Gesamtbericht'); else toast('Es gibt keine Daten für einen Bericht.', true); } });
+      var all = h('button', { type: 'button', class: 'btn btn-primary', id: 'st-pdf-all', text: 'Gesamtbericht als PDF', onclick: function () { if (cur && (cur.count || cur.stats.length)) pdf('Statistik und Berichte', cur.kpis, cur.stats, 'Gesamtbericht'); else toast('Es gibt keine Daten für einen Bericht.', true); } });
       var tools = [fld('Von', from), fld('Bis', to), fld('Bereich', cat)];
       if (hasTest) tools.push(h('label', { class: 'st-chk' }, [noTest, ' Testdaten ausblenden']));
       render();
-      return h('div', null, [h('p', { class: 'lead', text: 'Auswertungen zu Veranstaltungen und Anmeldungen. Jede Auswertung lässt sich einzeln oder als Gesamtbericht als PDF speichern. Eine Anmeldung zählt im Monat der Veranstaltung.' }), h('div', { class: 'afilter' }, tools.concat([h('div', { style: 'margin-left:auto' }, all)])), host]);
+      return h('div', null, [h('p', { class: 'lead', text: 'Auswertungen zu Veranstaltungen, Nutzenden und Bewertungen in sechs Bereichen. Jede Auswertung, jeder Bereich und der Gesamtbericht lassen sich als PDF speichern. Eine Anmeldung zählt im Monat der Veranstaltung.' }), h('div', { class: 'afilter' }, tools.concat([h('div', { style: 'margin-left:auto' }, all)])), host]);
     });
   }
 
@@ -3201,9 +3468,10 @@ function viewAdmin() {
           var acts = h('div', { class: 'acts' });
           if (meSuper && u.role !== 'superadmin') acts.appendChild(act(u.role === 'admin' ? 'Admin-Rechte entziehen' : 'Zum Admin machen', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetRole(u.id, u.role === 'admin' ? 'user' : 'admin'); }));
           if (u.role !== 'superadmin' || meSuper) acts.appendChild(act('Passwort zurücksetzen', 'Wirklich zurücksetzen?', 'btn-secondary', function () { return Api.adminResetPassword(u.id).then(function (r) { tempPassword(u, r.password); }); }));
+          if (u.avatar) acts.appendChild(act('Profilbild löschen', 'Wirklich löschen?', 'btn-danger', function () { return Api.adminDeleteAvatar(u.id); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id) acts.appendChild(act(u.locked ? 'Entsperren' : 'Sperren', 'Wirklich?', u.locked ? 'btn-secondary' : 'btn-danger', function () { return Api.adminSetLocked(u.id, !u.locked); }));
           tb.appendChild(h('tr', { class: u.locked ? 'past' : '' }, [
-            h('td', { class: 'c-title' }, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null])]),
+            h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null])])])),
             h('td', null, [u.firstName + ' ' + u.lastName, h('div', { class: 'hint', text: (u.xv || '–') })]), h('td', { text: u.email, style: 'overflow-wrap:anywhere' }),
             h('td', null, [h('b', { text: u.offered + ' / ' + u.attended }), h('div', { class: 'hint', text: 'angeboten / teilgenommen' })]), h('td', { class: 'c-when' }, [u.lastLogin ? dateFull(u.lastLogin.slice(0, 10)) : '–', h('div', { class: 'hint', text: 'seit ' + (u.created || '').slice(0, 10).split('-').reverse().join('.') })]), h('td', { class: 'c-act' }, acts)]));
         });
@@ -3213,6 +3481,33 @@ function viewAdmin() {
       render();
       return h('div', null, [h('p', { class: 'lead', text: meSuper ? 'Hier siehst Du alle Konten. Als Hauptadministration kannst Du Admin-Rechte vergeben, Passwörter zurücksetzen und Konten sperren.' : 'Hier siehst Du alle Konten. Du kannst Passwörter zurücksetzen und Konten sperren. Admin-Rechte vergibt nur die Hauptadministration.' }),
         h('div', { class: 'afilter' }, h('div', { class: 'afld wide' }, [h('label', { text: 'Suche' }), search])), h('div', { class: 'toolrow' }, count), host]);
+    });
+  }
+  function adminPhotos() {
+    return Api.adminSettings().then(function (st) {
+      var list = (st.photos || []).slice(), host = h('div'), msg = boxMsg(), data = '', fhead = h('h3');
+      var name = inp('fo-name', '', 'text', { maxlength: '40', placeholder: 'z. B. Beratung beim Kunden' }), kw = inp('fo-kw', '', 'text', { maxlength: '200', placeholder: 'z. B. vertrieb gespräch beratung' });
+      var prev = h('div', { class: 'imgprev' }, 'Kein Foto gewählt'), file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', class: 'sr', tabindex: '-1' });
+      file.addEventListener('change', function () { var f = file.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { var im = new Image(); im.onload = function () { openCropper(im, function (d) { data = d; clear(prev); prev.appendChild(h('img', { src: d, alt: 'Vorschau' })); }, { size: 640 }); }; im.src = rd.result; }; rd.readAsDataURL(f); });
+      var add = h('button', { type: 'button', class: 'btn btn-primary', text: 'Foto speichern' });
+      add.addEventListener('click', function () {
+        add.disabled = true;
+        Api.adminSavePhoto({ name: name.value, keywords: kw.value, imageData: data }).then(function (r) { add.disabled = false; list = r.photos; applyTaxonomy({ photos: r.photos }); data = ''; name.value = ''; kw.value = ''; clear(prev); prev.textContent = 'Kein Foto gewählt'; say(msg, 'ok', 'Das Foto steht jetzt zur Auswahl.'); render(); }, function (er) { add.disabled = false; say(msg, 'bad', er.message); });
+      });
+      function render() {
+        clear(host); fhead.textContent = 'Hinterlegte Fotos (' + list.length + ')';
+        if (!list.length) { host.appendChild(h('p', { class: 'hint', text: 'Noch keine Fotos hinterlegt.' })); return; }
+        host.appendChild(h('div', { class: 'ph-grid adm-photos' }, list.map(function (f) {
+          var del = twoStep(h('button', { type: 'button', class: 'btn btn-danger btn-sm', text: 'Löschen' }), 'Löschen', 'Wirklich?', function (reset) { Api.adminDeletePhoto(f.id).then(function (r) { list = r.photos; applyTaxonomy({ photos: r.photos }); render(); }, function (er) { reset(); toast(er.message, true); }); });
+          return h('div', { class: 'ph-opt' }, [h('span', { class: 'ph-box' }, phAny(f.id, true)), h('span', { class: 'ph-name', text: f.name }), f.keywords ? h('span', { class: 'hint', text: f.keywords }) : null, del]);
+        })));
+      }
+      render();
+      return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:1100px' }, [
+        h('p', { class: 'lead', text: 'Hier hinterlegst Du echte Fotos, zum Beispiel aus der R+V-Mediendatenbank. Anbietende sehen sie bei „Platzhalterbild wählen“ vor den Illustrationen. Nutze nur Fotos mit den nötigen Nutzungsrechten.' }),
+        h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [h('h3', { text: 'Neues Foto' }), h('div', { class: 'imgpick' }, [prev, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [h('button', { type: 'button', class: 'btn btn-secondary', text: 'Foto auswählen', onclick: function () { file.value = ''; file.click(); } }), file])]),
+          h('div', { class: 'grid2' }, [field('Name', name, { id: 'fo-name', req: true }), field('Suchbegriffe', kw, { id: 'fo-kw', hint: 'Mit Leerzeichen getrennt. Sie helfen bei der Suche.' })]), msg, h('div', null, add)]),
+        fhead, host]);
     });
   }
   function adminBadges() {
@@ -3235,14 +3530,15 @@ function viewAdmin() {
   function adminGeneral() {
     return Api.adminSettings().then(function (s) {
       var isLocal = !!s.local;
-      var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' });
+      var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' }), avUp = h('input', { type: 'checkbox', id: 's-avup', checked: s.avatarUpload !== false });
       var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Speichern' });
       var form = h('form', { class: 'form panel', style: 'gap:20px;max-width:900px', novalidate: true }, [
-        field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }), msg, h('div', null, go)]);
+        field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }),
+        h('label', { class: 'chk' }, [avUp, h('span', null, [h('b', { text: 'Hochladen eigener Profilbilder erlauben' }), h('span', { class: 'hint', text: 'Ist die Funktion aus, wählen Nutzende nur aus den illustrierten Profilbildern. Bereits hochgeladene Bilder sind dann nur für die Person selbst sichtbar.' })])]), msg, h('div', null, go)]);
       form.addEventListener('submit', function (e) {
         e.preventDefault(); msg.hidden = true; go.disabled = true;
-        var p = { appTitle: title.value };
-        Api.adminSaveSettings(p).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
+        var p = { appTitle: title.value, avatarUpload: avUp.checked };
+        Api.adminSaveSettings(p).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); applyTaxonomy({ avatarUpload: avUp.checked }); toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
       });
       return form;
     });
@@ -3280,10 +3576,11 @@ function renderNav() {
   if (!navEl) return;
   var me = state.me, items = [['/', 'Katalog'], ['/anbieten', 'Veranstaltung anbieten']];
   if (me) items.push(['/meine-anmeldungen', 'Meine Anmeldungen', me.unread || 0], ['/meine-veranstaltungen', 'Meine Veranstaltungen']);
-  items.push(['/handbuch', 'Handbuch']);
   if (isAdmin()) items.push(['/admin', 'Admin', 0, 'lock']);
   clear(navEl);
   items.forEach(function (n) { navEl.appendChild(h('a', { href: '#' + n[0], 'data-r': n[0] }, [n[3] ? h('span', { html: ico(n[3]) }) : null, n[1], n[2] ? h('span', { class: 'cnt', 'aria-label': n[2] + ' neue Mitteilungen', text: String(n[2]) }) : null])); });
+  /* Konto-Bereich deutlich abgesetzt rechts, das Handbuch ganz am Ende */
+  navEl.appendChild(h('span', { class: 'navsep', 'aria-hidden': 'true' }));
   if (me) {
     navEl.appendChild(h('a', { href: '#/profil', 'data-r': '/profil', class: 'acct', 'aria-label': 'Mein Profil: ' + me.username }, [userTag(me.username, me.level, false)]));
     navEl.appendChild(h('button', { type: 'button', class: 'linkbtn navout', text: 'Abmelden', onclick: function () { Api.logout().then(function () { setMe(null); toast('Du bist abgemeldet.'); location.hash = '#/'; route(); }, function (er) { toast(er.message, true); }); } }));
@@ -3291,6 +3588,7 @@ function renderNav() {
     navEl.appendChild(h('a', { href: '#/anmelden', 'data-r': '/anmelden', class: 'acct', text: 'Anmelden' }));
     navEl.appendChild(h('a', { href: '#/registrieren', 'data-r': '/registrieren', class: 'acct reg', text: 'Registrieren' }));
   }
+  navEl.appendChild(h('a', { href: '#/handbuch', 'data-r': '/handbuch', class: 'navhelp', title: 'Handbuch' }, [h('span', { html: ico('book') }), 'Handbuch']));
   markNav();
 }
 function markNav() {

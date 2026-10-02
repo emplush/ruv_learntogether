@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.25.0 (02.10.2026)
+- **Profilbilder:** Hochladen mit Ausschnitt und Zoom (quadratisch, als Kreis angezeigt) oder Auswahl aus rund 35 Illustrationen (Personen, Figuren, Tiere, R+V-Motive, mit KI-Label). Sichtbar im eigenen Profil und, nach Freigabe, im Profil-Popup. Jederzeit löschbar.
+- **Admin:** Hochladen von Profilbildern ein- und ausschaltbar (System › Allgemein), Profilbilder in der Nutzerliste löschbar. Neuer Bereich **Katalog › Fotos** für eigene Fotos als Platzhalterbilder (z. B. aus der R+V-Mediendatenbank).
+- **Platzhalterbilder:** 20 weitere Motive, vor allem zu privaten Themen (rund 70 insgesamt). Fotos der Administration stehen oben im Auswahlfenster.
+- **Meine Anmeldungen / Meine Veranstaltungen:** Jede Karte zeigt das Bild der Veranstaltung.
+- **Navigation:** Konto-Bereich durch eine Linie abgesetzt, Profil hervorgehoben, Handbuch am Ende.
+- **Profil:** Rakete an „Themen und Expertenstatus“. Bewertungskachel zeigt ohne Bewertung 0 Sterne und darunter, aus wie vielen Bewertungen und Veranstaltungen sich der Wert ergibt.
+- **Statistik neu gegliedert:** sechs Bereiche (Überblick, Veranstaltungen, Themen und Formate, Nutzende, Bewertungen, Datenschutz) mit eigenen Kennzahlen und „Bereich als PDF“. Neu: Absagequote, aktive Konten, öffentliche Profile, Profilbilder, Expertenstatus, Bewertungsquote, Angebot nach Thema, Bilder der Veranstaltungen, letzte Anmeldung, Konten nach Abzeichen, Bewertung nach Thema, bestbewertete Veranstaltungen, nächste Anonymisierungen.
+
 ## 0.24.0 (02.10.2026)
 - **Breitere Ansichten:** „Veranstaltung anbieten“, „Meine Anmeldungen“, „Meine Veranstaltungen“ und das Profil nutzen die volle Breite.
 - **Umschaltbare Bereiche:** „Anstehend“ und „Vergangen“ in „Meine Anmeldungen“ und „Meine Veranstaltungen“. Termin und Uhrzeit stehen jeweils in einer Zeile.

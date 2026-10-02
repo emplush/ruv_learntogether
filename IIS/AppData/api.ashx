@@ -49,6 +49,9 @@ namespace LearnTogether
         public bool showUpcoming { get; set; }
         public string bio { get; set; }
         public bool publicHintOff { get; set; }   // Hinweis zum Veroeffentlichen weggeklickt
+        public string avatar { get; set; }        // "" | "upload" | Kennung eines Platzhalter-Profilbilds
+        public long avatarVer { get; set; }
+        public bool showAvatar { get; set; }
         public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); }
     }
 
@@ -115,6 +118,14 @@ namespace LearnTogether
         public DataFile() { events = new List<EventRec>(); bookings = new List<BookingRec>(); users = new List<UserRec>(); notes = new List<NoteRec>(); }
     }
 
+    public class PhotoRec
+    {
+        public string id { get; set; }
+        public string name { get; set; }
+        public string keywords { get; set; }
+        public long ver { get; set; }
+    }
+
     public class SettingsRec
     {
         public string appTitle { get; set; }
@@ -135,8 +146,11 @@ namespace LearnTogether
         public string heroText { get; set; }
         public List<int> badgeLevels { get; set; }
         public int expertMin { get; set; }
+        public bool avatarUploadOff { get; set; }      // Hochladen eigener Profilbilder abgeschaltet
+        public List<PhotoRec> photos { get; set; }      // eigene Fotos als Platzhalterbilder
         public SettingsRec()
         {
+            photos = new List<PhotoRec>();
             appTitle = "LearnTogether@AD";
             passwordHash = "";
             tokenSecret = "";
@@ -189,7 +203,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.24.0";
+        const string Version = "0.25.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -222,9 +236,12 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": { bool w; string we; CheckWritable(out w, out we); Send(new { ok = true, server = true, version = Version, writable = w, storageError = we }); break; }
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText }, badges = new { levels = ps.badgeLevels, expertMin = ps.expertMin } }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText }, badges = new { levels = ps.badgeLevels, expertMin = ps.expertMin }, avatarUpload = !ps.avatarUploadOff, photos = ps.photos ?? new List<PhotoRec>() }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
+                    case "photo": ServePhoto(); break;
+                    case "avatar": ServeAvatar(); break;
+                    case "setAvatar": SetAvatar(); break;
                     case "register": Register(); break;
                     case "login": Login(); break;
                     case "logout": Logout(); break;
@@ -289,6 +306,9 @@ namespace LearnTogether
                     case "adminSaveEvent": AdminSaveEvent(d, me); break;
                     case "adminDeleteEvent": AdminDeleteEvent(d); break;
                     case "adminDeleteBooking": AdminDeleteBooking(d); break;
+                    case "adminDeleteAvatar": AdminDeleteAvatar(d); break;
+                    case "adminSavePhoto": AdminSavePhoto(); break;
+                    case "adminDeletePhoto": AdminDeletePhoto(); break;
                     case "adminSettings": AdminSettings(); break;
                     case "adminSaveSettings": AdminSaveSettings(); break;
                     case "adminSaveTaxonomy": AdminSaveTaxonomy(); break;
@@ -1224,7 +1244,8 @@ namespace LearnTogether
                     offered = new { held = heldOffered, upcoming = upcomingOffered, cancelled = cancelledOffered, ratingAvg = ratingCount > 0 ? Math.Round(ratingSum / (double)ratingCount, 2) : 0, ratingCount = ratingCount, list = offered },
                     attended = new { held = heldAttended, upcoming = upcomingAttended, rated = rated, list = attended },
                     topics = topics,
-                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, bio = me.bio ?? "" }
+                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, bio = me.bio ?? "" },
+                    avatar = AvatarInfo(me, s, true), avatarUpload = !s.avatarUploadOff
                 });
             }
         }
@@ -1240,10 +1261,141 @@ namespace LearnTogether
             lock (Gate)
             {
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
-                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.bio = bio.Trim();
+                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.showAvatar = B(b, "showAvatar") && !string.IsNullOrEmpty(me.avatar); me.bio = bio.Trim();
                 SaveData(d);
                 Send(new { ok = true });
             }
+        }
+
+        // ---------------------------------------------------------------- Profilbilder
+        // Beschreibung des Profilbilds; ein hochgeladenes Bild nur, wenn das Hochladen erlaubt ist (oder fuer die eigene/Admin-Ansicht)
+        object AvatarInfo(UserRec u, SettingsRec s, bool own)
+        {
+            if (string.IsNullOrEmpty(u.avatar)) return null;
+            if (u.avatar == "upload")
+            {
+                if (s.avatarUploadOff && !own) return null;
+                return new { kind = "upload", url = "AppData/api.ashx?action=avatar&u=" + Uri.EscapeDataString(u.username) + "&v=" + u.avatarVer, hidden = s.avatarUploadOff };
+            }
+            return new { kind = "ph", id = u.avatar };
+        }
+
+        string AvatarDir() { string dir = Path.Combine(DataDir(), "avatar"); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); return dir; }
+        void DeleteAvatarFile(string uid) { string p = Path.Combine(AvatarDir(), uid + ".jpg"); if (File.Exists(p)) File.Delete(p); }
+
+        void SetAvatar()
+        {
+            Dictionary<string, object> b = Body();
+            string kind = S(b, "kind");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true); SettingsRec s = LoadSettings();
+                if (kind == "upload")
+                {
+                    if (s.avatarUploadOff) throw new ApiException("forbidden", "Das Hochladen von Profilbildern ist zurzeit abgeschaltet.");
+                    Match m = Regex.Match(S(b, "imageData"), "^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$");
+                    if (!m.Success) throw new ApiException("invalid", "Das Bildformat wird nicht unterstützt.");
+                    byte[] bytes = Convert.FromBase64String(m.Groups[1].Value);
+                    if (bytes.Length > 1024 * 1024) throw new ApiException("invalid", "Das Bild ist zu groß (maximal 1 MB).");
+                    File.WriteAllBytes(Path.Combine(AvatarDir(), me.id + ".jpg"), bytes);
+                    me.avatar = "upload"; me.avatarVer = DateTime.UtcNow.Ticks;
+                }
+                else if (kind == "ph")
+                {
+                    string id = S(b, "id");
+                    if (!Regex.IsMatch(id, "^[a-z0-9-]{1,40}$")) throw new ApiException("invalid", "Unbekanntes Profilbild.");
+                    DeleteAvatarFile(me.id); me.avatar = id; me.avatarVer = DateTime.UtcNow.Ticks;
+                }
+                else { DeleteAvatarFile(me.id); me.avatar = ""; me.showAvatar = false; }
+                SaveData(d);
+                Send(new { ok = true, avatar = AvatarInfo(me, s, true) });
+            }
+        }
+
+        // Hochgeladenes Profilbild: fuer die Person selbst, die Administration oder bei freigegebenem oeffentlichem Profil
+        void ServeAvatar()
+        {
+            string un = (ctx.Request.QueryString["u"] ?? "").Trim().ToLowerInvariant();
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, false); SettingsRec s = LoadSettings();
+                UserRec u = d.users.Find(delegate (UserRec x) { return x.username.ToLowerInvariant() == un; });
+                bool own = me != null && u != null && (me.id == u.id || me.role == "admin" || me.role == "superadmin");
+                bool pub = u != null && u.profilePublic && u.showAvatar && !u.locked && !s.avatarUploadOff;
+                string p = u == null ? "" : Path.Combine(AvatarDir(), u.id + ".jpg");
+                if (u == null || u.avatar != "upload" || !(own || pub) || !File.Exists(p)) { ctx.Response.StatusCode = 404; return; }
+                ctx.Response.ContentType = "image/jpeg";
+                ctx.Response.Cache.SetCacheability(HttpCacheability.Private);
+                ctx.Response.Cache.SetMaxAge(TimeSpan.FromHours(1));
+                ctx.Response.WriteFile(p);
+            }
+        }
+
+        void AdminDeleteAvatar(DataFile d)
+        {
+            UserRec u = FindUser(d, S(Body(), "id"));
+            if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
+            DeleteAvatarFile(u.id); u.avatar = ""; u.showAvatar = false; SaveData(d);
+            Send(new { ok = true });
+        }
+
+        // ---------------------------------------------------------------- Eigene Fotos als Platzhalterbilder (Admin)
+        string PhotoDir() { string dir = Path.Combine(DataDir(), "photos"); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); return dir; }
+
+        void AdminSavePhoto()
+        {
+            Dictionary<string, object> b = Body();
+            string id = S(b, "id"), name = S(b, "name"), kw = S(b, "keywords"), img = S(b, "imageData");
+            if (name.Length < 2 || name.Length > 40) throw new ApiException("invalid", "Der Name muss zwischen 2 und 40 Zeichen lang sein.");
+            if (kw.Length > 200) throw new ApiException("invalid", "Die Suchbegriffe dürfen höchstens 200 Zeichen lang sein.");
+            lock (Gate)
+            {
+                SettingsRec s = LoadSettings(); if (s.photos == null) s.photos = new List<PhotoRec>();
+                PhotoRec ph = s.photos.Find(delegate (PhotoRec x) { return x.id == id; });
+                if (ph == null)
+                {
+                    if (img.Length == 0) throw new ApiException("invalid", "Bitte wähle ein Foto aus.");
+                    if (s.photos.Count >= 200) throw new ApiException("invalid", "Es sind höchstens 200 Fotos möglich.");
+                    ph = new PhotoRec(); ph.id = "f-" + NewId(); s.photos.Add(ph);
+                }
+                if (img.Length > 0)
+                {
+                    Match m = Regex.Match(img, "^data:image/jpeg;base64,([A-Za-z0-9+/=]+)$");
+                    if (!m.Success) throw new ApiException("invalid", "Das Bildformat wird nicht unterstützt.");
+                    byte[] bytes = Convert.FromBase64String(m.Groups[1].Value);
+                    if (bytes.Length > 2 * 1024 * 1024) throw new ApiException("invalid", "Das Foto ist zu groß (maximal 2 MB).");
+                    File.WriteAllBytes(Path.Combine(PhotoDir(), ph.id + ".jpg"), bytes);
+                    ph.ver = DateTime.UtcNow.Ticks;
+                }
+                ph.name = name; ph.keywords = kw;
+                SaveSettings(s);
+                Send(new { ok = true, photos = s.photos });
+            }
+        }
+
+        void AdminDeletePhoto()
+        {
+            string id = S(Body(), "id");
+            lock (Gate)
+            {
+                SettingsRec s = LoadSettings(); if (s.photos == null) s.photos = new List<PhotoRec>();
+                s.photos.RemoveAll(delegate (PhotoRec x) { return x.id == id; });
+                string p = Path.Combine(PhotoDir(), Regex.Replace(id, "[^a-z0-9-]", "") + ".jpg");
+                if (File.Exists(p)) File.Delete(p);
+                SaveSettings(s);
+                Send(new { ok = true, photos = s.photos });
+            }
+        }
+
+        void ServePhoto()
+        {
+            string id = Regex.Replace(ctx.Request.QueryString["id"] ?? "", "[^a-z0-9-]", "");
+            string p = Path.Combine(PhotoDir(), id + ".jpg");
+            if (id.Length == 0 || !File.Exists(p)) { ctx.Response.StatusCode = 404; return; }
+            ctx.Response.ContentType = "image/jpeg";
+            ctx.Response.Cache.SetCacheability(HttpCacheability.Public);
+            ctx.Response.Cache.SetMaxAge(TimeSpan.FromDays(30));
+            ctx.Response.WriteFile(p);
         }
 
         // Name, XV-Nummer und E-Mail-Adresse aendern (mit dem aktuellen Passwort bestaetigt)
@@ -1294,6 +1446,7 @@ namespace LearnTogether
                 Badges bd = BuildBadges(d, s, now);
                 Dictionary<string, object> p = new Dictionary<string, object>();
                 p["username"] = u.username; p["level"] = bd.Level(u.id); p["bio"] = u.bio ?? ""; p["offered"] = bd.Count(u.id);
+                if (u.showAvatar) { object av = AvatarInfo(u, s, false); if (av != null) p["avatar"] = av; }
                 List<object> topics = new List<object>(), experts = new List<object>();
                 foreach (KeyValuePair<string, int> kv in bd.topic)
                 {
@@ -1373,7 +1526,7 @@ namespace LearnTogether
                     EventRec ev = FindEvent(d, bk.eventId);
                     if (ev != null && !ev.cancelled && Ended(ev, now)) attended++;
                 }
-                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, lastLogin = u.lastLogin ?? "", isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), attended = attended });
+                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, lastLogin = u.lastLogin ?? "", isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), attended = attended, profilePublic = u.profilePublic, avatar = AvatarInfo(u, LoadSettings(), true) });
             }
             Send(new { ok = true, users = l });
         }
@@ -1475,7 +1628,7 @@ namespace LearnTogether
         void AdminSettings()
         {
             SettingsRec s = LoadSettings();
-            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword });
+            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>() });
         }
 
         void AdminSaveSettings()
@@ -1510,6 +1663,7 @@ namespace LearnTogether
                     }
                     s.badgeLevels = lv;
                 }
+                if (b.ContainsKey("avatarUpload")) s.avatarUploadOff = !B(b, "avatarUpload");
                 if (b.ContainsKey("expertMin"))
                 {
                     int em = I(b, "expertMin");
@@ -1547,7 +1701,7 @@ namespace LearnTogether
                         Dictionary<string, object> x = o as Dictionary<string, object>; if (x == null) continue;
                         UserRec u = new UserRec(); u.id = "t-" + NewId(); u.username = S(x, "username"); u.firstName = S(x, "firstName"); u.lastName = S(x, "lastName"); u.xv = S(x, "xv"); u.email = S(x, "email").ToLowerInvariant();
                         u.pwHash = testHash; u.created = NowIso(); u.isTest = true;
-                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.bio = S(x, "bio");
+                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
                         if (d.users.Exists(delegate (UserRec y) { return y.username.ToLowerInvariant() == u.username.ToLowerInvariant() || y.email == u.email || y.xv == u.xv; })) continue;
                         d.users.Add(u); ids[u.username] = u.id; nu++;
                     }
