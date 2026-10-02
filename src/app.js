@@ -1234,7 +1234,7 @@ function starPicker(onChoose) {
 /* Angemeldeter Benutzer */
 var state = { settings: { appTitle: DEFAULT_TITLE }, events: [], me: null };
 function isAdmin() { return !!state.me && (state.me.role === 'admin' || state.me.role === 'superadmin'); }
-function goLogin() { var cur = (location.hash || '#/').slice(1); location.hash = '#/anmelden?next=' + encodeURIComponent(cur); }
+function goLogin() { var cur = (location.hash || '#/').slice(1); if (/^\/(anmelden|registrieren)/.test(cur)) cur = '/'; location.hash = '#/anmelden?next=' + encodeURIComponent(cur); }
 function setMe(me) { state.me = me || null; renderNav(); }
 function refreshMe() { return Api.me().then(function (j) { setMe(j.me); return j.me; }, function () { setMe(null); return null; }); }
 /* Fehler, die eine Anmeldung verlangen: Sitzung abgelaufen oder Konto gesperrt */
@@ -1666,6 +1666,7 @@ function participationCard(info, uid, o) {
 function afterLogin(me, q) {
   setMe(me);
   var nx = q && q.next ? q.next : '/';
+  if (/^\/(anmelden|registrieren)/.test(nx)) nx = '/';
   if (me.mustChange) nx = '/profil';
   location.hash = '#' + (nx.charAt(0) === '/' ? nx : '/');
 }
@@ -1687,6 +1688,11 @@ function viewLogin(q) {
   wrap.appendChild(h('p', { class: 'lead', text: 'Melde Dich mit Deinem Benutzernamen oder Deiner E-Mail-Adresse an.' }));
   wrap.appendChild(form);
   wrap.appendChild(h('p', { style: 'margin-top:24px' }, ['Noch kein Konto? ', h('a', { href: '#/registrieren' + (q.next ? '?next=' + encodeURIComponent(q.next) : ''), text: 'Jetzt registrieren' })]));
+  /* Hilfe bei vergessenem Passwort: auf dem Server die Administration, in der Demo das Zurücksetzen der Demodaten */
+  wrap.appendChild(h('details', { class: 'login-help' }, [h('summary', { text: 'Passwort vergessen?' }),
+    mode === 'local' ? h('div', null, [h('p', { text: 'Dies ist die Demo. Die Daten liegen nur in diesem Browser. Hast Du das Passwort geändert und vergessen, setzt Du die Demo zurück. Danach gilt wieder admin mit RuVTest1234, alle Änderungen in der Demo gehen dabei verloren.' }),
+      twoStep(h('button', { type: 'button', class: 'btn btn-danger btn-sm', text: 'Demo zurücksetzen' }), 'Demo zurücksetzen', 'Wirklich zurücksetzen?', function () { Local.reset(); location.hash = '#/anmelden'; location.reload(); })])
+      : h('p', { text: 'Wende Dich an die Administration. Sie vergibt Dir ein vorläufiges Passwort. Nach mehreren Fehlversuchen ist die Anmeldung für fünf Minuten gesperrt.' })]));
   setTimeout(function () { id.focus(); }, 30);
   return root;
 }
@@ -2455,7 +2461,7 @@ function shell() {
   if (mode === 'local') {
     var why = CFG.mode === 'artifact' ? null : (diag || 'Der Server wurde nicht erreicht.');
     var det = why ? h('details', { class: 'demo-why' }, [h('summary', { text: 'Warum Demo-Modus?' }), h('p', { text: why }), h('p', { class: 'hint', text: 'Geprüfte Adresse: ' + location.origin + API + '?action=ping' }), h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Erneut prüfen', onclick: function () { location.reload(); } })]) : null;
-    document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser. Administration: Benutzername admin, Passwort RuVTest1234. Beispielnutzer (z. B. anna.b) haben das Passwort Test-Passwort-2026.' }), det])));
+    document.body.appendChild(h('div', { class: 'demo-banner' }, h('div', { class: 'wrap' }, [h('b', { text: 'Demo-Modus' }), h('span', { text: 'Die Daten liegen nur in diesem Browser. Administration: Benutzername admin, Startpasswort RuVTest1234 (gilt, bis es geändert wird). Beispielnutzer (z. B. anna.b) haben das Passwort Test-Passwort-2026.' }), det])));
   }
   if (mode === 'server' && pingInfo && pingInfo.writable === false) document.body.appendChild(h('div', { class: 'notice bad', role: 'alert', style: 'border-radius:0;padding:12px 16px' }, [h('b', { text: 'Server erreicht, aber Speichern nicht möglich. ' }), pingInfo.storageError || 'Dem Anwendungspool fehlen Schreibrechte auf AppData\\Data.']));
   appEl = h('main', { id: 'main', tabindex: '-1' }); document.body.appendChild(appEl);

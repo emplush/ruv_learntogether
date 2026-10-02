@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.25.1 (02.10.2026)
+- **Anmeldung:** Das Sitzungs-Cookie richtet sich nach der Schreibweise der aufgerufenen Adresse. Groß- und Kleinschreibung im Pfad verhindern die Anmeldung auf dem IIS nicht mehr.
+- **Sperre je IP-Adresse:** Grenze von 5 auf 50 Fehlversuche erhöht. Ein gemeinsamer Internetausgang sperrt nicht mehr alle Konten. Je Benutzername bleibt es bei 5 Versuchen.
+- **Anmeldeseite:** Neuer Bereich „Passwort vergessen?“. In der Demo setzt „Demo zurücksetzen“ alles auf admin / RuVTest1234 zurück.
+- **Weiterleitung:** Nach der Anmeldung führt die App nie mehr zurück auf die Anmeldeseite.
+
 ## 0.25.0 (02.10.2026)
 - **Profilbilder:** Hochladen mit Ausschnitt und Zoom (quadratisch, als Kreis angezeigt) oder Auswahl aus rund 35 Illustrationen (Personen, Figuren, Tiere, R+V-Motive, mit KI-Label). Sichtbar im eigenen Profil und, nach Freigabe, im Profil-Popup. Jederzeit löschbar.
 - **Admin:** Hochladen von Profilbildern ein- und ausschaltbar (System › Allgemein), Profilbilder in der Nutzerliste löschbar. Neuer Bereich **Katalog › Fotos** für eigene Fotos als Platzhalterbilder (z. B. aus der R+V-Mediendatenbank).

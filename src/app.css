@@ -704,3 +704,4 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 .st-sec-head h3 { font-size: 1.25rem; }
 .prof-sec h2 .bdg { margin-right: 2px; }
 .au-row { display: flex; gap: 10px; align-items: flex-start; } .au-noav { width: 44px; flex: none; }
+.login-help { margin-top: 16px; max-width: 640px; } .login-help summary { cursor: pointer; color: var(--link); font-weight: 700; } .login-help > div, .login-help > p { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }

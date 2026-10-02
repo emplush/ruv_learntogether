@@ -592,7 +592,9 @@ namespace LearnTogether
 
         void WriteCookie(string value, int maxAge)
         {
-            string path = ctx.Request.ApplicationPath; if (string.IsNullOrEmpty(path)) path = "/";
+            // Pfad genau so, wie der Browser die Seite aufruft (Gross-/Kleinschreibung!), sonst schickt er das Cookie nicht zurueck
+            string url = ctx.Request.Url.AbsolutePath; int ai = url.ToLowerInvariant().LastIndexOf("/appdata/");
+            string path = ai >= 0 ? url.Substring(0, ai + 1) : "/";
             ctx.Response.AppendHeader("Set-Cookie", "lt_session=" + value + "; Path=" + path + "; Max-Age=" + maxAge + "; HttpOnly; SameSite=Strict" + (ctx.Request.IsSecureConnection ? "; Secure" : ""));
         }
 
@@ -628,7 +630,9 @@ namespace LearnTogether
             lock (AuthFails)
             {
                 int[] f;
-                if (AuthFails.TryGetValue(key, out f) && f[0] >= 5 && Environment.TickCount - f[1] < 5 * 60 * 1000)
+                // je Rechner (IP) grosszuegiger: hinter einem Firmen-Proxy teilen sich viele Personen eine Adresse
+                int limit = key.StartsWith("i:") ? 50 : 5;
+                if (AuthFails.TryGetValue(key, out f) && f[0] >= limit && Environment.TickCount - f[1] < 5 * 60 * 1000)
                     throw new ApiException("locked", "Zu viele Fehlversuche. Bitte warte fünf Minuten und versuche es dann erneut.");
             }
         }

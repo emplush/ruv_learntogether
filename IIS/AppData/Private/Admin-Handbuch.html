@@ -28,7 +28,7 @@
 <ul>
 <li>Passwörter werden mit PBKDF2-SHA256 (100.000 Runden, eigener Salt) gespeichert, nie im Klartext.</li>
 <li>Die Sitzung liegt in einem signierten Cookie, das für Skripte nicht lesbar ist (HttpOnly, SameSite=Strict). Schreibende Aufrufe verlangen einen Zusatz-Header gegen Fremdaufrufe (CSRF-Schutz).</li>
-<li>Nach <b>fünf falschen Versuchen</b> sperrt die Anwendung die Anmeldung für fünf Minuten, je Benutzername und je Rechner. Auch die Registrierung ist begrenzt.</li>
+<li>Nach <b>fünf falschen Versuchen</b> sperrt die Anwendung die Anmeldung für fünf Minuten, je Benutzername. Je IP-Adresse gilt eine Grenze von 50 Fehlversuchen, damit ein gemeinsamer Ausgang im Firmennetz nicht alle sperrt. Auch die Registrierung ist begrenzt.</li>
 <li>Passwörter brauchen mindestens 10 Zeichen. Bekannte Passwörter und Passwörter mit Benutzername oder Teilen der E-Mail-Adresse lehnt die Anwendung ab. Ein neues Passwort beendet alle anderen Sitzungen des Kontos.</li>
 </ul>
 <div class="tip"><b>Wichtig:</b> Läuft die Anwendung nur über HTTP, laufen Passwörter unverschlüsselt durch das Netz. Das Cookie erhält dann kein Secure-Merkmal. Schalte HTTPS ein, sobald es technisch möglich ist. Die Anwendung erkennt HTTPS selbst und setzt dann das Secure-Merkmal.</div>
@@ -212,8 +212,8 @@
 <tr><td>Roter Hinweis „Speichern nicht möglich“</td><td>Dem Anwendungspool fehlen Schreibrechte auf <code>AppData\Data</code>.</td></tr>
 <tr><td>HTTP 500 beim Aufruf von api.ashx</td><td>Öffne <code>AppData/selftest.ashx</code>. Die Seite zeigt .NET-Version, Pool-Benutzer und Schreibrechte. Fehlermeldungen des Servers stehen in <code>AppData\Data\error.log</code>.</td></tr>
 <tr><td>Änderungen erscheinen nicht</td><td>Browser-Cache mit <kbd>Strg</kbd>+<kbd>F5</kbd> umgehen.</td></tr>
-<tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten.</td></tr>
-<tr><td>Nach der Anmeldung folgt sofort wieder die Anmeldeseite</td><td>Das Sitzungs-Cookie kommt nicht an. Prüfe, ob die Adresse im Browser immer gleich lautet (gleicher Servername, gleiches Protokoll) und ob Cookies erlaubt sind.</td></tr>
+<tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten. Ein Neustart des Anwendungspools hebt alle Sperren sofort auf.</td></tr>
+<tr><td>Nach der Anmeldung folgt sofort wieder die Anmeldeseite</td><td>Das Sitzungs-Cookie kommt nicht an. Prüfe, ob die Adresse im Browser immer gleich lautet (gleicher Servername, gleiches Protokoll) und ob Cookies erlaubt sind. Ab Version 0.25.1 richtet sich der Cookie-Pfad nach der Schreibweise der aufgerufenen Adresse. Ersetze dafür <code>AppData\api.ashx</code>.</td></tr>
 <tr><td>Passwort der Hauptadministration vergessen</td><td>Siehe Kapitel „Nutzer und Rechte“. Andere Konten setzt die Administration über „Passwort zurücksetzen“ zurück.</td></tr>
 </table>
 
