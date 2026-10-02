@@ -41,6 +41,13 @@ namespace LearnTogether
         public int legacyRatingSum { get; set; }
         public int legacyRatingCount { get; set; }
         public Dictionary<string, int> legacyTopics { get; set; }
+        // Oeffentliches Profil: nur was hier freigegeben ist, sehen andere
+        public bool profilePublic { get; set; }
+        public bool showRating { get; set; }
+        public bool showExpert { get; set; }
+        public bool showEmail { get; set; }
+        public bool showUpcoming { get; set; }
+        public string bio { get; set; }
         public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); }
     }
 
@@ -230,6 +237,8 @@ namespace LearnTogether
                     case "rate": Rate(); break;
                     case "markRead": MarkRead(); break;
                     case "profile": Profile(); break;
+                    case "saveProfile": SaveProfile(); break;
+                    case "publicProfile": PublicProfile(); break;
                     default:
                         AdminAction(action);
                         break;
@@ -904,6 +913,7 @@ namespace LearnTogether
         {
             Dictionary<string, object> x = new Dictionary<string, object>();
             x["id"] = e.id; x["title"] = e.title; x["host"] = HostName(d, e); x["hostLevel"] = bd.Level(e.ownerId); x["hostExpert"] = bd.Expert(e.ownerId, e.category, e.topic);
+            { UserRec ho = FindUser(d, e.ownerId); x["hostPublic"] = ho != null && ho.profilePublic && !ho.locked; }
             x["category"] = e.category; x["type"] = e.type; x["topic"] = e.topic; x["date"] = e.date; x["start"] = e.start; x["duration"] = e.duration; x["capacity"] = e.capacity;
             x["description"] = e.description; x["isTest"] = e.isTest;
             x["image"] = e.hasImage ? "AppData/api.ashx?action=img&id=" + e.id + "&v=" + e.imgVer : null;
@@ -1186,8 +1196,76 @@ namespace LearnTogether
                     badge = new { level = lvl, offered = heldOffered, levels = s.badgeLevels, next = next, expertMin = s.expertMin },
                     offered = new { held = heldOffered, upcoming = upcomingOffered, cancelled = cancelledOffered, ratingAvg = ratingCount > 0 ? Math.Round(ratingSum / (double)ratingCount, 2) : 0, ratingCount = ratingCount, list = offered },
                     attended = new { held = heldAttended, upcoming = upcomingAttended, rated = rated, list = attended },
-                    topics = topics
+                    topics = topics,
+                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, bio = me.bio ?? "" }
                 });
+            }
+        }
+
+        // Profil-Freigaben speichern
+        void SaveProfile()
+        {
+            Dictionary<string, object> b = Body();
+            string bio = (S(b, "bio") ?? "").Replace("\r", "");
+            bio = Regex.Replace(bio, "[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", "");
+            if (bio.Length > 300) throw new ApiException("invalid", "Die Beschreibung darf höchstens 300 Zeichen lang sein.");
+            if (Regex.Matches(bio, "\n").Count > 6) throw new ApiException("invalid", "Die Beschreibung darf höchstens 7 Zeilen haben.");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.bio = bio.Trim();
+                SaveData(d);
+                Send(new { ok = true });
+            }
+        }
+
+        // Oeffentliches Profil: Benutzername und Zaehler immer, alles andere nur nach Freigabe
+        void PublicProfile()
+        {
+            string un = (ctx.Request.QueryString["username"] ?? "").Trim().ToLowerInvariant();
+            DateTime now = NowBerlin();
+            lock (Gate)
+            {
+                DataFile d = LoadData(); SettingsRec s = LoadSettings(); UserRec me = Auth(d, false);
+                UserRec u = d.users.Find(delegate (UserRec x) { return x.username.ToLowerInvariant() == un; });
+                if (u == null || !u.profilePublic || u.locked) throw new ApiException("notfound", "Dieses Profil ist nicht öffentlich oder gibt es nicht.");
+                Badges bd = BuildBadges(d, s, now);
+                Dictionary<string, object> p = new Dictionary<string, object>();
+                p["username"] = u.username; p["level"] = bd.Level(u.id); p["bio"] = u.bio ?? ""; p["offered"] = bd.Count(u.id);
+                List<object> topics = new List<object>(), experts = new List<object>();
+                foreach (KeyValuePair<string, int> kv in bd.topic)
+                {
+                    if (!kv.Key.StartsWith(u.id + "|")) continue;
+                    string[] q = kv.Key.Split('|');
+                    topics.Add(new { category = q[1], topic = q[2], count = kv.Value });
+                    if (kv.Value >= s.expertMin) experts.Add(new { category = q[1], topic = q[2] });
+                }
+                p["topics"] = topics;
+                if (u.showExpert) p["experts"] = experts;
+                if (u.showEmail) p["email"] = u.email;
+                if (u.showRating)
+                {
+                    int sum = u.legacyRatingSum, cnt = u.legacyRatingCount;
+                    foreach (EventRec ev in d.events)
+                    {
+                        if (ev.ownerId != u.id || ev.cancelled || !Ended(ev, now)) continue;
+                        foreach (BookingRec bk in d.bookings) if (bk.eventId == ev.id && bk.rating > 0) { sum += bk.rating; cnt++; }
+                    }
+                    p["ratingAvg"] = cnt > 0 ? Math.Round(sum / (double)cnt, 2) : 0; p["ratingCount"] = cnt;
+                }
+                if (u.showUpcoming)
+                {
+                    List<object> up = new List<object>();
+                    foreach (EventRec ev in d.events)
+                    {
+                        if (ev.ownerId != u.id || ev.cancelled || StartOfSafe(ev.date, ev.start) <= now) continue;
+                        int booked = CountBookings(d, ev.id);
+                        bool mine = me != null && d.bookings.Exists(delegate (BookingRec bk) { return bk.eventId == ev.id && bk.userId == me.id; });
+                        up.Add(new { id = ev.id, category = ev.category, title = ev.title, topic = ev.topic, type = ev.type, date = ev.date, start = ev.start, duration = ev.duration, capacity = ev.capacity, booked = booked, mine = mine, own = me != null && me.id == u.id });
+                    }
+                    p["upcoming"] = up;
+                }
+                Send(new { ok = true, profile = p });
             }
         }
 
@@ -1407,6 +1485,7 @@ namespace LearnTogether
                         Dictionary<string, object> x = o as Dictionary<string, object>; if (x == null) continue;
                         UserRec u = new UserRec(); u.id = "t-" + NewId(); u.username = S(x, "username"); u.firstName = S(x, "firstName"); u.lastName = S(x, "lastName"); u.xv = S(x, "xv"); u.email = S(x, "email").ToLowerInvariant();
                         u.pwHash = testHash; u.created = NowIso(); u.isTest = true;
+                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.bio = S(x, "bio");
                         if (d.users.Exists(delegate (UserRec y) { return y.username.ToLowerInvariant() == u.username.ToLowerInvariant() || y.email == u.email || y.xv == u.xv; })) continue;
                         d.users.Add(u); ids[u.username] = u.id; nu++;
                     }

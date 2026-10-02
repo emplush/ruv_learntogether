@@ -43,6 +43,8 @@ await p.locator('.panel:has-text("Social Selling") summary').click().catch(() =>
 await shot('meine-veranstaltungen', { fullPage: false, clip: { x: 200, y: 60, width: 880, height: 800 } });
 await go('#/profil'); await p.waitForSelector('.prof-head'); await p.waitForTimeout(300); await p.setViewportSize({ width: 1280, height: 1250 });
 await shot('profil', { clip: { x: 200, y: 60, width: 880, height: 1180 } }); await p.setViewportSize({ width: 1280, height: 900 });
+await p.locator('#pub-box').scrollIntoViewIfNeeded(); await p.locator('#pub-box').screenshot({ path: path.join(out, 'profil-freigaben.jpg'), type: 'jpeg', quality: 80 });
+await p.click('#pub-box button:has-text("So sehen andere")'); await p.waitForSelector('.pubprof h2'); await p.waitForTimeout(200); await p.locator('.modal').screenshot({ path: path.join(out, 'profil-oeffentlich.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
 await p.click('.navout'); await p.waitForTimeout(300);
 // ---- Administration
 await login('admin', 'RuVTest1234'); await p.waitForSelector('#p-cur');

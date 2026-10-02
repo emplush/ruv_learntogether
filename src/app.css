@@ -574,3 +574,14 @@ nav.main .navout { padding: 8px 10px; font-size: .9rem; }
 details.cancel-box > summary { cursor: pointer; font-weight: 700; color: var(--link); }
 details.cancel-box[open] > summary { margin-bottom: 10px; }
 .st-kpi .hint { font-size: .78rem; }
+
+.utag-n.ulink { font: inherit; font-weight: 700; background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }
+.utag-n.ulink:hover { text-decoration-thickness: 2px; }
+.pubprof { display: flex; flex-direction: column; gap: 14px; }
+.pubprof .bio { white-space: pre-line; margin: 0; max-width: 60ch; }
+.chklist { display: flex; flex-direction: column; gap: 12px; }
+.chk { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.chk input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: var(--blue); }
+.chk > span { display: flex; flex-direction: column; gap: 2px; }
+.chk.master { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.chk input:disabled + span { opacity: .55; }

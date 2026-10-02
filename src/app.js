@@ -239,7 +239,7 @@ function buildTestData() {
   var L = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_TESTDATEN%40thread.v2/0';
   var TU = [['anna.b', 'Anna', 'Berger'], ['markus_v', 'Markus', 'Vogel'], ['sabine.k', 'Sabine', 'Krüger'], ['tobias_l', 'Tobias', 'Lang'], ['julia.n', 'Julia', 'Neumann'], ['stefan_r', 'Stefan', 'Roth'], ['katrin.a', 'Katrin', 'Albrecht'], ['jonas.p', 'Jonas', 'Peters'], ['miriam.k', 'Miriam', 'Kessler'], ['oliver_s', 'Oliver', 'Sander'],
     ['lena.h', 'Lena', 'Hoffmann'], ['paul_r', 'Paul', 'Richter'], ['nina.w', 'Nina', 'Wagner'], ['felix.b', 'Felix', 'Braun'], ['clara_s', 'Clara', 'Schulz'], ['max.keller', 'Max', 'Keller'], ['sophie.l', 'Sophie', 'Lorenz'], ['david_w', 'David', 'Winter'], ['emma.f', 'Emma', 'Fuchs'], ['lukas.b', 'Lukas', 'Brandt']];
-  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org' }; });
+  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
   var RATE = [5, 4, 5, 3, 4, 5, 4, 2, 5, 4];
   // [Titel, Host, Kategorie, Art, Thema, Tag-Index, Start, Dauer, Kapazitaet, gebucht, Bild, Beschreibung]
   var rows = [
@@ -360,6 +360,8 @@ var Server = {
   markRead: function (id) { return this.call('markRead', { id: id || '' }); },
   myEvents: function () { return this.call('myEvents'); },
   profile: function () { return this.call('profile'); },
+  saveProfile: function (p) { return this.call('saveProfile', p); },
+  publicProfile: function (username) { return this.call('publicProfile&username=' + encodeURIComponent(username)).then(function (j) { return j; }); },
   adminEvents: function () { return this.call('adminEvents').then(function (j) { return j.events; }); },
   adminUsers: function () { return this.call('adminUsers').then(function (j) { return j.users; }); },
   adminSetRole: function (id, role) { return this.call('adminSetRole', { id: id, role: role }); },
@@ -415,7 +417,7 @@ var Local = (function () {
   function insertTest() {
     removeTest();
     var t = buildTestData(), ids = {}, now = nowIso(), pw = hashPw(TEST_PW);
-    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {} }; data.users.push(u); ids[x.username] = u.id; });
+    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, bio: x.bio || '' }; data.users.push(u); ids[x.username] = u.id; });
     t.events.forEach(function (x) {
       var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true);
       if (x.cancelled) { e.cancelled = true; e.cancelledAt = now; e.cancelReason = x.cancelReason || ''; }
@@ -503,11 +505,12 @@ var Local = (function () {
   }
   function levelOf(B, uid) { var n = (uid && B.offered[uid]) || 0, lv = 0; BADGES.levels.forEach(function (t, i) { if (n >= t) lv = i + 1; }); return lv; }
   function expertOf(B, uid, cat, tp) { return !!uid && (B.topic[uid + '|' + cat + '|' + tp] || 0) >= BADGES.expertMin; }
+  function hostPublic(e) { var u = userById(e.ownerId); return !!u && !!u.profilePublic && !u.locked; }
   function hostName(e) { var u = userById(e.ownerId); return u ? u.username : (e.host || 'Unbekannt'); }
   function ratingOf(eventId) { var s = 0, c = 0; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; } }); return { avg: c ? Math.round(s / c * 100) / 100 : 0, count: c }; }
   function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created }; }
   function eventBase(B, e) {
-    return { id: e.id, title: e.title, host: hostName(e), hostLevel: levelOf(B, e.ownerId), hostExpert: expertOf(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
+    return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: levelOf(B, e.ownerId), hostExpert: expertOf(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
       description: e.description, isTest: !!e.isTest, image: e.imageData || null, cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
@@ -721,7 +724,29 @@ var Local = (function () {
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(me.id + '|') !== 0) return; var p = k.split('|'); topics.push({ category: p[1], topic: p[2], count: B.topic[k], expert: B.topic[k] >= s.expertMin }); });
         var next = null; for (var i = 0; i < s.levels.length; i++) if (heldOffered < s.levels[i]) { next = s.levels[i]; break; }
         return { me: meInfo(me, B), badge: { level: levelOf(B, me.id), offered: heldOffered, levels: s.levels, next: next, expertMin: s.expertMin },
-          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics };
+          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: rc ? Math.round(rs / rc * 100) / 100 : 0, ratingCount: rc, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, bio: me.bio || '' } };
+      });
+    },
+    saveProfile: function (p) {
+      return wrap(function () {
+        var me = curUser(true), bio = String(p.bio || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+        if (bio.length > 300) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 300 Zeichen lang sein.');
+        if ((bio.match(/\n/g) || []).length > 6) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 7 Zeilen haben.');
+        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.bio = bio.trim(); save(); return {};
+      });
+    },
+    publicProfile: function (username) {
+      return wrap(function () {
+        var me = curUser(false), B = badges(), s = BADGES, key = String(username || '').toLowerCase(), now = new Date();
+        var u = data.users.filter(function (x) { return x.username.toLowerCase() === key; })[0];
+        if (!u || !u.profilePublic || u.locked) throw ApiErr('notfound', 'Dieses Profil ist nicht öffentlich oder gibt es nicht.');
+        var p = { username: u.username, level: levelOf(B, u.id), bio: u.bio || '', offered: B.offered[u.id] || 0, topics: [] }, experts = [];
+        Object.keys(B.topic).forEach(function (k) { if (k.indexOf(u.id + '|') !== 0) return; var q = k.split('|'); p.topics.push({ category: q[1], topic: q[2], count: B.topic[k] }); if (B.topic[k] >= s.expertMin) experts.push({ category: q[1], topic: q[2] }); });
+        if (u.showExpert) p.experts = experts;
+        if (u.showEmail) p.email = u.email;
+        if (u.showRating) { var rs = u.legacyRatingSum || 0, rc = u.legacyRatingCount || 0; data.events.forEach(function (ev) { if (ev.ownerId !== u.id || ev.cancelled || !eventEnded(ev)) return; data.bookings.forEach(function (b) { if (b.eventId === ev.id && b.rating > 0) { rs += b.rating; rc++; } }); }); p.ratingAvg = rc ? Math.round(rs / rc * 100) / 100 : 0; p.ratingCount = rc; }
+        if (u.showUpcoming) p.upcoming = data.events.filter(function (ev) { return ev.ownerId === u.id && !ev.cancelled && startDate(ev) > now; }).map(function (ev) { return { id: ev.id, category: ev.category, title: ev.title, topic: ev.topic, type: ev.type, date: ev.date, start: ev.start, duration: ev.duration, capacity: ev.capacity, booked: booked(ev.id), mine: !!me && data.bookings.some(function (b) { return b.eventId === ev.id && b.userId === me.id; }), own: !!me && me.id === u.id }; });
+        return { profile: p };
       });
     },
     /* ---- Admin ---- */
@@ -875,7 +900,60 @@ function badgeNode(level, big) {
 }
 function rocketNode(big) { return h('span', { class: 'bdg rocket' + (big ? ' big' : ''), role: 'img', 'aria-label': 'Expertenstatus im Thema', title: 'Expertenstatus im Thema', html: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ROCKET_SVG + '</svg>' }); }
 /* Benutzername mit Abzeichen (Stufe) und optional der Rakete fuer Experten */
-function userTag(name, level, expert, cls) { return h('span', { class: 'utag' + (cls ? ' ' + cls : '') }, [h('span', { class: 'utag-n', text: name, title: name }), badgeNode(level), expert ? rocketNode() : null]); }
+function userTag(name, level, expert, cls, pub) {
+  var nm = pub ? h('button', { type: 'button', class: 'utag-n ulink', text: name, title: 'Profil von ' + name + ' ansehen', onclick: function (ev) { ev.stopPropagation(); openPublicProfile(name); }, onkeydown: function (ev) { if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation(); } }) : h('span', { class: 'utag-n', text: name, title: name });
+  return h('span', { class: 'utag' + (cls ? ' ' + cls : '') }, [nm, badgeNode(level), expert ? rocketNode() : null]);
+}
+/* Oeffentliches Profil als Popup: zeigt nur, was die Person freigegeben hat */
+function openPublicProfile(username) {
+  var body = h('div', { class: 'modal-body pubprof' }, loading()), m = openModal(body, { wide: true, label: 'Profil von ' + username });
+  Api.publicProfile(username).then(function (r) {
+    var p = r.profile; clear(body);
+    body.appendChild(h('div', { class: 'prof-name' }, [h('h2', { text: p.username, style: 'margin:0;overflow-wrap:anywhere' }), badgeNode(p.level, true), (p.experts && p.experts.length) ? rocketNode(true) : null]));
+    if (p.level) body.appendChild(h('div', { class: 'hint', text: badgeLabel(p.level) }));
+    if (p.bio) body.appendChild(h('p', { class: 'bio', text: p.bio }));
+    var facts = [h('div', null, [h('dt', { text: 'Angebotene Veranstaltungen' }), h('dd', { text: String(p.offered) })])];
+    if (p.ratingCount != null) facts.push(h('div', null, [h('dt', { text: 'Gesamtbewertung' }), h('dd', null, ratingNode(p.ratingAvg, p.ratingCount))]));
+    if (p.email) facts.push(h('div', null, [h('dt', { text: 'Kontakt' }), h('dd', null, h('a', { href: 'mailto:' + p.email, text: p.email }))]));
+    body.appendChild(h('dl', { class: 'facts f3' }, facts));
+    var exp = {}; (p.experts || []).forEach(function (x) { exp[x.category + '|' + x.topic] = 1; });
+    body.appendChild(h('h3', { text: 'Themen', style: 'margin:8px 0 0' }));
+    if (!p.topics.length) body.appendChild(h('p', { class: 'hint', text: 'Noch keine durchgeführte Veranstaltung.' }));
+    else {
+      ['dienstlich', 'privat'].forEach(function (c) {
+        var l = p.topics.filter(function (t) { return t.category === c; }).sort(function (a, b) { return b.count - a.count; });
+        if (!l.length) return;
+        body.appendChild(h('div', null, [h('b', { text: CAT_LABEL[c] }), h('div', { class: 'plist', style: 'margin-top:6px' }, l.map(function (t) { return h('span', { class: 'utag chipu' }, [capFirst(t.topic) + ': ' + t.count, exp[c + '|' + t.topic] ? rocketNode() : null]); }))]));
+      });
+    }
+    if (p.experts) body.appendChild(h('p', { class: 'hint', text: p.experts.length ? 'Expertenstatus in: ' + p.experts.map(function (x) { return capFirst(x.topic); }).join(', ') : 'Noch kein Expertenstatus.' }));
+    if (p.upcoming) {
+      body.appendChild(h('h3', { text: 'Kommende Veranstaltungen', style: 'margin:8px 0 0' }));
+      if (!p.upcoming.length) body.appendChild(h('p', { class: 'hint', text: 'Zurzeit sind keine Veranstaltungen geplant.' }));
+      else {
+        var tb = h('tbody');
+        p.upcoming.sort(function (a, b) { return startDate(a) - startDate(b); }).forEach(function (e) {
+          var cell = h('td', { class: 'r' });
+          function paint() {
+            clear(cell);
+            if (e.own) return;
+            if (e.mine) cell.appendChild(chipEl('mine', 'Du bist angemeldet'));
+            else if (e.booked >= e.capacity) cell.appendChild(chipEl('full', 'Ausgebucht'));
+            else cell.appendChild(h('button', { type: 'button', class: 'btn btn-primary btn-sm', text: 'Buchen', onclick: function (ev) {
+              if (!state.me) { m.close(); goLogin(); return; }
+              ev.currentTarget.disabled = true;
+              Api.book(e.id).then(function () { e.mine = true; e.booked++; toast('Du bist angemeldet. Alles Weitere findest du unter „Meine Anmeldungen“.'); paint(); refreshMe(); }, function (er) { if (authFail(er)) { m.close(); return; } toast(er.message, true); paint(); });
+            } }));
+          }
+          paint();
+          tb.appendChild(h('tr', null, [h('td', { text: CAT_LABEL[e.category] }), h('td', null, h('b', { text: e.title })), h('td', { text: capFirst(e.topic) }), h('td', { text: e.type }), h('td', { text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr' }), cell]));
+        });
+        body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, ['Bereich', 'Titel', 'Thema', 'Art', 'Datum und Uhrzeit', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
+      }
+    }
+    body.appendChild(h('div', null, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Schließen', onclick: m.close })));
+  }, function (er) { clear(body); body.appendChild(h('div', { class: 'notice bad', role: 'alert', text: er.message })); body.appendChild(h('div', { style: 'margin-top:12px' }, h('button', { type: 'button', class: 'btn btn-secondary', text: 'Schließen', onclick: m.close }))); });
+}
 function starsText(avg) { var n = Math.round(avg); return new Array(n + 1).join('★') + new Array(6 - n).join('☆'); }
 function fmtAvg(avg) { return String(Math.round(avg * 10) / 10).replace('.', ','); }
 /* Anzeige einer Bewertung: Sterne und Zahl, ohne Bewertung ein Strich */
@@ -1210,9 +1288,9 @@ function viewCatalog() {
   }
   function tile(e) {
     var f = freeOf(e), full = f <= 0, st = statusChip(e);
-    var t = h('article', { class: 'tile', role: 'listitem', tabindex: '0', 'aria-disabled': full ? 'true' : null, 'aria-label': e.title + ', ' + dateFull(e.date) + ', ' + e.start + ' Uhr' + (full ? ', ausgebucht' : '') }, [
+    var t = h('article', { class: 'tile', role: 'listitem', tabindex: '0', 'aria-label': e.title + ', ' + dateFull(e.date) + ', ' + e.start + ' Uhr' + (full ? ', ausgebucht' : '') }, [
       h('div', { class: 'tile-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type)]), (st || e.mine || e.own) ? h('div', { class: 'chips-b' }, [e.own ? chipEl('mine', 'Dein Angebot') : (e.mine ? chipEl('mine', 'Du bist angemeldet') : null), st]) : null]),
-      h('div', { class: 'tile-body' }, [h('h3', { text: e.title, title: e.title }), h('div', { class: 'tile-meta' }, [h('span', null, [h('b', { text: dateShort(e.date) }), ' ' + e.start + '\u2013' + endHm(e) + ' Uhr']), h('span', { class: 'tile-host' }, [e.duration + '\u00a0Minuten\u00a0\u00b7\u00a0', userTag(e.host, e.hostLevel, e.hostExpert, 'tile-host-n')])])])]);
+      h('div', { class: 'tile-body' }, [h('h3', { text: e.title, title: e.title }), h('div', { class: 'tile-meta' }, [h('span', null, [h('b', { text: dateShort(e.date) }), ' ' + e.start + '\u2013' + endHm(e) + ' Uhr']), h('span', { class: 'tile-host' }, [e.duration + '\u00a0Minuten\u00a0\u00b7\u00a0', userTag(e.host, e.hostLevel, e.hostExpert, 'tile-host-n', e.hostPublic)])])])]);
     function open() { if (!full) openBooking(e, function () { refresh(); }); else toast('Diese Veranstaltung ist ausgebucht.', true); }
     t.addEventListener('click', open); t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
     return t;
@@ -1230,7 +1308,7 @@ function openBooking(e, onChange) {
   var head = h('div', { class: 'bk-side' }, [h('div', { class: 'bk-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]),
     h('dl', { class: 'bk-facts' }, [
       h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(e.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: e.start + ' – ' + endHm(e) + ' Uhr' })]),
-      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(e.host, e.hostLevel, e.hostExpert))])])]);
+      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(e.host, e.hostLevel, e.hostExpert, '', e.hostPublic))])])]);
   var wrapper = h('div', { class: 'bk' }, [head, body]);
   var m = openModal(wrapper, { xwide: true, label: 'Anmeldung: ' + e.title, onClose: onChange });
   function showForm() {
@@ -1305,7 +1383,7 @@ function participationCard(info, uid, o) {
   if (compact) node.appendChild(h('div', { class: 'chips-inline' }, chipEl('topic', capFirst(info.topic))));
   if (!compact) node.appendChild(h('dl', { class: 'facts f4' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
-    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(info.host, info.hostLevel, info.hostExpert))])]));
+    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(info.host, info.hostLevel, info.hostExpert, '', info.hostPublic))])]));
   if (info.cancelled) { node.appendChild(h('div', { class: 'notice warn', role: 'alert' }, h('div', { class: 'n-body' }, [h('b', { text: 'Diese Veranstaltung wurde abgesagt' }), h('div', { text: (info.cancelReason ? 'Grund: ' + info.cancelReason + ' ' : '') + 'Der Termin findet nicht statt.' })]))); return node; }
   if (info.teamsLink) node.appendChild(teamsBox(info.teamsLink));
   node.appendChild(h('div', { class: 'pc-cols' }, h('div', { class: 'pc-ics' }, h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, uid); } }))));
@@ -1453,7 +1531,7 @@ function viewMyBookings() {
     var node = h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:12px' });
     node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(b.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[b.category]), chipEl('type', b.type), chipEl('type', b.topic), b.cancelled ? chipEl('full', 'Abgesagt') : null]));
     node.appendChild(h('h3', { text: b.title, style: 'overflow-wrap:anywhere' }));
-    node.appendChild(h('div', { class: 'hint' }, [dateFull(b.date) + ', ' + b.start + '–' + endHm(b) + ' Uhr · angeboten von ', userTag(b.host, b.hostLevel, b.hostExpert)]));
+    node.appendChild(h('div', { class: 'hint' }, [dateFull(b.date) + ', ' + b.start + '–' + endHm(b) + ' Uhr · angeboten von ', userTag(b.host, b.hostLevel, b.hostExpert, '', b.hostPublic)]));
     if (b.cancelled) { node.appendChild(h('p', { class: 'hint', text: 'Diese Veranstaltung wurde abgesagt' + (b.cancelReason ? ': ' + b.cancelReason : '.') })); return node; }
     if (b.rating) node.appendChild(h('div', null, ['Deine Bewertung: ', ratingNode(b.rating, 1)]));
     else if (b.canRate) {
@@ -1535,6 +1613,31 @@ function viewProfile() {
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function tile(label, value, sub) { return h('div', { class: 'st-kpi' }, [h('b', null, value), h('span', { text: label }), sub ? h('span', { class: 'hint', text: sub }) : null]); }
   function table(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (c) { return h('th', { text: c }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (c) { return h('td', null, c); })); }))])); }
+  function publicBox(pub, me) {
+    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming };
+    var subs = [];
+    function chk(key, label, hint, master) {
+      var c = h('input', { type: 'checkbox', id: 'pp-' + key, checked: v[key] });
+      c.addEventListener('change', function () { v[key] = c.checked; if (master) sync(); });
+      var node = h('label', { class: 'chk' + (master ? ' master' : '') }, [c, h('span', null, [h('b', { text: label }), hint ? h('span', { class: 'hint', text: hint }) : null])]);
+      if (!master) subs.push(c);
+      return node;
+    }
+    function sync() { subs.forEach(function (c) { c.disabled = !v.isPublic; }); }
+    var bio = h('textarea', { id: 'pp-bio', rows: '4', maxlength: '300', placeholder: 'Zum Beispiel: Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.' }); bio.value = pub.bio || '';
+    var count = h('span', { class: 'hint' }); function upd() { count.textContent = bio.value.length + ' / 300 Zeichen'; } bio.addEventListener('input', upd); upd();
+    var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Freigaben speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
+    var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil öffentlich zugänglich machen', 'Dein Benutzername wird auf deinen Kacheln anklickbar und öffnet dein Profil.', true),
+      chk('showRating', 'Gesamtbewertung anzeigen'), chk('showExpert', 'Themen mit Expertenstatus anzeigen'), chk('showEmail', 'E-Mail-Adresse anzeigen', 'Andere können dich damit kontaktieren.'), chk('showUpcoming', 'Zukünftige Veranstaltungen anzeigen', 'Mit Button „Buchen“ für alle, die noch nicht angemeldet sind.')]);
+    sync();
+    go.addEventListener('click', function () {
+      go.disabled = true; var p = Object.assign({ bio: bio.value }, v);
+      Api.saveProfile(p).then(function () { go.disabled = false; msg.hidden = false; msg.className = 'notice ok'; msg.textContent = v.isPublic ? 'Gespeichert. Dein Profil ist öffentlich.' : 'Gespeichert. Dein Profil ist nicht öffentlich.'; toast('Freigaben gespeichert.'); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+    });
+    return h('section', { style: 'margin-top:36px', id: 'pub-box' }, [h('h2', { text: 'Öffentliches Profil', style: 'font-size:1.35rem;margin-bottom:6px' }),
+      h('p', { class: 'hint', text: 'Wenn du dein Profil öffentlich machst, sehen andere deinen Benutzernamen, dein Abzeichen, die Zahl deiner angebotenen Veranstaltungen und deine Themen mit der Zahl der Veranstaltungen. Alles Weitere gibst du einzeln frei.' }),
+      h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px;max-width:760px' }, [list, field('Beschreibung (wie eine Bio)', bio, { id: 'pp-bio', hint: 'Frei formulierter Text für dein öffentliches Profil, bis zu 300 Zeichen. Er erscheint nur, wenn dein Profil öffentlich ist.' }), count, msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, view])])]);
+  }
   function passwordBox(forced) {
     var cur = h('input', { type: 'password', id: 'p-cur', autocomplete: 'current-password', maxlength: '128' }), n1 = h('input', { type: 'password', id: 'p-new', autocomplete: 'new-password', maxlength: '128' }), n2 = h('input', { type: 'password', id: 'p-new2', autocomplete: 'new-password', maxlength: '128' });
     var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Passwort ändern' });
@@ -1578,6 +1681,7 @@ function viewProfile() {
       o.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Teilnehmende', 'Bewertung'], o.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [dateFull(x.date), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), x.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : String(x.booked), x.cancelled ? '–' : ratingNode(x.ratingAvg, x.ratingCount)]; })) : h('p', { class: 'hint', text: 'Noch nichts im Archiv.' })]));
     box.appendChild(h('section', { style: 'margin-top:36px' }, [h('h2', { text: 'Archiv: Teilgenommen', style: 'font-size:1.35rem;margin-bottom:6px' }),
       a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [dateFull(x.date), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]));
+    box.appendChild(publicBox(r.pub, me));
     box.appendChild(passwordBox(!!me.mustChange));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
   }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); });

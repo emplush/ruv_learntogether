@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.22.0 (02.10.2026)
+- **Öffentliches Profil (freiwillig):** Im Profil schalten Nutzende ihr Profil frei. Der Benutzername auf der Kachel wird dann anklickbar und öffnet ein Popup mit Benutzername, Abzeichen, Zahl der angebotenen Veranstaltungen, Themen mit Anzahl und der Beschreibung.
+- **Einzelne Freigaben:** Gesamtbewertung, Themen mit Expertenstatus, E-Mail-Adresse und Liste der kommenden Veranstaltungen (mit Bereich, Titel, Thema, Art, Datum, Uhrzeit und Button „Buchen“).
+- **Beschreibungstext** wie eine Bio (bis 300 Zeichen, 7 Zeilen), nur als reiner Text.
+- Beides in Server und Demo-Modus, Testdaten mit vier öffentlichen Profilen, Handbücher und Präsentation ergänzt. Kleine Korrektur: gesperrte Kacheln tragen kein aria-disabled mehr, damit der Benutzername bedienbar bleibt.
+
 ## 0.21.0 (01.10.2026)
 - **Registrierung und Anmeldung:** Konto mit frei wählbarem, einmaligem Benutzernamen, echtem Vor- und Nachnamen, XV-/XVG-Nummer, E-Mail-Adresse und Passwort. Anmeldung mit Benutzername oder E-Mail-Adresse. Öffentlich erscheint nur der Benutzername. Sicherheit: PBKDF2-SHA256 (100.000 Runden), signiertes HttpOnly-Cookie (SameSite=Strict, Secure bei HTTPS), CSRF-Header, Sperre nach fünf Fehlversuchen, Passwortregeln (mindestens 10 Zeichen, keine bekannten Passwörter), Sitzungsende bei Passwortwechsel. Ohne HTTPS bleibt die Übertragung unverschlüsselt (Hinweis in den Handbüchern).
 - **Entfernt:** Buchungscodes, Veranstaltungscodes, Name und E-Mail im Buchungs- und Anbieteformular, Hinweis nach der Buchung, gemeinsames Admin-Passwort.
