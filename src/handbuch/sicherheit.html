@@ -36,6 +36,7 @@
 <tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Rückmeldung an Anbietende</td><td>niemand einzeln; Anbietende sehen ihren Durchschnitt ab 3 Bewertungen; Administration nur zusammengefasst nach Monat, Bereich und Thema</td><td>mit der Anmeldung, danach anonym</td></tr>
 <tr><td>Profil, Beschreibung, Profilbild</td><td>freiwillige Vorstellung</td><td>nur nach Freigabe</td><td>bis zur Änderung oder Löschung</td></tr>
 <tr><td>Letzte Anmeldung</td><td>automatische Löschung inaktiver Konten</td><td>niemand einzeln; Administration nur als Gesamtzahl</td><td>bis zur nächsten Anmeldung</td></tr>
+<tr><td>IDD-Archiv gelöschter Konten: Name, XV-Nummer, gutBeraten-ID, bestätigte Teilnahmen</td><td>Gesetzlicher IDD-Nachweis</td><td>Administration</td><td>bis Ende des 5. Jahres nach dem Kalenderjahr der Teilnahme</td></tr>
 <tr><td>Admin-Protokoll</td><td>Nachvollziehbarkeit von Änderungen durch die Administration</td><td>Betrieb auf dem Server</td><td>12 Monate</td></tr>
 </table>
 <p>Die Anwendung erfasst keine Arbeitszeit, keine Inhalte aus Teams, keine Standorte und keine Geräte-Merkmale. IP-Adressen nutzt sie nur kurz im Arbeitsspeicher, um Fehlversuche zu bremsen. Sie speichert sie nicht. Die Zugriffsprotokolle des IIS sind davon unabhängig und folgen den Regeln des Serverbetriebs.</p>
@@ -150,7 +151,7 @@
 <li><b>Berechtigung:</b> IDD-Veranstaltungen legen nur Personen an, die die Administration freigeschaltet hat. Der Server prüft das bei jeder Speicherung.</li>
 <li><b>Datenfluss:</b> Die Zeiten verlassen die Anwendung heute nur als PDF-Nachweis, den Teilnehmende selbst herunterladen. Die Meldung an gutBeraten folgt in einem späteren Schritt und wird vor dem Start mit Datenschutz und Betriebsrat abgestimmt.</li>
 <li><b>Unveränderlichkeit:</b> Nach dem 31.01. des Folgejahres lehnt der Server jede Änderung an den Bestätigungen eines Kalenderjahres ab.</li>
-<li><b>Konto löschen:</b> Mit dem Konto werden auch die IDD-Teilnahmen gelöscht. Die Anwendung weist vorher darauf hin. Ob IDD-Nachweise bis zum Ende der Frist aufbewahrt werden müssen, sollte der Datenschutz prüfen.</li>
+<li><b>Konto löschen:</b> Das Konto wird gelöscht. Bestätigte IDD-Teilnahmen bleiben wegen der gesetzlichen Nachweispflicht (Art. 17 Abs. 3 lit. b DSGVO) in einem Archiv, das nur die Administration sieht. Es enthält nur Name, XV-Nummer, gutBeraten-ID und die Nachweisdaten je Teilnahme, keine E-Mail-Adresse, kein Passwort und kein Profil. Jede Teilnahme wird am Ende des fünften Jahres nach ihrem Kalenderjahr automatisch gelöscht. Die Anwendung weist vor der Löschung darauf hin.</li>
 </ul>
 
 <h2>Entscheidungen</h2>
@@ -158,7 +159,7 @@
 <tr><th>Frage</th><th>Stand</th></tr>
 <tr><td>Wie lange bleiben Daten privater Veranstaltungen gespeichert?</td><td>Entschieden: 12 Monate. Dienstliche Veranstaltungen 5 Jahre wegen der IDD.</td></tr>
 <tr><td>Sind Abzeichen ohne eigene Entscheidung sichtbar?</td><td>Entschieden: nein. Abzeichen und Rakete erscheinen erst nach Zustimmung.</td></tr>
-<tr><td>Bleiben IDD-Nachweise nach einer Kontolöschung erhalten?</td><td>Offen. Heute werden sie mit dem Konto gelöscht. Eine gesetzliche Aufbewahrungspflicht könnte das Löschen einschränken (Art. 17 Abs. 3 DSGVO).</td></tr>
+<tr><td>Bleiben IDD-Nachweise nach einer Kontolöschung erhalten?</td><td>Entschieden: ja, nur die notwendigen Nachweisdaten, bis zum Ende der Aufbewahrungsfrist, nur für die Administration sichtbar.</td></tr>
 <tr><td>Werden neue Konten geprüft?</td><td>Offen. Für den Pilot reicht die Selbstregistrierung. Ziel ist die Anmeldung über das Unternehmenskonto (siehe Single Sign-on).</td></tr>
 </table>
 
@@ -212,6 +213,6 @@
 <li>IDD: Anlegen nur mit Freischaltung, IDD-Zeit höchstens Dauer minus 10 Minuten, Bestätigung nur durch Anbietende oder Administration, Sperre nach dem 31.01. auch für die Administration.</li>
 <li>Durchschnittswerte erscheinen erst ab drei Bewertungen.</li>
 <li>Ausgeblendete Abzeichen erscheinen nirgends.</li>
-<li>Gelöschte Konten können sich nicht mehr anmelden.</li>
+<li>Gelöschte Konten können sich nicht mehr anmelden. Ihre bestätigten IDD-Teilnahmen stehen im Archiv der Administration, ohne E-Mail-Adresse und Passwort.</li>
 <li>Konten mit vorläufigem Passwort können nur das Passwort ändern.</li>
 </ul>

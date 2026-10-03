@@ -135,7 +135,36 @@ namespace LearnTogether
         public List<BookingRec> bookings { get; set; }
         public List<UserRec> users { get; set; }
         public List<NoteRec> notes { get; set; }
-        public DataFile() { events = new List<EventRec>(); bookings = new List<BookingRec>(); users = new List<UserRec>(); notes = new List<NoteRec>(); }
+        public List<IddArchiveRec> iddArchive { get; set; }   // IDD-Nachweise geloeschter Konten bis zum Ende der Aufbewahrungsfrist
+        public DataFile() { events = new List<EventRec>(); bookings = new List<BookingRec>(); users = new List<UserRec>(); notes = new List<NoteRec>(); iddArchive = new List<IddArchiveRec>(); }
+    }
+    // Nur die fuer den IDD-Nachweis notwendigen Daten einer geloeschten Person
+    public class IddArchiveRec
+    {
+        public string id { get; set; }
+        public string firstName { get; set; }
+        public string lastName { get; set; }
+        public string xv { get; set; }
+        public string gbId { get; set; }
+        public int iddHours { get; set; }
+        public string deletedAt { get; set; }
+        public string reason { get; set; }
+        public List<IddArchiveItem> items { get; set; }
+        public IddArchiveRec() { items = new List<IddArchiveItem>(); }
+    }
+    public class IddArchiveItem
+    {
+        public string bookingId { get; set; }
+        public string eventId { get; set; }
+        public string title { get; set; }
+        public string iddTitle { get; set; }
+        public string date { get; set; }
+        public string start { get; set; }
+        public string end { get; set; }
+        public int minutes { get; set; }
+        public string confirmedAt { get; set; }
+        public string confirmedBy { get; set; }
+        public string provider { get; set; }
     }
 
     public class PhotoRec
@@ -238,7 +267,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.29.0";
+        const string Version = "0.29.1";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -251,7 +280,7 @@ namespace LearnTogether
         const int InactiveMonths = 24;   // Konten ohne Anmeldung werden danach automatisch geloescht
         static DateTime lastPurge = DateTime.MinValue;
         // Lesende Aufrufe; alles andere ist nur per POST mit Pflicht-Header erlaubt
-        static readonly string[] GetActions = new string[] { "ping", "settings", "events", "img", "photo", "avatar", "me", "myBookings", "myEvents", "profile", "publicProfile", "myData", "iddCockpit", "adminIdd", "adminEvents", "adminUsers", "adminSettings", "adminManual", "adminManualPdf" };
+        static readonly string[] GetActions = new string[] { "ping", "settings", "events", "img", "photo", "avatar", "me", "myBookings", "myEvents", "profile", "publicProfile", "myData", "iddCockpit", "adminIdd", "adminIddArchive", "adminEvents", "adminUsers", "adminSettings", "adminManual", "adminManualPdf" };
         // Admin-Aktionen, die im Protokoll (AppData\Data\audit) festgehalten werden
         static readonly string[] AuditActions = new string[] { "adminSetRole", "adminResetPassword", "adminSetLocked", "adminDeleteUser", "adminSaveEvent", "adminDeleteEvent", "adminDeleteBooking", "adminDeleteAvatar", "adminSavePhoto", "adminDeletePhoto", "adminSaveSettings", "adminSaveTaxonomy", "adminTestData", "adminIddReopen", "adminIddAdd", "adminSetIddHost" };
         static readonly string[] AllowedTeamsHosts = new string[] { "teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft", "teams.microsoft.us" };
@@ -366,6 +395,7 @@ namespace LearnTogether
                     case "adminDeleteAvatar": AdminDeleteAvatar(d); break;
                     case "adminDeleteUser": AdminDeleteUser(d, me); break;
                     case "adminIdd": AdminIdd(d); break;
+                    case "adminIddArchive": AdminIddArchive(d); break;
                     case "adminIddReopen": AdminIddReopen(d); break;
                     case "adminIddAdd": AdminIddAdd(d, me); break;
                     case "adminSetIddHost": AdminSetIddHost(d); break;
@@ -510,6 +540,7 @@ namespace LearnTogether
             bool changed = EnsureAdmin(d);
             if (Anonymize(d)) changed = true;
             if (PurgeInactive(d)) changed = true;
+            if (PruneIddArchive(d)) changed = true;
             if (changed) { try { SaveData(d); } catch (Exception ex) { LogError(ex); } }
             return d;
         }
@@ -571,8 +602,38 @@ namespace LearnTogether
 
         // Konto loeschen: Stammdaten, Profilbild, Mitteilungen und Sitzungen weg. Kuenftige eigene Veranstaltungen werden abgesagt
         // (Teilnehmende erhalten eine Mitteilung), vergangene bleiben anonym erhalten. Kuenftige Anmeldungen entfallen, vergangene werden anonymisiert.
+        // IDD-Nachweise einer zu loeschenden Person sichern: nur bestaetigte Teilnahmen, nur Nachweisdaten
+        void ArchiveIdd(DataFile d, UserRec u, string reason)
+        {
+            SettingsRec s = LoadSettings(); IddArchiveRec a = new IddArchiveRec();
+            foreach (BookingRec bk in d.bookings)
+            {
+                if (bk.userId != u.id || bk.idd != "yes") continue;
+                EventRec ev = FindEvent(d, bk.eventId); if (ev == null || !ev.idd || ev.cancelled) continue;
+                IddArchiveItem it = new IddArchiveItem(); it.bookingId = bk.id; it.eventId = ev.id; it.title = ev.title; it.iddTitle = ev.iddTitle ?? ""; it.date = ev.date; it.start = ev.start;
+                it.end = StartOfSafe(ev.date, ev.start).AddMinutes(ev.duration).ToString("HH:mm", CultureInfo.InvariantCulture); it.minutes = ev.iddMinutes; it.confirmedAt = bk.confirmedAt ?? ""; it.confirmedBy = bk.confirmedBy ?? ""; it.provider = s.iddProvider ?? "";
+                a.items.Add(it);
+            }
+            if (a.items.Count == 0) return;
+            a.id = NewId(); a.firstName = u.firstName; a.lastName = u.lastName; a.xv = u.xv; a.gbId = u.gbId ?? ""; a.iddHours = u.iddHours == 30 ? 30 : 15; a.deletedAt = NowIso(); a.reason = reason;
+            if (d.iddArchive == null) d.iddArchive = new List<IddArchiveRec>();
+            d.iddArchive.Add(a);
+        }
+
+        // Archiv bereinigen: jede Teilnahme bis zum Ende des fuenften Jahres nach ihrem Kalenderjahr, danach geloescht
+        static bool PruneIddArchive(DataFile d)
+        {
+            if (d.iddArchive == null || d.iddArchive.Count == 0) return false;
+            int y = NowBerlin().Year; bool ch = false;
+            foreach (IddArchiveRec a in d.iddArchive)
+                if (a.items.RemoveAll(delegate (IddArchiveItem it) { int ey; return int.TryParse((it.date ?? "").Substring(0, Math.Min(4, (it.date ?? "").Length)), out ey) && y > ey + RetainYears; }) > 0) ch = true;
+            if (d.iddArchive.RemoveAll(delegate (IddArchiveRec a) { return a.items.Count == 0; }) > 0) ch = true;
+            return ch;
+        }
+
         void DeleteUser(DataFile d, UserRec u, string reason)
         {
+            ArchiveIdd(d, u, reason);
             DateTime now = NowBerlin();
             foreach (EventRec e in d.events)
             {
@@ -2200,7 +2261,9 @@ namespace LearnTogether
                 {
                     if (bk.eventId != e.id) continue;
                     UserRec u = FindUser(d, bk.userId);
-                    if (u == null) bl.Add(new { id = bk.id, userId = "", username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", gbId = "", iddDuty = false, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "" });
+                    IddArchiveRec ar = u != null || d.iddArchive == null ? null : d.iddArchive.Find(delegate (IddArchiveRec a) { return a.items.Exists(delegate (IddArchiveItem it) { return it.bookingId == bk.id; }); });
+                    if (u == null && ar != null) bl.Add(new { id = bk.id, userId = "", username = "Konto gelöscht", firstName = ar.firstName, lastName = ar.lastName, xv = ar.xv, gbId = ar.gbId, iddDuty = true, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "", archived = true });
+                    else if (u == null) bl.Add(new { id = bk.id, userId = "", username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", gbId = "", iddDuty = false, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "" });
                     else bl.Add(new { id = bk.id, userId = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, gbId = u.gbId ?? "", iddDuty = u.iddDuty, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "" });
                 }
                 bool ended = EventEnd(e) <= now;
@@ -2247,6 +2310,12 @@ namespace LearnTogether
             if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
             u.iddHost = B(b, "on"); SaveData(d);
             Send(new { ok = true });
+        }
+
+        // IDD-Nachweise geloeschter Konten (nur Administration)
+        void AdminIddArchive(DataFile d)
+        {
+            Send(new { ok = true, archive = d.iddArchive ?? new List<IddArchiveRec>(), retainYears = RetainYears });
         }
 
         // ---------------------------------------------------------------- Bilder

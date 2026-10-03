@@ -740,7 +740,7 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.29.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.29.1", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -1180,6 +1180,7 @@ var Server = {
   confirmAttendance: function (bookingId, status) { return this.call('confirmAttendance', { bookingId: bookingId, status: status }); },
   iddCockpit: function () { return this.call('iddCockpit'); },
   adminIdd: function () { return this.call('adminIdd').then(function (j) { return j.events; }); },
+  adminIddArchive: function () { return this.call('adminIddArchive').then(function (j) { return j.archive || []; }); },
   adminIddReopen: function (id) { return this.call('adminIddReopen', { id: id }); },
   adminIddAdd: function (eventId, userId, reason) { return this.call('adminIddAdd', { eventId: eventId, userId: userId, reason: reason }); },
   adminSetIddHost: function (id, on) { return this.call('adminSetIddHost', { id: id, on: !!on }); },
@@ -1216,7 +1217,7 @@ var Local = (function () {
     try { data = JSON.parse(store.get('lt_data') || 'null'); } catch (e) { data = null; }
     try { cfg = JSON.parse(store.get('lt_cfg') || 'null'); } catch (e) { cfg = null; }
     if (!data) data = {};
-    ['events', 'bookings', 'users', 'notes'].forEach(function (k) { if (!data[k]) data[k] = []; });
+    ['events', 'bookings', 'users', 'notes', 'iddArchive'].forEach(function (k) { if (!data[k]) data[k] = []; });
     data.events.forEach(function (e) { delete e.code; delete e.hostEmail; });
     data.bookings.forEach(function (b) { delete b.code; });
     if (!cfg) cfg = { appTitle: DEFAULT_TITLE };
@@ -1371,7 +1372,23 @@ var Local = (function () {
     e.ownerId = null; e.host = 'Anonymisiert'; e.teamsLink = ''; e.anonymized = true; e.anonymizedAt = nowIso();
   }
   /* Konto loeschen: kuenftige eigene Veranstaltungen werden abgesagt, vergangene bleiben anonym; kuenftige Anmeldungen entfallen, vergangene werden anonymisiert */
+  /* IDD-Nachweise einer geloeschten Person bis zum Ende der Frist aufheben (nur bestaetigte Teilnahmen, nur Nachweisdaten) */
+  function archiveIdd(u, reason) {
+    var items = [];
+    data.bookings.forEach(function (b) {
+      if (b.userId !== u.id || b.idd !== 'yes') return; var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0];
+      if (!ev || !ev.idd || ev.cancelled) return;
+      items.push({ bookingId: b.id, eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', date: ev.date, start: ev.start, end: endHm(ev), minutes: ev.iddMinutes, confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', provider: cfg.idd.provider || '' });
+    });
+    if (items.length) data.iddArchive.push({ id: rid(8), firstName: u.firstName, lastName: u.lastName, xv: u.xv, gbId: u.gbId || '', iddHours: u.iddHours === 30 ? 30 : 15, deletedAt: nowIso(), reason: reason, items: items });
+  }
+  function pruneIddArchive() {
+    var y = new Date().getFullYear(), ch = false;
+    data.iddArchive.forEach(function (a) { var n = a.items.length; a.items = a.items.filter(function (it) { return y <= Number(String(it.date).slice(0, 4)) + RETAIN_YEARS; }); if (a.items.length !== n) ch = true; });
+    var m = data.iddArchive.length; data.iddArchive = data.iddArchive.filter(function (a) { return a.items.length; }); return ch || m !== data.iddArchive.length;
+  }
   function deleteUser(u, reason) {
+    archiveIdd(u, reason);
     var now = new Date();
     data.events.forEach(function (e) {
       if (e.ownerId !== u.id) return;
@@ -1392,7 +1409,7 @@ var Local = (function () {
     old.forEach(function (u) { deleteUser(u, 'Das Konto der anbietenden Person wurde gelöscht.'); });
     return old.length > 0;
   }
-  function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (purgeInactive()) ch = true; if (ch) save(); }
+  function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (purgeInactive()) ch = true; if (pruneIddArchive()) ch = true; if (ch) save(); }
   /* Mitteilung an Angemeldete, wenn sich Termin oder Teams-Link geaendert haben */
   function notifyChanges(e, old) {
     var parts = [];
@@ -1775,10 +1792,13 @@ var Local = (function () {
           var ow = userById(e.ownerId);
           return { id: e.id, title: e.title, iddTitle: e.iddTitle || '', date: e.date, start: e.start, duration: e.duration, iddMinutes: e.iddMinutes, cancelled: !!e.cancelled, isTest: !!e.isTest, anonymized: !!e.anonymized, ended: endDate(e) <= now,
             owner: ow ? { username: ow.username, firstName: ow.firstName, lastName: ow.lastName } : null, hostUntil: iddHostDeadline(e).toISOString(), hostOpen: iddHostCan(e, now), lockAt: iddHardLock(e).toISOString(), locked: now > iddHardLock(e),
-            bookings: data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var u = userById(b.userId); return { id: b.id, userId: u ? u.id : '', username: u ? u.username : (b.name || 'Anonymisiert'), firstName: u ? u.firstName : '', lastName: u ? u.lastName : '', xv: u ? u.xv : '', gbId: u ? u.gbId || '' : '', iddDuty: !!(u && u.iddDuty), status: b.idd || '', confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', addedBy: b.addedBy || '', addReason: b.addReason || '' }; }) };
+            bookings: data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var u = userById(b.userId), ar = !u && data.iddArchive.filter(function (a) { return a.items.some(function (it) { return it.bookingId === b.id; }); })[0];
+              if (ar) return { id: b.id, userId: '', username: 'Konto gelöscht', firstName: ar.firstName, lastName: ar.lastName, xv: ar.xv, gbId: ar.gbId, iddDuty: true, status: b.idd || '', confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', addedBy: b.addedBy || '', addReason: b.addReason || '', archived: true };
+              return { id: b.id, userId: u ? u.id : '', username: u ? u.username : (b.name || 'Anonymisiert'), firstName: u ? u.firstName : '', lastName: u ? u.lastName : '', xv: u ? u.xv : '', gbId: u ? u.gbId || '' : '', iddDuty: !!(u && u.iddDuty), status: b.idd || '', confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', addedBy: b.addedBy || '', addReason: b.addReason || '' }; }) };
         });
       });
     },
+    adminIddArchive: function () { return wrap(function () { needAdmin(); return JSON.parse(JSON.stringify(data.iddArchive)); }); },
     adminIddReopen: function (id) {
       return wrap(function () {
         needAdmin(); var ev = data.events.filter(function (e) { return e.id === id && e.idd; })[0], now = new Date();
@@ -3060,7 +3080,7 @@ function iddPdf(c, year) {
     line(ML, y + hh, ML + CW, y + hh, LINE, .4); y += hh;
   });
   y += 18; if (y > PH - 110) newPage();
-  ['Angerechnet sind nur Teilnahmen, die die anbietende Person oder die Administration bestätigt hat.', 'Begrüßung und Verabschiedung (je ' + (IDD.frame || 5) + ' Minuten) zählen nicht zur Lernzeit.', 'Teilnahmen eines Kalenderjahres sind ab dem 31.01. des Folgejahres nicht mehr änderbar.', 'Maschinell erstellt über ' + appTitle + '.'].forEach(function (t) { pdfWrap(t, CW, 8.5, false).forEach(function (l) { text(ML, y + 10, l, 8.5, false, GREY); y += 12; }); });
+  ['Angerechnet sind nur Teilnahmen, die die anbietende Person oder die Administration bestätigt hat.', 'Begrüßung und Verabschiedung (je ' + (IDD.frame || 5) + ' Minuten) zählen nicht zur Lernzeit.', 'Teilnahmen eines Kalenderjahres sind ab dem 31.01. des Folgejahres nicht mehr änderbar.', 'Maschinell erstellt über ' + appTitle + '.'].concat(c.archivedNote ? [c.archivedNote] : []).forEach(function (t) { pdfWrap(t, CW, 8.5, false).forEach(function (l) { text(ML, y + 10, l, 8.5, false, GREY); y += 12; }); });
   var total = pages.length;
   pages.forEach(function (p, i) { cv = p; line(ML, PH - 34, ML + CW, PH - 34, LINE, .5); text(ML, PH - 22, pdfFit(appTitle + ' · ' + title + ' · ' + (c.firstName + ' ' + c.lastName).trim(), CW - 80, 8, false), 8, false, GREY); text(ML + CW, PH - 22, 'Seite ' + (i + 1) + ' von ' + total, 8, false, GREY, 'r'); });
   var objs = [], kids = [];
@@ -3213,7 +3233,7 @@ function viewProfile(q) {
         msg.hidden = true;
         Api.deleteAccount(pw.value).then(function () { setMe(null); toast('Dein Konto ist gelöscht.'); location.hash = '#/'; }, function (er) { reset(); if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; });
       });
-      kids.push(h('h3', { text: 'Konto löschen' }), h('p', { class: 'hint', text: 'Dein Konto, Deine Kontaktdaten und Dein Profilbild werden sofort gelöscht. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten. Das lässt sich nicht rückgängig machen.' }), iddOn() && me.iddDuty ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'IDD-Nachweise' }), h('div', { text: 'Mit dem Konto werden auch Deine IDD-Teilnahmen gelöscht. Lade vorher im IDD-Cockpit Deine Nachweise als PDF herunter.' })])) : null,
+      kids.push(h('h3', { text: 'Konto löschen' }), h('p', { class: 'hint', text: 'Dein Konto, Deine Kontaktdaten und Dein Profilbild werden sofort gelöscht. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten. Das lässt sich nicht rückgängig machen.' }), iddOn() && me.iddDuty ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'IDD-Nachweise' }), h('div', { text: 'Für den gesetzlichen Nachweis hebt die Administration Deine bestätigten IDD-Teilnahmen bis zum Ende der Aufbewahrungsfrist auf: Name, XV-Nummer, gutBeraten-ID, Veranstaltung, Datum und IDD-Zeit. Alles andere wird gelöscht.' })])) : null,
         h('div', { class: 'form panel', style: 'gap:16px;max-width:760px' }, [h('div', { class: 'grid2' }, [field('Passwort zur Bestätigung', pw, { id: 'del-pw', req: true }), h('div')]), h('div', null, del)]));
     }
     kids.push(msg);
@@ -4050,8 +4070,8 @@ function viewAdmin() {
   /* IDD: Veranstaltungen eines Kalenderjahres, Bestaetigungen, Nachtragen und erneute Freischaltung */
   function adminIdd() {
     if (!iddOn()) return Promise.resolve(h('div', { class: 'notice', role: 'status' }, 'Die IDD-Funktion ist ausgeschaltet. Du schaltest sie unter System › IDD-Einstellungen ein.'));
-    return Promise.all([Api.adminIdd(), Api.adminUsers()]).then(function (res) {
-      var evs = res[0], users = res[1].users, host = h('div'), nowY = new Date().getFullYear();
+    return Promise.all([Api.adminIdd(), Api.adminUsers(), Api.adminIddArchive()]).then(function (res) {
+      var evs = res[0], users = res[1].users, archive = res[2], host = h('div'), nowY = new Date().getFullYear();
       var ys = {}; evs.forEach(function (e) { ys[+e.date.slice(0, 4)] = 1; }); ys[nowY] = 1;
       var years = Object.keys(ys).map(Number).sort(function (a, b) { return b - a; }), cur = Number(sess.get('lt_iddadm_y')) || nowY; if (years.indexOf(cur) < 0) cur = years[0];
       function reload(openId) { return Api.adminIdd().then(function (l) { evs = l; draw(); if (openId) { var e = evs.filter(function (x) { return x.id === openId; })[0]; if (e) people(e); } }); }
@@ -4063,8 +4083,8 @@ function viewAdmin() {
         else if (!e.ended) body.appendChild(h('div', { class: 'notice', role: 'status' }, 'Bestätigen ist erst nach dem Ende der Veranstaltung möglich.'));
         var tb = h('tbody');
         e.bookings.forEach(function (b, i) {
-          function sb(v, label) { var on = b.status === v; return h('button', { type: 'button', class: 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-secondary'), 'aria-pressed': String(on), text: label, onclick: function () { Api.confirmAttendance(b.id, on ? '' : v).then(function () { m.close(); return reload(e.id); }, function (er) { toast(er.message, true); }); } }); }
-          tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, [h('b', { text: b.username }), b.addedBy ? h('div', { class: 'hint', text: 'Nachgetragen von ' + b.addedBy + ': ' + b.addReason }) : null]), h('td', { text: (b.firstName + ' ' + b.lastName).trim() || '–' }), h('td', { text: b.xv || '–' }),
+          function sb(v, label) { var on = b.status === v; return h('button', { type: 'button', class: 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-secondary'), 'aria-pressed': String(on), disabled: !!b.archived, text: label, onclick: function () { Api.confirmAttendance(b.id, on ? '' : v).then(function () { m.close(); return reload(e.id); }, function (er) { toast(er.message, true); }); } }); }
+          tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, [b.archived ? h('span', { class: 'tag past', text: 'Konto gelöscht' }) : h('b', { text: b.username }), b.addedBy ? h('div', { class: 'hint', text: 'Nachgetragen von ' + b.addedBy + ': ' + b.addReason }) : null]), h('td', { text: (b.firstName + ' ' + b.lastName).trim() || '–' }), h('td', { text: b.xv || '–' }),
             h('td', null, b.gbId ? b.gbId : h('span', { class: 'tag past', text: 'fehlt' })), h('td', null, edit ? h('div', { class: 'cf-acts' }, [sb('yes', 'Teilgenommen'), sb('no', 'Nicht teilgenommen')]) : st(b))]));
         });
         body.appendChild(e.bookings.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'gutBeraten-ID', 'Status'].map(function (t) { return h('th', { text: t }); }))), tb])) : h('p', { class: 'hint', text: 'Keine Anmeldungen.' }));
@@ -4103,7 +4123,27 @@ function viewAdmin() {
         host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'Anbietende', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       draw();
-      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt.' }), host]);
+      /* IDD-Nachweise geloeschter Konten: nur Nachweisdaten, bis zum Ende des fuenften Jahres nach dem Kalenderjahr der Teilnahme */
+      function archiveNode() {
+        var kids = [h('h3', { text: 'IDD-Nachweise gelöschter Konten (' + archive.length + ')', style: 'margin-top:36px' }), h('p', { class: 'hint', text: 'Bei einer Kontolöschung hebt die Anwendung bestätigte IDD-Teilnahmen mit Name, XV-Nummer und gutBeraten-ID auf. Jede Teilnahme wird am Ende des fünften Jahres nach ihrem Kalenderjahr automatisch gelöscht.' })];
+        if (!archive.length) { kids.push(h('p', { class: 'hint', text: 'Keine gelöschten Konten mit IDD-Nachweisen.' })); return h('div', { id: 'idd-archive' }, kids); }
+        var tb = h('tbody');
+        archive.forEach(function (a) {
+          var yrs = {}; a.items.forEach(function (it) { var y = Number(it.date.slice(0, 4)); yrs[y] = (yrs[y] || 0) + it.minutes; });
+          var acts = h('div', { class: 'acts' }, Object.keys(yrs).map(Number).sort(function (x, y) { return y - x; }).map(function (y) {
+            return h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Nachweis ' + y, onclick: function () {
+              var c = { firstName: a.firstName, lastName: a.lastName, xv: a.xv, gbId: a.gbId, hours: a.iddHours || 15, provider: (a.items[0] && a.items[0].provider) || IDD.provider, archivedNote: 'Das Konto wurde am ' + dateFull(a.deletedAt.slice(0, 10)) + ' gelöscht. Nachweis aus dem Archiv der Administration.',
+                items: a.items.map(function (it) { return { year: Number(it.date.slice(0, 4)), status: 'yes', date: it.date, start: it.start, end: it.end, minutes: it.minutes, iddTitle: it.iddTitle, title: it.title, confirmedAt: it.confirmedAt }; }) };
+              saveBlob(iddPdf(c, y), 'IDD-Nachweis-' + y + '-' + (a.lastName || 'Archiv').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf');
+            } });
+          }));
+          tb.appendChild(h('tr', null, [h('td', null, [h('b', { text: (a.firstName + ' ' + a.lastName).trim() }), h('div', { class: 'hint', text: a.xv || '–' })]), h('td', { text: a.gbId || 'fehlt' }), h('td', { class: 'nowrap', text: dateFull(a.deletedAt.slice(0, 10)) }),
+            h('td', { text: Object.keys(yrs).sort().map(function (y) { return y + ': ' + fmtMinutes(yrs[y]); }).join(' · ') }), h('td', { class: 'c-act' }, acts)]));
+        });
+        kids.push(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Name / XV', 'gutBeraten-ID', 'Gelöscht am', 'IDD-Zeit je Jahr', 'PDF-Nachweis'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        return h('div', { id: 'idd-archive' }, kids);
+      }
+      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt.' }), host, archiveNode()]);
     });
   }
   function adminPhotos() {

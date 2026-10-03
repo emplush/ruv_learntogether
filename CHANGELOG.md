@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.29.1 (03.10.2026)
+- **IDD-Nachweise gelöschter Konten:** Bei jeder Kontolöschung (selbst, durch die Administration oder wegen Inaktivität) bleiben bestätigte IDD-Teilnahmen erhalten, nur mit Name, XV-Nummer, gutBeraten-ID und den Nachweisdaten je Teilnahme. Liste und PDF-Nachweis je Kalenderjahr unter Übersicht › IDD. In Teilnahmelisten mit dem Hinweis „Konto gelöscht“. Automatische Löschung am Ende des fünften Jahres nach dem Kalenderjahr der Teilnahme.
+- Hinweis beim Löschen des eigenen Kontos angepasst. Handbücher und Papier IT-Sicherheit und Datenschutz aktualisiert.
+
 ## 0.29.0 (03.10.2026)
 **IDD-Weiterbildung** (ab Werk ausgeschaltet, Schalter unter System › IDD-Einstellungen)
 - **Anlegen:** nur nach Freischaltung durch die Administration (Nutzerliste), nur dienstlich. IDD-Titel ist Pflicht, mit Plausibilitätsprüfung nach den Anrechnungsregeln (nur Hinweis). IDD-Zeit in 5-Minuten-Schritten, höchstens und standardmäßig Dauer minus 10 Minuten.

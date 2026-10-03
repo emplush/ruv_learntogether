@@ -128,7 +128,7 @@
 <tr><td>Passwort zurücksetzen</td><td>Erzeugt ein vorläufiges Passwort und zeigt es einmal an. Gib es der Person weiter. Beim nächsten Anmelden muss sie ein eigenes vergeben. Alle laufenden Sitzungen enden</td></tr>
 <tr><td>Sperren / Entsperren</td><td>Ein gesperrtes Konto kann sich nicht anmelden. Das Hauptadmin-Konto und Dein eigenes Konto lassen sich nicht sperren</td></tr>
 <tr><td>IDD freischalten / IDD-Freischaltung entziehen</td><td>Nur bei aktiver IDD-Funktion. Freigeschaltete Personen dürfen IDD-anrechenbare Veranstaltungen anlegen</td></tr>
-<tr><td>Konto löschen</td><td>Zum Beispiel beim Ausscheiden. Konto, Kontaktdaten, Profilbild und Mitteilungen werden gelöscht. Künftige Veranstaltungen der Person werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben anonym erhalten. Admin-Konten löscht nur die Hauptadministration</td></tr>
+<tr><td>Konto löschen</td><td>Zum Beispiel beim Ausscheiden. Konto, Kontaktdaten, Profilbild und Mitteilungen werden gelöscht. Künftige Veranstaltungen der Person werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben anonym erhalten. Admin-Konten löscht nur die Hauptadministration. Bestätigte IDD-Teilnahmen bleiben im IDD-Archiv (siehe Kapitel IDD-Weiterbildung)</td></tr>
 </table>
 <p>Nutzende können ihr Konto auch selbst löschen und alle eigenen Daten als Datei herunterladen (Profil › Konto › Meine Daten). Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch auf dieselbe Weise. Ausgenommen sind die Hauptadministration und Testkonten.</p>
 <div class="tip">Es gibt keinen Passwort-Versand per E-Mail. Hat die Hauptadministration ihr Passwort vergessen, entfernst Du im Ordner Data in der Datei data.json bei <code>users</code> den Eintrag mit dem Benutzernamen <code>admin</code> (Dienst vorher anhalten). Beim nächsten Zugriff legt die Anwendung <b>admin</b> neu an und schreibt ein neues zufälliges Startpasswort in <code>AppData\Data\admin-startpasswort.txt</code>.</div>
@@ -289,6 +289,8 @@
 <li><b>Für Anbietende freischalten</b> öffnet die Bestätigung für die anbietende Person erneut für 14 Tage, höchstens bis zur Jahressperre.</li>
 </ul>
 {{FIGURE:adm-idd-teilnahmen|Teilnahmen einer IDD-Veranstaltung mit gutBeraten-ID, Status und Nachtragen.}}
+<h3>IDD-Nachweise gelöschter Konten</h3>
+<p>Löscht jemand sein Konto, löscht die Administration es oder löscht die Anwendung es wegen Inaktivität, bleiben bestätigte IDD-Teilnahmen erhalten. Gespeichert werden nur Name, XV-Nummer, gutBeraten-ID, Weiterbildungspflicht, Löschdatum und je Teilnahme Veranstaltung, IDD-Titel, Datum, Uhrzeit, IDD-Zeit und Bestätigung. Unter <b>Übersicht › IDD</b> steht unten die Liste <b>IDD-Nachweise gelöschter Konten</b>. Dort lädst Du je Kalenderjahr den PDF-Nachweis herunter. In den Teilnahmelisten erscheint die Person mit dem Hinweis „Konto gelöscht“. Ändern lassen sich diese Teilnahmen nicht mehr. Jede Teilnahme wird am Ende des fünften Jahres nach ihrem Kalenderjahr automatisch gelöscht.</p>
 <div class="tip">Die Meldung der Zeiten an gutBeraten folgt in einem späteren Schritt. Bis dahin laden Teilnehmende ihren Nachweis je Kalenderjahr als PDF im IDD-Cockpit herunter.</div>
 
 <h2>Benachrichtigungen</h2>
