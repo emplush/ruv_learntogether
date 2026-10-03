@@ -131,7 +131,19 @@
 <tr><td>Konto löschen</td><td>Zum Beispiel beim Ausscheiden. Konto, Kontaktdaten, Profilbild und Mitteilungen werden gelöscht. Künftige Veranstaltungen der Person werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben anonym erhalten. Admin-Konten löscht nur die Hauptadministration. Bestätigte IDD-Teilnahmen bleiben im IDD-Archiv (siehe Kapitel IDD-Weiterbildung)</td></tr>
 </table>
 <p>Nutzende können ihr Konto auch selbst löschen und alle eigenen Daten als Datei herunterladen (Profil › Konto › Meine Daten). Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch auf dieselbe Weise. Ausgenommen sind die Hauptadministration und Testkonten.</p>
-<div class="tip">Es gibt keinen Passwort-Versand per E-Mail. Hat die Hauptadministration ihr Passwort vergessen, entfernst Du im Ordner Data in der Datei data.json bei <code>users</code> den Eintrag mit dem Benutzernamen <code>admin</code> (Dienst vorher anhalten). Beim nächsten Zugriff legt die Anwendung <b>admin</b> neu an und schreibt ein neues zufälliges Startpasswort in <code>AppData\Data\admin-startpasswort.txt</code>.</div>
+<h3>Passwort der Hauptadministration vergessen</h3>
+<p>Es gibt keinen Passwort-Versand per E-Mail. Andere Admins können das Passwort der Hauptadministration nicht zurücksetzen. Du brauchst Zugriff auf den Server:</p>
+<ol>
+<li>Melde Dich am Server an, zum Beispiel per Remotedesktop, und öffne den Ordner <code>AppData\Data</code> der Anwendung.</li>
+<li>Lege eine Sicherungskopie der Datei <code>data.json</code> an.</li>
+<li>Öffne <code>data.json</code> mit einem Texteditor, zum Beispiel Notepad. Suche nach <code>"username":"admin"</code>.</li>
+<li>Ändere im selben Eintrag <code>"role":"superadmin"</code> in <code>"role":"user"</code>. Ändere sonst nichts, Anführungszeichen und Kommas bleiben.</li>
+<li>Speichere die Datei in UTF-8. Das ist bei aktuellem Notepad der Standard.</li>
+<li>Rufe die Anwendung im Browser auf. Sie erkennt, dass es keine Hauptadministration gibt, und setzt <b>admin</b> wieder als Hauptadministration ein. Ein Neustart des Anwendungspools ist nicht nötig.</li>
+<li>Öffne <code>AppData\Data\admin-startpasswort.txt</code>. Dort steht ein neues zufälliges Startpasswort.</li>
+<li>Melde Dich als <b>admin</b> mit diesem Passwort an und vergib ein eigenes. Danach löscht die Anwendung die Datei.</li>
+</ol>
+<div class="tip">Das Konto <b>admin</b> bleibt mit allen Veranstaltungen erhalten. Alle bisherigen Sitzungen des Kontos enden. Ernenne zur Sicherheit eine zweite Person zum Admin, damit die Administration auch ohne Hauptkonto weiterarbeiten kann. In der Demo-Version im Browser genügen fünf schnelle Klicks auf das R+V-Logo im Footer.</div>
 
 <h2>Abzeichen und Expertenstatus</h2>
 <p>Unter <b>Katalog › Abzeichen</b> legst Du fest, ab wie vielen durchgeführten Sessions welche Stufe gilt. Abgesagte Sessions zählen nicht. Die Grenzen müssen von Stufe zu Stufe ansteigen.</p>
@@ -226,7 +238,7 @@
 <tr><td>Anmeldung gesperrt</td><td>Nach fünf Fehlversuchen fünf Minuten warten. Ein Neustart des Anwendungspools hebt alle Sperren sofort auf.</td></tr>
 <tr><td>Nach der Anmeldung folgt sofort wieder die Anmeldeseite</td><td>Das Sitzungs-Cookie kommt nicht an. Prüfe, ob die Adresse im Browser immer gleich lautet (gleicher Servername, gleiches Protokoll) und ob Cookies erlaubt sind. Ab Version 0.25.1 richtet sich der Cookie-Pfad nach der Schreibweise der aufgerufenen Adresse. Ersetze dafür <code>AppData\api.ashx</code>.</td></tr>
 <tr><td>Meldung „Bitte vergib zuerst ein eigenes Passwort“</td><td>Das Konto hat ein vorläufiges Passwort. Unter Profil › Konto ein eigenes vergeben, danach geht alles wieder.</td></tr>
-<tr><td>Passwort der Hauptadministration vergessen</td><td>Siehe Kapitel „Nutzer und Rechte“. Andere Konten setzt die Administration über „Passwort zurücksetzen“ zurück.</td></tr>
+<tr><td>Passwort der Hauptadministration vergessen</td><td>In <code>data.json</code> beim Konto admin die Rolle auf <code>user</code> setzen, dann steht ein neues Startpasswort in <code>admin-startpasswort.txt</code>. Schritte im Kapitel „Nutzer und Rechte“. Andere Konten setzt die Administration über „Passwort zurücksetzen“ zurück.</td></tr>
 </table>
 
 <h2>Datenschutz und Spielregeln</h2>

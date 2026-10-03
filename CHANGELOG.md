@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.29.3 (03.10.2026)
+- **Footer:** sitzt immer am Seitenende ohne Weißraum danach. Bei kurzen Seiten wie der Anmeldung steht er am unteren Fensterrand.
+- **Admin-Handbuch:** neuer Ablauf „Passwort der Hauptadministration vergessen“ (Rolle in data.json auf user setzen, neues Startpasswort in admin-startpasswort.txt).
+
 ## 0.29.2 (03.10.2026)
 - **Demo-Version:** Fünf schnelle Klicks auf das R+V-Logo im Footer setzen das Passwort von „admin“ auf RuVTest1234 zurück und bestätigen das mit einer Meldung. Die Daten bleiben erhalten. Auf dem Server (IIS) ohne Funktion.
 
