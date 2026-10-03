@@ -24,11 +24,13 @@
 <h2>Verarbeitete Daten</h2>
 <table>
 <tr><th>Daten</th><th>Zweck</th><th>Sichtbar für</th><th>Speicherdauer</th></tr>
+<tr><td>IDD-Angaben: IDD-pflichtig, 15 oder 30 Stunden, gutBeraten-ID</td><td>Anrechnung und Meldung der IDD-Weiterbildung</td><td>die Person selbst, Administration</td><td>bis zur Änderung oder Löschung des Kontos</td></tr>
+<tr><td>IDD-Teilnahmebestätigung (teilgenommen oder nicht, bestätigt am, durch)</td><td>Nachweis der IDD-Bildungszeit</td><td>die Person selbst, die anbietende Person (nur Benutzernamen), Administration</td><td>wie dienstliche Veranstaltungen</td></tr>
 <tr><td>Benutzername</td><td>Anzeige auf Kacheln und Listen</td><td>alle</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Vor- und Nachname, XV-Nummer, E-Mail-Adresse</td><td>Zuordnung, Nachweis, Kontakt durch die Administration</td><td>die Person selbst, Administration; E-Mail nur nach Freigabe auch andere</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Passwort</td><td>Anmeldung</td><td>niemand (nur als Hash gespeichert)</td><td>bis zur Löschung des Kontos</td></tr>
-<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst; Administration nur bei dienstlichen Veranstaltungen, bei privaten nur die Anzahl; Anbietende sehen nur Benutzernamen</td><td>dienstlich 5 Jahre, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
-<tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>dienstlich 5 Jahre, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst; Administration nur bei dienstlichen Veranstaltungen, bei privaten nur die Anzahl; Anbietende sehen nur Benutzernamen</td><td>dienstlich bis Ende des 5. Jahres nach dem Kalenderjahr, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>dienstlich bis Ende des 5. Jahres nach dem Kalenderjahr, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
 <tr><td>Abzeichen und Expertenstatus</td><td>Anerkennung</td><td>die Person selbst; andere nur nach Zustimmung</td><td>berechnet, nicht gespeichert</td></tr>
 <tr><td>Einstellung Browser-Benachrichtigung</td><td>Hinweis auf neue Mitteilungen</td><td>nur im eigenen Browser gespeichert</td><td>bis zum Ausschalten</td></tr>
 <tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Rückmeldung an Anbietende</td><td>niemand einzeln; Anbietende sehen ihren Durchschnitt ab 3 Bewertungen; Administration nur zusammengefasst nach Monat, Bereich und Thema</td><td>mit der Anmeldung, danach anonym</td></tr>
@@ -68,7 +70,7 @@
 </table>
 <h3>Fristen</h3>
 <ul>
-<li>Dienstliche Veranstaltungen und Anmeldungen werden <b>5 Jahre</b> nach dem Ende automatisch anonymisiert. Die Frist folgt der Nachweispflicht der IDD.</li>
+<li>Dienstliche Veranstaltungen und Anmeldungen werden am Ende des <b>fünften Jahres nach dem Kalenderjahr</b> der Veranstaltung automatisch anonymisiert. Die Frist folgt der Nachweispflicht der IDD und beginnt am Ende des Kalenderjahres.</li>
 <li>Private Veranstaltungen und Anmeldungen werden schon nach <b>12 Monaten</b> anonymisiert. Für sie gibt es keinen Nachweiszweck.</li>
 <li>Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch.</li>
 <li>Das Admin-Protokoll bleibt <b>12 Monate</b>. Das Fehlerprotokoll ist auf 2 MB begrenzt und enthält keine Passwörter.</li>
@@ -90,6 +92,7 @@
 <tr><td>Ranglisten</td><td>Gibt es nicht. Die Statistik zeigt nur zusammengefasste Werte, zum Beispiel je Monat, Thema oder Format.</td></tr>
 <tr><td>Aktivität</td><td>Die Administration sieht keine Anmeldezeiten und keine Teilnahmen je Person. Die Statistik zeigt nur, wie viele Konten in einem Zeitraum aktiv waren.</td></tr>
 <tr><td>Abzeichen und Expertenstatus</td><td>Richten sich nach der Zahl angebotener Veranstaltungen und dienen der Anerkennung. Andere sehen sie erst nach Zustimmung der Person (Opt-in), widerruflich.</td></tr>
+<tr><td>IDD-Teilnahmebestätigung</td><td>Die Bestätigung der Anwesenheit ist ein Verhaltensdatum. Sie dient ausschließlich der IDD-Anrechnung. Anbietende bestätigen 14 Tage lang, danach die Administration. Ab dem 31.01. des Folgejahres ist nichts mehr änderbar. Nachträge der Administration brauchen eine Begründung und stehen im Admin-Protokoll. Die IDD-Funktion ist ab Werk aus.</td></tr>
 <tr><td>Teilnehmendenlisten</td><td>Anbietende sehen nur Benutzernamen. Echte Namen sieht die Administration nur bei dienstlichen Veranstaltungen, für Organisation und späteren Nachweis. Wer an privaten Veranstaltungen teilnimmt, sieht die Administration nicht.</td></tr>
 <tr><td>Schnittstellen</td><td>Keine. Keine Übergabe an Personal-, Zeit- oder Vertriebssysteme.</td></tr>
 <tr><td>Arbeitszeit</td><td>Wird nicht erfasst. Teilnehmende an dienstlichen Sessions stempeln sich selbst ein und aus.</td></tr>
@@ -141,11 +144,21 @@
 <tr><td>Demo-Version im Browser</td><td>nur für Tests</td><td>Keine echten Daten in die Demo eingeben</td></tr>
 </table>
 
+<h2>IDD-Funktion</h2>
+<ul>
+<li><b>Schalter:</b> Die Administration schaltet die Funktion ein. Ist sie aus, sind alle IDD-Angaben ausgeblendet.</li>
+<li><b>Berechtigung:</b> IDD-Veranstaltungen legen nur Personen an, die die Administration freigeschaltet hat. Der Server prüft das bei jeder Speicherung.</li>
+<li><b>Datenfluss:</b> Die Zeiten verlassen die Anwendung heute nur als PDF-Nachweis, den Teilnehmende selbst herunterladen. Die Meldung an gutBeraten folgt in einem späteren Schritt und wird vor dem Start mit Datenschutz und Betriebsrat abgestimmt.</li>
+<li><b>Unveränderlichkeit:</b> Nach dem 31.01. des Folgejahres lehnt der Server jede Änderung an den Bestätigungen eines Kalenderjahres ab.</li>
+<li><b>Konto löschen:</b> Mit dem Konto werden auch die IDD-Teilnahmen gelöscht. Die Anwendung weist vorher darauf hin. Ob IDD-Nachweise bis zum Ende der Frist aufbewahrt werden müssen, sollte der Datenschutz prüfen.</li>
+</ul>
+
 <h2>Entscheidungen</h2>
 <table>
 <tr><th>Frage</th><th>Stand</th></tr>
 <tr><td>Wie lange bleiben Daten privater Veranstaltungen gespeichert?</td><td>Entschieden: 12 Monate. Dienstliche Veranstaltungen 5 Jahre wegen der IDD.</td></tr>
 <tr><td>Sind Abzeichen ohne eigene Entscheidung sichtbar?</td><td>Entschieden: nein. Abzeichen und Rakete erscheinen erst nach Zustimmung.</td></tr>
+<tr><td>Bleiben IDD-Nachweise nach einer Kontolöschung erhalten?</td><td>Offen. Heute werden sie mit dem Konto gelöscht. Eine gesetzliche Aufbewahrungspflicht könnte das Löschen einschränken (Art. 17 Abs. 3 DSGVO).</td></tr>
 <tr><td>Werden neue Konten geprüft?</td><td>Offen. Für den Pilot reicht die Selbstregistrierung. Ziel ist die Anmeldung über das Unternehmenskonto (siehe Single Sign-on).</td></tr>
 </table>
 
@@ -196,6 +209,7 @@
 <li>Bei privaten Veranstaltungen erhält die Administration keine Namen der Teilnehmenden.</li>
 <li>Ändert die anbietende Person Termin oder Teams-Link, erhalten Angemeldete ein Termin-Update.</li>
 <li>Neue Konten zeigen ihr Abzeichen erst nach Zustimmung.</li>
+<li>IDD: Anlegen nur mit Freischaltung, IDD-Zeit höchstens Dauer minus 10 Minuten, Bestätigung nur durch Anbietende oder Administration, Sperre nach dem 31.01. auch für die Administration.</li>
 <li>Durchschnittswerte erscheinen erst ab drei Bewertungen.</li>
 <li>Ausgeblendete Abzeichen erscheinen nirgends.</li>
 <li>Gelöschte Konten können sich nicht mehr anmelden.</li>

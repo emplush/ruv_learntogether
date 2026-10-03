@@ -55,7 +55,12 @@ namespace LearnTogether
         public bool hideBadges { get; set; }      // veraltet (bis 0.27): ersetzt durch showBadges
         public bool showBadges { get; set; }      // Abzeichen und Expertenstatus fuer andere zeigen: nur nach Zustimmung (Standard: aus)
         public string extId { get; set; }         // Vorbereitung Single Sign-on: Kennung im Unternehmensverzeichnis (noch nicht genutzt)
-        public string authSource { get; set; }    // Vorbereitung Single Sign-on: "" = Passwort, spaeter z. B. "windows" oder "entra"
+        public string authSource { get; set; }
+        // IDD: Freischaltung als Anbietende, eigene Angaben zur Weiterbildungspflicht
+        public bool iddHost { get; set; }
+        public bool iddDuty { get; set; }
+        public int iddHours { get; set; }         // 15 oder 30
+        public string gbId { get; set; }          // gutBeraten-ID, Format XXXX-XXXX-XXXX    // Vorbereitung Single Sign-on: "" = Passwort, spaeter z. B. "windows" oder "entra"
         public List<string> sessions { get; set; } // aktive Sitzungen "Kennung:Ablauf" (Abmelden beendet die Sitzung auch auf dem Server)
         public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); sessions = new List<string>(); }
     }
@@ -79,6 +84,10 @@ namespace LearnTogether
         public string placeholder { get; set; }   // Kennung des gewaehlten Platzhalterbildes (ohne eigenes Bild)
         public long imgVer { get; set; }
         public int rev { get; set; }              // Aenderungsstand (SEQUENCE in der Kalenderdatei)
+        public bool idd { get; set; }             // IDD-anrechenbar (nur dienstlich)
+        public string iddTitle { get; set; }      // Titel fuer die Dokumentation
+        public int iddMinutes { get; set; }       // anrechenbare Bildungszeit, hoechstens Dauer minus 10 Minuten
+        public string reopenUntil { get; set; }   // Bestaetigung fuer Anbietende erneut freigeschaltet bis
         public bool isTest { get; set; }
         public string created { get; set; }
         public bool cancelled { get; set; }
@@ -99,6 +108,11 @@ namespace LearnTogether
         public int rating { get; set; }       // 0 = noch nicht bewertet, 1 bis 5 Sterne (nicht aenderbar)
         public string ratedAt { get; set; }
         public bool isTest { get; set; }
+        public string idd { get; set; }           // Teilnahme an IDD-Veranstaltung: "" offen, "yes" teilgenommen, "no" nicht teilgenommen
+        public string confirmedAt { get; set; }
+        public string confirmedBy { get; set; }
+        public string addedBy { get; set; }       // von der Administration nachgetragen
+        public string addReason { get; set; }
     }
 
     public class NoteRec
@@ -154,6 +168,12 @@ namespace LearnTogether
         public int expertMin { get; set; }
         public bool avatarUploadOff { get; set; }      // Hochladen eigener Profilbilder abgeschaltet
         public int audience { get; set; }              // Groesse der Zielgruppe fuer die Kennzahl Reichweite
+        public bool iddOn { get; set; }                // IDD-Funktion sichtbar (Standard: aus)
+        public string iddProvider { get; set; }
+        public string iddWelcomeTitle { get; set; }
+        public string iddWelcomeText { get; set; }
+        public string iddFarewellTitle { get; set; }
+        public string iddFarewellText { get; set; }
         public List<PhotoRec> photos { get; set; }      // eigene Fotos als Platzhalterbilder
         public SettingsRec()
         {
@@ -177,6 +197,9 @@ namespace LearnTogether
             badgeLevels = new List<int>(new int[] { 1, 5, 10, 20, 40, 80 });
             expertMin = 5;
             audience = 6000;
+            iddProvider = "R+V Allgemeine Versicherung AG";
+            iddWelcomeTitle = "Begr\u00fc\u00dfung"; iddWelcomeText = "Ankommen, kurze Vorstellung und Ablauf der Session.";
+            iddFarewellTitle = "Verabschiedung"; iddFarewellText = "Zusammenfassung, offene Fragen und Hinweis zur Teilnahmebest\u00e4tigung.";
         }
     }
 
@@ -221,14 +244,16 @@ namespace LearnTogether
         const int PwIter = 100000;
         const int RetainYears = 5;
         const int RetainPrivateMonths = 12;
+        const int IddFrameMin = 5;       // Begruessung und Verabschiedung, je 5 Minuten, keine Lernzeit
+        const int IddHostDays = 14;      // so lange bestaetigen Anbietende selbst
         const int SessionHours = 8;
         const int MinRatings = 3;        // Durchschnittswerte erst ab drei Bewertungen, damit niemand auf einzelne Stimmen schliessen kann
         const int InactiveMonths = 24;   // Konten ohne Anmeldung werden danach automatisch geloescht
         static DateTime lastPurge = DateTime.MinValue;
         // Lesende Aufrufe; alles andere ist nur per POST mit Pflicht-Header erlaubt
-        static readonly string[] GetActions = new string[] { "ping", "settings", "events", "img", "photo", "avatar", "me", "myBookings", "myEvents", "profile", "publicProfile", "myData", "adminEvents", "adminUsers", "adminSettings", "adminManual", "adminManualPdf" };
+        static readonly string[] GetActions = new string[] { "ping", "settings", "events", "img", "photo", "avatar", "me", "myBookings", "myEvents", "profile", "publicProfile", "myData", "iddCockpit", "adminIdd", "adminEvents", "adminUsers", "adminSettings", "adminManual", "adminManualPdf" };
         // Admin-Aktionen, die im Protokoll (AppData\Data\audit) festgehalten werden
-        static readonly string[] AuditActions = new string[] { "adminSetRole", "adminResetPassword", "adminSetLocked", "adminDeleteUser", "adminSaveEvent", "adminDeleteEvent", "adminDeleteBooking", "adminDeleteAvatar", "adminSavePhoto", "adminDeletePhoto", "adminSaveSettings", "adminSaveTaxonomy", "adminTestData" };
+        static readonly string[] AuditActions = new string[] { "adminSetRole", "adminResetPassword", "adminSetLocked", "adminDeleteUser", "adminSaveEvent", "adminDeleteEvent", "adminDeleteBooking", "adminDeleteAvatar", "adminSavePhoto", "adminDeletePhoto", "adminSaveSettings", "adminSaveTaxonomy", "adminTestData", "adminIddReopen", "adminIddAdd", "adminSetIddHost" };
         static readonly string[] AllowedTeamsHosts = new string[] { "teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft", "teams.microsoft.us" };
         static readonly Dictionary<string, int[]> AuthFails = new Dictionary<string, int[]>();
         static readonly Dictionary<string, int[]> RegCount = new Dictionary<string, int[]>();
@@ -262,7 +287,7 @@ namespace LearnTogether
                 switch (action)
                 {
                     case "ping": { bool w; string we; CheckWritable(out w, out we); Send(new { ok = true, server = true, version = Version, writable = w, storageError = we }); break; }
-                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText }, badges = new { levels = ps.badgeLevels, expertMin = ps.expertMin }, avatarUpload = !ps.avatarUploadOff, photos = ps.photos ?? new List<PhotoRec>() }); break; }
+                    case "settings": { SettingsRec ps = LoadSettings(); Send(new { ok = true, appTitle = ps.appTitle, labels = Labels(ps), topics = Topics(ps), colors = Colors(ps), headings = Headings(ps), texts = Texts(ps), types = ps.types, hero = new { title = ps.heroTitle, text = ps.heroText }, badges = new { levels = ps.badgeLevels, expertMin = ps.expertMin }, avatarUpload = !ps.avatarUploadOff, photos = ps.photos ?? new List<PhotoRec>(), idd = IddInfo(ps) }); break; }
                     case "events": ListEvents(); break;
                     case "img": ServeImage(); break;
                     case "photo": ServePhoto(); break;
@@ -289,6 +314,9 @@ namespace LearnTogether
                     case "publicProfile": PublicProfile(); break;
                     case "myData": MyData(); break;
                     case "deleteAccount": DeleteAccount(); break;
+                    case "saveIdd": SaveIdd(); break;
+                    case "confirmAttendance": ConfirmAttendance(); break;
+                    case "iddCockpit": IddCockpit(); break;
                     default:
                         AdminAction(action);
                         break;
@@ -337,6 +365,10 @@ namespace LearnTogether
                     case "adminDeleteBooking": AdminDeleteBooking(d); break;
                     case "adminDeleteAvatar": AdminDeleteAvatar(d); break;
                     case "adminDeleteUser": AdminDeleteUser(d, me); break;
+                    case "adminIdd": AdminIdd(d); break;
+                    case "adminIddReopen": AdminIddReopen(d); break;
+                    case "adminIddAdd": AdminIddAdd(d, me); break;
+                    case "adminSetIddHost": AdminSetIddHost(d); break;
                     case "adminSavePhoto": AdminSavePhoto(); break;
                     case "adminDeletePhoto": AdminDeletePhoto(); break;
                     case "adminSettings": AdminSettings(); break;
@@ -352,7 +384,8 @@ namespace LearnTogether
         }
 
         // Protokoll der Admin-Aktionen: wer hat wann was an welchem Datensatz geaendert (ohne Inhalte), Monatsdateien, 12 Monate aufbewahrt
-        void Audit(UserRec me, string action)
+        void Audit(UserRec me, string action) { Audit(me, action, null); }
+        void Audit(UserRec me, string action, string explicitTarget)
         {
             try
             {
@@ -360,7 +393,8 @@ namespace LearnTogether
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 DateTime now = NowBerlin();
                 string target = "";
-                if (bodyCache != null)
+                if (explicitTarget != null) target = Regex.Replace(explicitTarget, "[^A-Za-z0-9_-]", "");
+                else if (bodyCache != null)
                 {
                     string id = S(bodyCache, "id"); if (id.Length == 0) { Dictionary<string, object> ev = D(bodyCache, "event"); if (ev != null) id = S(ev, "id"); }
                     if (id.Length == 0) id = S(bodyCache, "mode");
@@ -588,7 +622,8 @@ namespace LearnTogether
                 if (e.anonymized) continue;
                 DateTime due;
                 // dienstlich 5 Jahre (Nachweis, IDD), privat 12 Monate (kein Nachweiszweck)
-                try { DateTime end = StartOfSafe(e.date, e.start).AddMinutes(e.duration); due = e.category == "privat" ? end.AddMonths(RetainPrivateMonths) : end.AddYears(RetainYears); }
+                // dienstlich: 5 Jahre ab Ende des Kalenderjahres der Veranstaltung (IDD-Nachweis); privat: 12 Monate nach dem Ende
+                try { DateTime end = StartOfSafe(e.date, e.start).AddMinutes(e.duration); due = e.category == "privat" ? end.AddMonths(RetainPrivateMonths) : new DateTime(end.Year + RetainYears + 1, 1, 1); }
                 catch (FormatException) { continue; }
                 if (now < due) continue;
                 bool held = !e.cancelled;
@@ -973,6 +1008,7 @@ namespace LearnTogether
             x["id"] = u.id; x["username"] = u.username; x["firstName"] = u.firstName; x["lastName"] = u.lastName; x["xv"] = u.xv; x["email"] = u.email;
             x["role"] = u.role; x["level"] = bd.Level(u.id); x["mustChange"] = u.mustChange; x["unread"] = unread; x["created"] = u.created;
             x["profilePublic"] = u.profilePublic; x["publicHintOff"] = u.publicHintOff;
+            x["iddHost"] = u.iddHost; x["iddDuty"] = u.iddDuty; x["iddHours"] = u.iddHours == 30 ? 30 : 15; x["gbId"] = u.gbId ?? "";
             return x;
         }
 
@@ -1121,7 +1157,7 @@ namespace LearnTogether
             x["description"] = e.description; x["isTest"] = e.isTest;
             x["placeholder"] = e.placeholder ?? "";
             x["image"] = e.hasImage ? "AppData/api.ashx?action=img&id=" + e.id + "&v=" + e.imgVer : null;
-            x["rev"] = e.rev; x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
+            x["rev"] = e.rev; { bool on = e.idd && LoadSettings().iddOn; x["idd"] = on; x["iddTitle"] = on ? e.iddTitle ?? "" : ""; x["iddMinutes"] = on ? e.iddMinutes : 0; } x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
             return x;
         }
 
@@ -1146,7 +1182,9 @@ namespace LearnTogether
             Send(new { ok = true, events = l });
         }
 
-        EventRec ReadEvent(Dictionary<string, object> e, EventRec target, bool admin)
+        // iddMode: 0 = keine IDD erlaubt, 1 = erlaubt (wenn die IDD-Funktion an ist), 2 = Testdaten (unabhaengig vom Schalter)
+        EventRec ReadEvent(Dictionary<string, object> e, EventRec target, bool admin) { return ReadEvent(e, target, admin, admin ? 1 : 0); }
+        EventRec ReadEvent(Dictionary<string, object> e, EventRec target, bool admin, int iddMode)
         {
             EventRec r = target ?? new EventRec();
             string title = S(e, "title"), cat = S(e, "category"), type = S(e, "type"), topic = S(e, "topic");
@@ -1171,11 +1209,23 @@ namespace LearnTogether
             if (PlainText(desc).Length < 10) throw new ApiException("invalid", "Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.");
             if (desc.Length > 20000) throw new ApiException("invalid", "Die Beschreibung ist zu lang.");
             if (!admin && StartOfSafe(date, start) <= NowBerlin()) throw new ApiException("invalid", "Der Termin muss in der Zukunft liegen.");
+            bool idd = B(e, "idd"); string iddTitle = ""; int iddMin = 0;
+            if (idd)
+            {
+                if (iddMode == 0) throw new ApiException("forbidden", "IDD-Veranstaltungen kannst Du erst nach Freischaltung durch die Administration anlegen.");
+                if (iddMode == 1 && !s.iddOn) throw new ApiException("invalid", "Die IDD-Funktion ist nicht aktiv.");
+                if (cat != "dienstlich") throw new ApiException("invalid", "IDD-anrechenbar k\u00f6nnen nur dienstliche Veranstaltungen sein.");
+                iddTitle = Regex.Replace(S(e, "iddTitle"), "\\s+", " ").Trim();
+                if (iddTitle.Length < 5 || iddTitle.Length > 150) throw new ApiException("invalid", "Bitte gib einen IDD-Titel mit 5 bis 150 Zeichen an. Er ist bei IDD-Veranstaltungen Pflicht.");
+                iddMin = I(e, "iddMinutes"); if (iddMin == 0) iddMin = dur - 2 * IddFrameMin;
+                if (iddMin < 5 || iddMin > dur - 2 * IddFrameMin || iddMin % 5 != 0) throw new ApiException("invalid", "Die IDD-Zeit muss in 5-Minuten-Schritten zwischen 5 Minuten und der Dauer minus 10 Minuten (" + (dur - 2 * IddFrameMin) + " Minuten) liegen.");
+            }
 
             r.title = title; r.category = cat; r.type = type; r.topic = topic;
             string ph = S(e, "placeholder");
             if (!Regex.IsMatch(ph, "^[a-z0-9-]{0,40}$")) ph = "";
             r.date = date; r.start = start; r.duration = dur; r.capacity = cap; r.teamsLink = link; r.description = desc; r.placeholder = ph;
+            r.idd = idd; r.iddTitle = iddTitle; r.iddMinutes = iddMin;
             return r;
         }
 
@@ -1189,7 +1239,7 @@ namespace LearnTogether
             {
                 DataFile d = LoadData();
                 UserRec me = Auth(d, true);
-                EventRec ev = ReadEvent(e, null, false);
+                EventRec ev = ReadEvent(e, null, false, me.iddHost || IsAdmin(me) ? 1 : 0);
                 ev.id = NewId(); ev.ownerId = me.id; ev.host = me.username; ev.created = NowIso();
                 string img = S(e, "imageData");
                 if (img.Length > 0) StoreImage(ev, img);
@@ -1276,7 +1326,7 @@ namespace LearnTogether
                 string od = ev.date, os = ev.start, ol = ev.teamsLink; int odu = ev.duration;
                 int booked = CountBookings(d, ev.id);
                 if (I(e, "capacity") < booked) throw new ApiException("invalid", "Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (" + booked + ") liegen.");
-                ReadEvent(e, ev, false);
+                ReadEvent(e, ev, false, me.iddHost || IsAdmin(me) || ev.idd ? 1 : 0);
                 string img = S(e, "imageData");
                 if (img.Length > 0) StoreImage(ev, img);
                 else if (B(e, "removeImage")) { DeleteImageFiles(ev.id); ev.hasImage = false; }
@@ -1386,12 +1436,13 @@ namespace LearnTogether
                     {
                         if (bk.eventId != ev.id) continue;
                         UserRec bu = FindUser(d, bk.userId);
-                        people.Add(new { username = bu != null ? bu.username : "Anonymisiert", level = bd.PubLevel(bk.userId), created = bk.created });
+                        people.Add(new { id = bk.id, username = bu != null ? bu.username : "Anonymisiert", level = bd.PubLevel(bk.userId), created = bk.created, idd = bk.idd ?? "" });
                     }
                     double avg; int cnt; RatingOf(d, ev.id, out avg, out cnt);
                     x["teamsLink"] = ev.teamsLink; x["participants"] = people; x["booked"] = people.Count; x["ended"] = ended;
                     x["ratingAvg"] = avg; x["ratingCount"] = cnt;
                     x["canCancel"] = !ev.cancelled && StartOfSafe(ev.date, ev.start) > now;
+                    if (ev.idd && ended && !ev.cancelled && s.iddOn) x["iddConfirm"] = new { open = IddHostCan(ev, now), until = IddHostDeadline(ev).ToString("s", CultureInfo.InvariantCulture), locked = now > IddHardLock(ev) };
                     l.Add(x);
                 }
                 Send(new { ok = true, events = l });
@@ -1752,7 +1803,7 @@ namespace LearnTogether
                 DateTime t; int k = 4;
                 if (!string.IsNullOrEmpty(u.lastLogin) && DateTime.TryParse(u.lastLogin, CultureInfo.InvariantCulture, DateTimeStyles.None, out t)) { double days = (now - t).TotalDays; k = days < 7 ? 0 : days < 30 ? 1 : days < 90 ? 2 : 3; }
                 act[k]++;
-                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), profilePublic = u.profilePublic, avatar = AvatarInfo(u, LoadSettings(), true) });
+                l.Add(new { id = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, email = u.email, role = u.role, locked = u.locked, mustChange = u.mustChange, created = u.created, isTest = u.isTest, level = bd.Level(u.id), offered = bd.Count(u.id), profilePublic = u.profilePublic, avatar = AvatarInfo(u, LoadSettings(), true), iddHost = u.iddHost, iddDuty = u.iddDuty, gbId = u.gbId ?? "" });
             }
             Send(new { ok = true, users = l, activity = act, inactiveMonths = InactiveMonths });
         }
@@ -1794,13 +1845,13 @@ namespace LearnTogether
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
                 List<object> evs = new List<object>(), bks = new List<object>(), notes = new List<object>();
                 foreach (EventRec e in d.events) if (e.ownerId == me.id) { int c = 0; double avg; RatingOf(d, e.id, out avg, out c); evs.Add(new { title = e.title, category = e.category, type = e.type, topic = e.topic, date = e.date, start = e.start, duration = e.duration, capacity = e.capacity, teamsLink = e.teamsLink, description = e.description, created = e.created, cancelled = e.cancelled, cancelReason = e.cancelReason ?? "", participants = CountBookings(d, e.id), ratingCount = c, ratingAvg = avg }); }
-                foreach (BookingRec b in d.bookings) if (b.userId == me.id) { EventRec e = FindEvent(d, b.eventId); bks.Add(new { eventTitle = e != null ? e.title : "", date = e != null ? e.date : "", start = e != null ? e.start : "", booked = b.created, myRating = b.rating, ratedAt = b.ratedAt ?? "" }); }
+                foreach (BookingRec b in d.bookings) if (b.userId == me.id) { EventRec e = FindEvent(d, b.eventId); bks.Add(new { eventTitle = e != null ? e.title : "", date = e != null ? e.date : "", start = e != null ? e.start : "", booked = b.created, myRating = b.rating, ratedAt = b.ratedAt ?? "", idd = e != null && e.idd, iddTitle = e != null ? e.iddTitle ?? "" : "", iddMinutes = e != null && e.idd ? e.iddMinutes : 0, iddStatus = b.idd ?? "", confirmedAt = b.confirmedAt ?? "" }); }
                 foreach (NoteRec n in d.notes) if (n.userId == me.id) notes.Add(new { type = n.type, title = n.title, date = n.date, reason = n.reason, created = n.created, read = n.read });
                 object o = new
                 {
                     exported = NowIso(),
                     account = new { username = me.username, firstName = me.firstName, lastName = me.lastName, xv = me.xv, email = me.email, role = me.role, created = me.created, lastLogin = me.lastLogin ?? "", locked = me.locked, activeSessions = me.sessions == null ? 0 : me.sessions.Count },
-                    profile = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, showBadges = me.showBadges, bio = me.bio ?? "", avatar = me.avatar ?? "", signIn = string.IsNullOrEmpty(me.authSource) ? "password" : me.authSource },
+                    profile = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, showBadges = me.showBadges, bio = me.bio ?? "", avatar = me.avatar ?? "", signIn = string.IsNullOrEmpty(me.authSource) ? "password" : me.authSource, iddDuty = me.iddDuty, iddHours = me.iddHours == 30 ? 30 : 15, gbId = me.gbId ?? "", iddHost = me.iddHost },
                     archive = new { offeredBeforeAnonymization = me.legacyOffered, attendedBeforeAnonymization = me.legacyAttended },
                     events = evs, bookings = bks, notes = notes
                 };
@@ -1912,7 +1963,7 @@ namespace LearnTogether
             SettingsRec s = LoadSettings();
             DataFile d = LoadData();
             int tu = 0, te = 0; foreach (UserRec u in d.users) if (u.isTest) tu++; foreach (EventRec e in d.events) if (e.isTest) te++;
-            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection, audience = s.audience });
+            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection, audience = s.audience, idd = IddInfo(s) });
         }
 
         void AdminSaveSettings()
@@ -1948,6 +1999,15 @@ namespace LearnTogether
                     s.badgeLevels = lv;
                 }
                 if (b.ContainsKey("avatarUpload")) s.avatarUploadOff = !B(b, "avatarUpload");
+                if (b.ContainsKey("iddOn")) s.iddOn = B(b, "iddOn");
+                if (b.ContainsKey("iddProvider"))
+                {
+                    string pv = S(b, "iddProvider"), wt = S(b, "iddWelcomeTitle"), wx = S(b, "iddWelcomeText"), ft = S(b, "iddFarewellTitle"), fx = S(b, "iddFarewellText");
+                    if (pv.Length < 3 || pv.Length > 120) throw new ApiException("invalid", "Der Bildungsdienstleister muss zwischen 3 und 120 Zeichen lang sein.");
+                    if (wt.Length < 2 || wt.Length > 60 || ft.Length < 2 || ft.Length > 60) throw new ApiException("invalid", "Die Titel f\u00fcr Begr\u00fc\u00dfung und Verabschiedung m\u00fcssen zwischen 2 und 60 Zeichen lang sein.");
+                    if (wx.Length > 300 || fx.Length > 300) throw new ApiException("invalid", "Die Texte f\u00fcr Begr\u00fc\u00dfung und Verabschiedung d\u00fcrfen h\u00f6chstens 300 Zeichen lang sein.");
+                    s.iddProvider = pv; s.iddWelcomeTitle = wt; s.iddWelcomeText = wx; s.iddFarewellTitle = ft; s.iddFarewellText = fx;
+                }
                 if (b.ContainsKey("audience"))
                 {
                     int au = I(b, "audience");
@@ -1991,7 +2051,7 @@ namespace LearnTogether
                         Dictionary<string, object> x = o as Dictionary<string, object>; if (x == null) continue;
                         UserRec u = new UserRec(); u.id = "t-" + NewId(); u.username = S(x, "username"); u.firstName = S(x, "firstName"); u.lastName = S(x, "lastName"); u.xv = S(x, "xv"); u.email = S(x, "email").ToLowerInvariant();
                         u.pwHash = testHash; u.created = NowIso(); u.isTest = true;
-                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.showBadges = B(x, "showBadges"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
+                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.showBadges = B(x, "showBadges"); u.iddHost = B(x, "iddHost"); u.iddDuty = B(x, "iddDuty"); u.iddHours = I(x, "iddHours") == 30 ? 30 : 15; u.gbId = S(x, "gbId"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
                         if (d.users.Exists(delegate (UserRec y) { return y.username.ToLowerInvariant() == u.username.ToLowerInvariant() || y.email == u.email || y.xv == u.xv; })) continue;
                         d.users.Add(u); ids[u.username] = u.id; nu++;
                     }
@@ -2000,7 +2060,7 @@ namespace LearnTogether
                     {
                         Dictionary<string, object> e = o as Dictionary<string, object>; if (e == null) continue;
                         EventRec ev = new EventRec();
-                        ReadEvent(e, ev, true);
+                        ReadEvent(e, ev, true, 2);
                         ev.id = "t-" + Regex.Replace(S(e, "id"), "[^a-zA-Z0-9]", "");
                         ev.isTest = true; ev.created = NowIso();
                         string owner = S(e, "owner"); string oid;
@@ -2017,6 +2077,7 @@ namespace LearnTogether
                         string uid; if (!ids.TryGetValue(S(x, "user"), out uid)) continue;
                         BookingRec bk = new BookingRec(); bk.id = "t-" + NewId(); bk.eventId = "t-" + Regex.Replace(S(x, "eventId"), "[^a-zA-Z0-9]", ""); bk.userId = uid; bk.created = NowIso(); bk.isTest = true;
                         int r = I(x, "rating"); if (r >= 1 && r <= 5) { bk.rating = r; bk.ratedAt = bk.created; }
+                        string ist = S(x, "idd"); if (ist == "yes" || ist == "no") { bk.idd = ist; bk.confirmedAt = bk.created; bk.confirmedBy = "Testdaten"; }
                         d.bookings.Add(bk); nb++;
                     }
                 foreach (EventRec ce in d.events) if (ce.isTest && ce.cancelled) foreach (BookingRec cb in d.bookings) if (cb.eventId == ce.id && cb.userId != null) AddNote(d, cb.userId, "cancelled", ce, ce.cancelReason);
@@ -2026,6 +2087,167 @@ namespace LearnTogether
             Send(new { ok = true, events = ne, bookings = nb, users = nu });
         }
 
+
+        // ---------------------------------------------------------------- IDD: anrechenbare Weiterbildung
+        // Regeln: nur dienstlich, IDD-Titel Pflicht, IDD-Zeit in 5-Minuten-Schritten bis Dauer minus 10 Minuten (Begruessung und Verabschiedung zaehlen nicht).
+        // Bestaetigung der Teilnahme: Anbietende 14 Tage nach dem Ende (oder nach erneuter Freischaltung), Administration bis zum 31.01. des Folgejahres.
+        // Danach ist nichts mehr aenderbar. Angerechnet werden nur bestaetigte Teilnahmen.
+        static bool IsAdmin(UserRec u) { return u != null && (u.role == "admin" || u.role == "superadmin"); }
+
+        static object IddInfo(SettingsRec s)
+        {
+            return new { on = s.iddOn, provider = s.iddProvider ?? "", frame = IddFrameMin, welcome = new { title = s.iddWelcomeTitle ?? "", text = s.iddWelcomeText ?? "" }, farewell = new { title = s.iddFarewellTitle ?? "", text = s.iddFarewellText ?? "" } };
+        }
+
+        static DateTime EventEnd(EventRec e) { return StartOfSafe(e.date, e.start).AddMinutes(e.duration); }
+        // Endgueltige Sperre: 31.01. des Folgejahres, 23:59:59
+        static DateTime IddHardLock(EventRec e) { return new DateTime(StartOfSafe(e.date, e.start).Year + 1, 1, 31, 23, 59, 59); }
+        static DateTime IddHostDeadline(EventRec e)
+        {
+            DateTime d = EventEnd(e).AddDays(IddHostDays), r;
+            if (!string.IsNullOrEmpty(e.reopenUntil) && DateTime.TryParse(e.reopenUntil, CultureInfo.InvariantCulture, DateTimeStyles.None, out r) && r > d) d = r;
+            DateTime hard = IddHardLock(e);
+            return d > hard ? hard : d;
+        }
+        static bool IddHostCan(EventRec e, DateTime now) { return e.idd && !e.cancelled && EventEnd(e) <= now && now <= IddHostDeadline(e); }
+        static bool IddAdminCan(EventRec e, DateTime now) { return e.idd && !e.cancelled && EventEnd(e) <= now && now <= IddHardLock(e); }
+
+        static string NormGbId(string v)
+        {
+            string x = Regex.Replace((v ?? "").ToUpperInvariant(), "[^A-Z0-9]", "");
+            if (x.Length == 0) return "";
+            if (x.Length != 12) return null;
+            return x.Substring(0, 4) + "-" + x.Substring(4, 4) + "-" + x.Substring(8, 4);
+        }
+
+        void RequireIddOn() { if (!LoadSettings().iddOn) throw new ApiException("invalid", "Die IDD-Funktion ist nicht aktiv."); }
+
+        // Eigene Angaben: IDD-pflichtig, 15 oder 30 Stunden, gutBeraten-ID
+        void SaveIdd()
+        {
+            Dictionary<string, object> b = Body();
+            RequireIddOn();
+            bool duty = B(b, "duty"); int hours = I(b, "hours") == 30 ? 30 : 15;
+            string gb = NormGbId(S(b, "gbId"));
+            if (gb == null) throw new ApiException("invalid", "Die gutBeraten-ID besteht aus 12 Buchstaben oder Ziffern in drei Blöcken, zum Beispiel AB12-CD34-EF56.");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                if (gb.Length > 0 && d.users.Exists(delegate (UserRec x) { return x.id != me.id && (x.gbId ?? "") == gb; })) throw new ApiException("taken", "Diese gutBeraten-ID ist bereits einem anderen Konto zugeordnet.");
+                me.iddDuty = duty; me.iddHours = hours; if (duty) me.gbId = gb;
+                SaveData(d);
+                Send(new { ok = true, me = MeInfo(d, BuildBadges(d, LoadSettings(), NowBerlin()), me) });
+            }
+        }
+
+        // Teilnahme bestaetigen: status "yes", "no" oder "" (offen). Anbietende in ihrer Frist, Administration bis zur Sperre.
+        void ConfirmAttendance()
+        {
+            Dictionary<string, object> b = Body();
+            RequireIddOn();
+            string bookingId = S(b, "bookingId"), status = S(b, "status");
+            if (status != "yes" && status != "no" && status != "") throw new ApiException("invalid", "Ungültiger Status.");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true); DateTime now = NowBerlin();
+                BookingRec bk = d.bookings.Find(delegate (BookingRec x) { return x.id == bookingId; });
+                EventRec ev = bk == null ? null : FindEvent(d, bk.eventId);
+                if (bk == null || ev == null || !ev.idd || string.IsNullOrEmpty(bk.userId)) throw new ApiException("notfound", "Diese Anmeldung gibt es nicht.");
+                bool admin = IsAdmin(me), owner = ev.ownerId == me.id;
+                if (!owner && !admin) throw new ApiException("forbidden", "Nur die anbietende Person oder die Administration kann Teilnahmen bestätigen.");
+                if (now > IddHardLock(ev)) throw new ApiException("locked", "Die Teilnahmen dieser Veranstaltung sind seit dem 31.01. endgültig gesperrt.");
+                if (EventEnd(ev) > now) throw new ApiException("invalid", "Teilnahmen lassen sich erst nach dem Ende der Veranstaltung bestätigen.");
+                if (ev.cancelled) throw new ApiException("invalid", "Die Veranstaltung wurde abgesagt.");
+                if (!admin && !IddHostCan(ev, now)) throw new ApiException("locked", "Die Frist zur Bestätigung ist abgelaufen. Die Administration kann sie für Dich wieder freischalten.");
+                bk.idd = status; bk.confirmedAt = status.Length > 0 ? NowIso() : ""; bk.confirmedBy = status.Length > 0 ? me.username : "";
+                SaveData(d);
+                if (admin && !owner) Audit(me, "confirmAttendance", bk.id);
+                Send(new { ok = true, status = status });
+            }
+        }
+
+        // IDD-Cockpit: eigene Teilnahmen an IDD-Veranstaltungen, nach Kalenderjahr; Grundlage auch fuer den PDF-Nachweis
+        void IddCockpit()
+        {
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true); SettingsRec s = LoadSettings(); DateTime now = NowBerlin();
+                List<object> items = new List<object>();
+                if (s.iddOn)
+                    foreach (BookingRec bk in d.bookings)
+                    {
+                        if (bk.userId != me.id) continue;
+                        EventRec ev = FindEvent(d, bk.eventId);
+                        if (ev == null || !ev.idd || ev.cancelled) continue;
+                        DateTime st = StartOfSafe(ev.date, ev.start);
+                        items.Add(new { eventId = ev.id, title = ev.title, iddTitle = ev.iddTitle ?? "", date = ev.date, start = ev.start, end = st.AddMinutes(ev.duration).ToString("HH:mm", CultureInfo.InvariantCulture), duration = ev.duration, minutes = ev.iddMinutes, year = st.Year, ended = EventEnd(ev) <= now, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", locked = now > IddHardLock(ev) });
+                    }
+                Send(new { ok = true, on = s.iddOn, duty = me.iddDuty, hours = me.iddHours == 30 ? 30 : 15, gbId = me.gbId ?? "", firstName = me.firstName, lastName = me.lastName, xv = me.xv, provider = s.iddProvider ?? "", items = items });
+            }
+        }
+
+        // Administration: alle IDD-Veranstaltungen mit Teilnehmenden, Status und Fristen
+        void AdminIdd(DataFile d)
+        {
+            DateTime now = NowBerlin();
+            List<object> l = new List<object>();
+            foreach (EventRec e in d.events)
+            {
+                if (!e.idd) continue;
+                UserRec ow = FindUser(d, e.ownerId);
+                List<object> bl = new List<object>();
+                foreach (BookingRec bk in d.bookings)
+                {
+                    if (bk.eventId != e.id) continue;
+                    UserRec u = FindUser(d, bk.userId);
+                    if (u == null) bl.Add(new { id = bk.id, userId = "", username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", gbId = "", iddDuty = false, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "" });
+                    else bl.Add(new { id = bk.id, userId = u.id, username = u.username, firstName = u.firstName, lastName = u.lastName, xv = u.xv, gbId = u.gbId ?? "", iddDuty = u.iddDuty, status = bk.idd ?? "", confirmedAt = bk.confirmedAt ?? "", confirmedBy = bk.confirmedBy ?? "", addedBy = bk.addedBy ?? "", addReason = bk.addReason ?? "" });
+                }
+                bool ended = EventEnd(e) <= now;
+                l.Add(new { id = e.id, title = e.title, iddTitle = e.iddTitle ?? "", date = e.date, start = e.start, duration = e.duration, iddMinutes = e.iddMinutes, cancelled = e.cancelled, isTest = e.isTest, anonymized = e.anonymized, ended = ended,
+                    owner = ow == null ? null : new { username = ow.username, firstName = ow.firstName, lastName = ow.lastName },
+                    hostUntil = IddHostDeadline(e).ToString("s", CultureInfo.InvariantCulture), hostOpen = IddHostCan(e, now), lockAt = IddHardLock(e).ToString("s", CultureInfo.InvariantCulture), locked = now > IddHardLock(e), bookings = bl });
+            }
+            Send(new { ok = true, events = l });
+        }
+
+        // Bestaetigung fuer die anbietende Person erneut freischalten (14 Tage, hoechstens bis zur Sperre)
+        void AdminIddReopen(DataFile d)
+        {
+            EventRec ev = FindEvent(d, S(Body(), "id")); DateTime now = NowBerlin();
+            if (ev == null || !ev.idd) throw new ApiException("notfound", "Diese IDD-Veranstaltung gibt es nicht.");
+            if (!IddAdminCan(ev, now)) throw new ApiException("locked", "Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.");
+            ev.reopenUntil = now.AddDays(IddHostDays).ToString("s", CultureInfo.InvariantCulture);
+            SaveData(d);
+            Send(new { ok = true, hostUntil = IddHostDeadline(ev).ToString("s", CultureInfo.InvariantCulture) });
+        }
+
+        // Teilnahme durch die Administration nachtragen (auch ohne Buchung), mit Pflichtbegruendung
+        void AdminIddAdd(DataFile d, UserRec me)
+        {
+            Dictionary<string, object> b = Body(); DateTime now = NowBerlin();
+            EventRec ev = FindEvent(d, S(b, "eventId")); UserRec u = FindUser(d, S(b, "userId")); string reason = S(b, "reason");
+            if (ev == null || !ev.idd) throw new ApiException("notfound", "Diese IDD-Veranstaltung gibt es nicht.");
+            if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
+            if (!IddAdminCan(ev, now)) throw new ApiException("locked", "Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.");
+            if (reason.Length < 5 || reason.Length > 300) throw new ApiException("invalid", "Bitte gib eine Begründung mit 5 bis 300 Zeichen an.");
+            if (ev.ownerId == u.id) throw new ApiException("invalid", "Die anbietende Person kann nicht als Teilnehmende eingetragen werden.");
+            BookingRec bk = d.bookings.Find(delegate (BookingRec x) { return x.eventId == ev.id && x.userId == u.id; });
+            if (bk == null) { bk = new BookingRec(); bk.id = NewId(); bk.eventId = ev.id; bk.userId = u.id; bk.created = NowIso(); d.bookings.Add(bk); }
+            bk.idd = "yes"; bk.confirmedAt = NowIso(); bk.confirmedBy = me.username; bk.addedBy = me.username; bk.addReason = reason;
+            SaveData(d);
+            Send(new { ok = true });
+        }
+
+        // Konto fuer das Anlegen von IDD-Veranstaltungen freischalten
+        void AdminSetIddHost(DataFile d)
+        {
+            Dictionary<string, object> b = Body();
+            UserRec u = FindUser(d, S(b, "id"));
+            if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
+            u.iddHost = B(b, "on"); SaveData(d);
+            Send(new { ok = true });
+        }
 
         // ---------------------------------------------------------------- Bilder
         void StoreImage(EventRec ev, string dataUrl)

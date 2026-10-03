@@ -1,5 +1,17 @@
 # Änderungen
 
+## 0.29.0 (03.10.2026)
+**IDD-Weiterbildung** (ab Werk ausgeschaltet, Schalter unter System › IDD-Einstellungen)
+- **Anlegen:** nur nach Freischaltung durch die Administration (Nutzerliste), nur dienstlich. IDD-Titel ist Pflicht, mit Plausibilitätsprüfung nach den Anrechnungsregeln (nur Hinweis). IDD-Zeit in 5-Minuten-Schritten, höchstens und standardmäßig Dauer minus 10 Minuten.
+- **Agenda:** automatisch aus Begrüßung (5 Minuten), Themenblock und Verabschiedung (5 Minuten). Texte für den ersten und letzten Block im Admin-Bereich. Begrüßung und Verabschiedung zählen nicht zur Lernzeit.
+- **Katalog:** Chip „IDD“. Die Info-Kachel zeigt Dauer und IDD-Zeit getrennt, dazu die Agenda. Die Kalenderdatei enthält IDD-Zeit und Agenda.
+- **Konto:** IDD-pflichtig ja oder nein, 15 oder 30 Stunden, gutBeraten-ID im Format XXXX-XXXX-XXXX (geprüft, einmalig).
+- **Bestätigung:** Anbietende bestätigen „Teilgenommen“ oder „Nicht teilgenommen“ 14 Tage lang. Danach bestätigt die Administration, trägt Teilnahmen nach (auch ohne Buchung, mit Begründung und Protokoll) oder schaltet die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist ein Kalenderjahr gesperrt, auch für die Administration. Angerechnet werden nur bestätigte Teilnahmen.
+- **IDD-Cockpit** im Profil nach der ersten bestätigten Teilnahme: IDD-Zeit je Kalenderjahr, Ziel, offene und angerechnete Veranstaltungen, **PDF-Nachweis** mit Echtname, XV-Nummer, gutBeraten-ID und Bildungsdienstleister.
+- **Administration › IDD:** Übersicht je Kalenderjahr mit Kennzahlen, Teilnahmen, Nachtragen, Freischalten.
+- **Aufbewahrung:** dienstliche Veranstaltungen bis zum Ende des fünften Jahres nach dem Kalenderjahr.
+- Handbücher, Papier IT-Sicherheit und Datenschutz und Präsentation (neue Folie „IDD in der App“) aktualisiert.
+
 ## 0.28.0 (03.10.2026)
 - **Private Veranstaltungen:** Anonymisierung nach 12 Monaten statt 5 Jahren. Dienstliche bleiben bei 5 Jahren (Nachweis, IDD).
 - **Abzeichen nur nach Zustimmung:** Abzeichen und Rakete sehen andere erst, wenn die Person unter „Veröffentlichung“ zustimmt. Hinweis im Profil, solange sie nur selbst sichtbar sind.

@@ -182,26 +182,6 @@
     return h('section', { class: 'st-card' + (s.wide ? ' st-wide' : ''), 'aria-label': s.title }, [h('div', { class: 'st-head' }, [h('div', null, [h('h3', { text: s.title }), h('p', { class: 'hint', text: s.hint })]), pdf]), h('div', { html: inner })]);
   }
 
-  /* ---- PDF-Erzeugung (ohne Bibliothek, Standardschrift Helvetica) ---- */
-  var PDF_W = {
-    r: [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584],
-    b: [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
-  };
-  var PDF_CP = { '€': 128, '…': 133, '‘': 145, '’': 146, '“': 147, '”': 148, '„': 132, '•': 149, '–': 150, '—': 151 };
-  function pdfByte(ch) { var c = ch.charCodeAt(0); if (PDF_CP[ch]) return PDF_CP[ch]; return c < 256 ? c : 63; }
-  function pdfBase(ch) { return 'ÄÀÁÂÃÅ'.indexOf(ch) >= 0 ? 'A' : 'ÖÒÓÔÕ'.indexOf(ch) >= 0 ? 'O' : 'ÜÙÚÛ'.indexOf(ch) >= 0 ? 'U' : 'äàáâãå'.indexOf(ch) >= 0 ? 'a' : 'öòóôõ'.indexOf(ch) >= 0 ? 'o' : 'üùúû'.indexOf(ch) >= 0 ? 'u' : 'éèêë'.indexOf(ch) >= 0 ? 'e' : 'ÉÈÊË'.indexOf(ch) >= 0 ? 'E' : ch; }
-  function pdfW(str, size, bold) {
-    var t = bold ? PDF_W.b : PDF_W.r, w = 0;
-    for (var i = 0; i < str.length; i++) {
-      var ch = pdfBase(str[i]), c = ch.charCodeAt(0);
-      w += c >= 32 && c <= 126 ? t[c - 32] : ch === 'ß' ? 611 : ch === '–' || ch === '—' ? 556 : ch === '…' ? 1000 : ch === '·' ? 278 : 556;
-    }
-    return w * size / 1000;
-  }
-  function pdfFit(str, width, size, bold) { str = String(str); if (pdfW(str, size, bold) <= width) return str; while (str.length > 1 && pdfW(str + '…', size, bold) > width) str = str.slice(0, -1); return str.replace(/\s+$/, '') + '…'; }
-  function pdfHex(str) { var o = ''; for (var i = 0; i < str.length; i++) { var b = pdfByte(str[i]).toString(16); o += (b.length < 2 ? '0' : '') + b; } return o.toUpperCase(); }
-  function pdfRgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(function (v) { return Math.round(v * 1000) / 1000; }).join(' '); }
-
   function buildPdf(title, filterText, kpis, stats, appTitle) {
     var PW = 595, PH = 842, ML = 40, CW = PW - 2 * ML, pages = [], c = null, y = 0;
     var INK = '#001957', GREY = '#5f6b85', LINE = '#d9dee9';
@@ -291,11 +271,6 @@
     offs.forEach(function (o) { out += ('0000000000' + o).slice(-10) + ' 00000 n \n'; });
     out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R /Info ' + objs.length + ' 0 R >>\nstartxref\n' + xr + '\n%%EOF';
     return new Blob([out], { type: 'application/pdf' });
-  }
-  function pdfUtf16(s) { var o = ''; for (var i = 0; i < s.length; i++) { var h4 = s.charCodeAt(i).toString(16); o += ('0000' + h4).slice(-4); } return o.toUpperCase(); }
-  function saveBlob(blob, name) {
-    if (CFG.mode === 'artifact') { toast('Downloads sind in der Artefakt-Vorschau gesperrt. In der IIS-Version wird ' + name + ' heruntergeladen.', true); return; }
-    var url = URL.createObjectURL(blob), a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
 
   /* ---- Statistik-Seite ---- */

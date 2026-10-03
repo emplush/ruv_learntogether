@@ -718,12 +718,29 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 .admin-warn { display: flex; flex-direction: column; gap: 12px; margin: 0 0 20px; }
 .admin-warn:empty { display: none; }
 .chk-sep { padding-top: 16px; border-top: 1px solid var(--line); }
+/* 0.29: IDD */
+.chip.idd { background: #f79506; color: #001957; }
+.agenda { margin-top: 12px; }
+.agenda h4 { margin: 0 0 8px; }
+.agenda-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.agenda-list li { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; }
+.agenda-list li.learn { border-left: 4px solid #f79506; padding-left: 7px; }
+.agenda-list .ag-t { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.agenda-list .ag-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.idd-box { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+.idd-body { display: flex; flex-direction: column; gap: 16px; }
+.idd-confirm { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cf-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cf-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.idd-prog { height: 10px; background: #e3e8f3; border-radius: 4px; overflow: hidden; margin: 16px 0 6px; }
+.idd-prog i { display: block; height: 100%; background: #f79506; }
+.idd-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
 
 </style>
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.28.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.29.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -764,6 +781,8 @@ function add(e, kids) {
 function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e; }
 /* Datenschutz: Durchschnittswerte erst ab drei Bewertungen; Konten ohne Anmeldung werden nach 24 Monaten geloescht (wie auf dem Server) */
 var MIN_RATINGS = 3, INACTIVE_MONTHS = 24, RETAIN_PRIVATE_MONTHS = 12;
+/* IDD-Einstellungen aus den Settings (Hauptschalter, Bildungsdienstleister, Begruessung und Verabschiedung je 5 Minuten) */
+var IDD = { on: false, provider: '', frame: 5, welcome: { title: 'Begrüßung', text: '' }, farewell: { title: 'Verabschiedung', text: '' } };
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function svg(path, extra) { return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + path + '</svg>'; }
@@ -833,6 +852,7 @@ function applyTaxonomy(t) {
   if (t.photos) PHOTOS = t.photos.slice();
   if (t.badges) { if (t.badges.levels && t.badges.levels.length === 6) BADGES.levels = t.badges.levels.slice(); if (t.badges.expertMin) BADGES.expertMin = t.badges.expertMin; }
   if (t.hero) { if (t.hero.title) HERO.title = t.hero.title; if (t.hero.text) HERO.text = t.hero.text; }
+  if (t.idd) IDD = t.idd;
 }
 /* alphabetisch, "Sonstiges" immer zuletzt */
 function sortTopics(l) { return l.slice().sort(function (a, b) { var sa = a.toLowerCase() === 'sonstiges', sb = b.toLowerCase() === 'sonstiges'; if (sa !== sb) return sa ? 1 : -1; return a.localeCompare(b, 'de'); }); }
@@ -881,8 +901,8 @@ var RETAIN_YEARS = 5;
 function endDate(e) { return new Date(startDate(e).getTime() + e.duration * 60000); }
 function eventEnded(e) { return endDate(e) <= new Date(); }
 /* Zeitpunkt der Anonymisierung: fuenf Jahre nach dem Ende, fuer alle Veranstaltungen (privat, dienstlich, abgesagt) */
-/* dienstlich 5 Jahre (Nachweis, IDD), privat 12 Monate (kein Nachweiszweck) */
-function anonymizeOn(e) { var x = endDate(e); if (e.category === 'privat') x.setMonth(x.getMonth() + RETAIN_PRIVATE_MONTHS); else x.setFullYear(x.getFullYear() + RETAIN_YEARS); return x; }
+/* dienstlich: 5 Jahre ab Ende des Kalenderjahres (IDD-Nachweis); privat: 12 Monate nach dem Ende (kein Nachweiszweck) */
+function anonymizeOn(e) { var x = endDate(e); if (e.category === 'privat') { x.setMonth(x.getMonth() + RETAIN_PRIVATE_MONTHS); return x; } return new Date(x.getFullYear() + RETAIN_YEARS + 1, 0, 1); }
 function dateShort(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; }
 function dateFull(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); }
 function dateLong(s) { var d = parseYmd(s); return DAY_L[d.getDay()] + ', ' + pad(d.getDate()) + '. ' + MONTH_L[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -947,6 +967,11 @@ function validateEvent(v, admin) {
   var c = Number(v.capacity); if (!c || c < 1 || c > MAX_CAP || Math.floor(c) !== c) e.capacity = 'Bitte gib eine Teilnehmendenzahl zwischen 1 und ' + MAX_CAP + ' an.';
   if (!v.teamsLink || !validTeams(v.teamsLink.trim())) e.teamsLink = 'Bitte gib einen gültigen Link zu einem Microsoft-Teams-Meeting an (https://teams.microsoft.com/…).';
   if (plainText(v.description).length < 10) e.description = 'Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.';
+  if (v.idd) {
+    if (v.category !== 'dienstlich') e.idd = 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.';
+    var it = String(v.iddTitle || '').replace(/\s+/g, ' ').trim(); if (it.length < 5 || it.length > 150) e.iddTitle = 'Bitte gib einen IDD-Titel mit 5 bis 150 Zeichen an. Er ist bei IDD-Veranstaltungen Pflicht.';
+    var im = Number(v.iddMinutes) || 0, mx = Number(v.duration) - 2 * (IDD.frame || 5); if (!(im >= 5 && im <= mx && im % 5 === 0)) e.iddMinutes = 'Die IDD-Zeit muss in 5-Minuten-Schritten zwischen 5 Minuten und ' + Math.max(mx, 5) + ' Minuten liegen.';
+  }
   return e;
 }
 
@@ -1026,6 +1051,18 @@ function buildTestData() {
       for (var b = 0; b < 3; b++) bookings.push({ user: TU[(hs[0] + 1 + b + k) % TU.length][0], eventId: hid, rating: RATE[(hn + b) % RATE.length] });
     }
   });
+  /* IDD: freigeschaltete Anbietende, IDD-pflichtige Personen mit gutBeraten-ID, je eine anstehende, eine gerade beendete und eine Veranstaltung aus dem Vorjahr */
+  users[0].iddHost = true; users[3].iddHost = true;
+  users.forEach(function (u, i) { if (i >= 1 && i <= 9) { u.iddDuty = true; u.iddHours = i === 3 ? 30 : 15; if (i !== 8) u.gbId = 'RVTD-' + (1000 + i) + '-GB' + pad(i); } });
+  var ly = new Date(new Date().getFullYear() - 1, 11, 10); while (ly.getDay() === 0 || ly.getDay() === 6) ly.setDate(ly.getDate() - 1);
+  var IDDEV = [
+    ['i01', 'Berufsunfähigkeit verständlich erklären', 0, d[2], '07:00', 60, 50, 'Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung', 6, null],
+    ['i02', 'Betriebliche Altersversorgung im Mittelstand', 0, pastDay, '17:00', 60, 50, 'Betriebliche Altersversorgung: Durchführungswege und Beratungspflichten', 6, ['yes', 'yes', 'yes', 'no', '', '']],
+    ['i03', 'Jahresrückblick Kfz-Tarife', 3, ymd(ly), '17:00', 90, 80, 'Kfz-Versicherung: Tarifmerkmale und Beratung im Schadenfall', 5, ['yes', 'yes', 'yes', 'yes', 'no']]];
+  IDDEV.forEach(function (r) {
+    events.push({ id: r[0], title: r[1], owner: TU[r[2]][0], category: 'dienstlich', type: TYPES[0], topic: mapTopic('dienstlich', 'fachlich'), date: r[3], start: r[4], duration: r[5], capacity: 12, teamsLink: L, description: descHtml('Testfall für eine IDD-anrechenbare Veranstaltung.', ['Fachlicher Input', 'Fragen aus der Beratungspraxis']), imageData: '', placeholder: phGuess(r[1], 'fachlich'), idd: true, iddTitle: r[7], iddMinutes: r[6] });
+    for (var b = 0; b < r[8]; b++) bookings.push({ user: TU[(r[2] + 1 + b) % TU.length][0], eventId: r[0], rating: 0, idd: r[9] ? r[9][b] : '' });
+  });
   return { users: users, events: events, bookings: bookings };
 }
 
@@ -1043,11 +1080,45 @@ function fold(l) {
   return o;
 }
 /* Kalendereintrag zu einer gebuchten Veranstaltung (Teams-Link und Beschreibung inklusive) */
+/* ====================================================== IDD: Agenda, Titelpruefung, Zeitangaben */
+function iddOn() { return !!IDD.on; }
+function fmtMinutes(m) { m = Math.round(m || 0); var hh = Math.floor(m / 60), r = m % 60; return hh ? hh + ' Std.' + (r ? ' ' + r + ' Min.' : '') : r + ' Min.'; }
+/* Agenda: Begruessung und Verabschiedung (je IDD.frame Minuten, keine Lernzeit) und ein Block fuer das Thema. Es wird nichts erfunden. */
+function iddAgenda(e) {
+  var f = IDD.frame || 5, s0 = toMin(e.start), s1 = s0 + Number(e.duration);
+  return [{ from: s0, to: s0 + f, title: IDD.welcome.title || 'Begrüßung', text: IDD.welcome.text || '', learn: false },
+    { from: s0 + f, to: s1 - f, title: e.iddTitle || e.title, text: 'Anrechenbare IDD-Zeit: ' + e.iddMinutes + ' Minuten', learn: true },
+    { from: s1 - f, to: s1, title: IDD.farewell.title || 'Verabschiedung', text: IDD.farewell.text || '', learn: false }];
+}
+function agendaNode(e) {
+  return h('div', { class: 'agenda' }, [h('h4', { text: 'Agenda' }), h('ol', { class: 'agenda-list' }, iddAgenda(e).map(function (r) {
+    return h('li', { class: r.learn ? 'learn' : '' }, [h('span', { class: 'ag-t', text: minToHm(r.from) + '–' + minToHm(r.to) }), h('span', { class: 'ag-b' }, [h('b', { text: r.title }), r.text ? h('span', { class: 'hint', text: r.text }) : null, r.learn ? null : h('span', { class: 'hint', text: 'Keine Lernzeit' })])]);
+  }))]);
+}
+/* Plausibilitaet des IDD-Titels: nur Hinweise, keine Sperre. Grundlage: Weiterbildung muss fachliche Inhalte der Versicherungsvermittlung
+   behandeln (Produkte, Beratung, Recht, Kundenschutz). Freizeit, Software-Bedienung und reine Verkaufs- oder Selbstmanagement-Themen zaehlen in der Regel nicht. */
+var IDD_FACH = /(versicher|vorsorge|rente|renten|altersvor|riester|rürup|basisrente|bav|betriebliche|berufsunfähig|\bbu\b|haftpflicht|kfz|kraftfahrt|hausrat|wohngebäude|gebäude|kranken|pkv|gkv|pflege|lebens|unfall|rechtsschutz|sach|gewerbe|firmenkunden|betrieb|cyber|tarif|produkt|deckung|schaden|leistungsfall|risiko|kapitalanlage|fonds|investment|nachhaltig|esg|beratung|berat|bedarf|dokumentation|aufklärung|kundeninformation|vvg|idd|gewo|versvermv|geldwäsche|datenschutz|compliance|verbraucher|steuer|recht|gesetz|vertrag|police|prämie|beitrag|biometri|einkommen|absicherung|haftung|regulierung)/i;
+var IDD_FREI = /(sport|yoga|fitness|lauf|joggen|fußball|fussball|kochen|rezept|backen|meal|kaffee|wein|bier|reise|urlaub|wander|hobby|spiel|quiz|feierabend|after.?work|garten|foto|musik|meditation|achtsamkeit|stricken|basteln)/i;
+var IDD_SOFT = /(excel|outlook|powerpoint|word\b|teams-tipps|tastenkürzel|software|crm-bedienung|it-tipps|zeitmanagement|selbstorganisation|motivation|resilienz|work-life|stressbewältigung|kalenderführung)/i;
+var IDD_SALES = /(abschlusstechnik|abschlussquote|akquise|kaltakquise|telefonakquise|neukundengewinnung|cross-?selling|upselling|social selling|verkaufstrick|verkaufstechnik|einwandbehandlung|empfehlungsmarketing)/i;
+var IDD_FORMAT = /^(austausch|workshop|best practice|session|webinar|treffen|runde|update|news|neuigkeiten|q ?& ?a|fragestunde|kurzimpuls|impuls)\b/i;
+function iddTitleHints(t) {
+  t = String(t || '').replace(/\s+/g, ' ').trim(); var out = [];
+  if (!t) return out;
+  var words = t.split(' ').filter(function (w) { return w.length > 1; }).length;
+  if (t.length < 15 || words < 3) out.push('Der Titel ist sehr kurz. Nenne den fachlichen Inhalt genauer, zum Beispiel „Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung“.');
+  if (IDD_FREI.test(t)) out.push('Freizeitthemen sind nicht IDD-anrechenbar. Wähle ein fachliches Thema der Versicherungsvermittlung.');
+  if (IDD_SOFT.test(t)) out.push('Software-Bedienung und Selbstmanagement zählen in der Regel nicht als IDD-Weiterbildung.');
+  if (IDD_SALES.test(t)) out.push('Reine Verkaufs- oder Akquisetechniken zählen in der Regel nicht. Stelle den Bezug zu Kundenberatung, Bedarfsermittlung oder Produkten her.');
+  if (IDD_FORMAT.test(t) && !IDD_FACH.test(t)) out.push('Der Titel nennt vor allem das Format. Nenne das fachliche Thema.');
+  else if (!IDD_FACH.test(t) && !IDD_FREI.test(t)) out.push('Im Titel ist kein Bezug zu Versicherungsprodukten, Beratung, Recht oder Kundenschutz erkennbar. Ergänze das fachliche Thema.');
+  return out;
+}
 function icsDescription(ev) {
   var desc = htmlToText(ev.description).slice(0, 700);
   return ['Deine Anmeldung bei ' + state.settings.appTitle, '', ev.title, CAT_LABEL[ev.category] + ' \u00b7 ' + ev.type + ' \u00b7 ' + ev.topic, '',
     'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Angeboten von: ' + ev.host, '',
-    'Teams-Sitzung: ' + ev.teamsLink, ''].concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Abmelden kannst Du Dich unter „Meine Anmeldungen“.']).join('\n');
+    'Teams-Sitzung: ' + ev.teamsLink, ''].concat(ev.idd && iddOn() ? ['IDD-anrechenbar: ' + ev.iddMinutes + ' Minuten', 'IDD-Titel: ' + ev.iddTitle, 'Agenda:'].concat(iddAgenda(ev).map(function (r) { return minToHm(r.from) + '–' + minToHm(r.to) + '  ' + r.title + (r.learn ? '' : ' (keine Lernzeit)'); })).concat(['']) : []).concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Abmelden kannst Du Dich unter „Meine Anmeldungen“.']).join('\n');
 }
 function buildIcs(ev, uid) {
   var s = startDate(ev), e = new Date(s.getTime() + ev.duration * 60000);
@@ -1077,7 +1148,7 @@ var Server = {
       });
     }, function () { throw ApiErr('network', 'Der Server ist nicht erreichbar. Bitte prüfe Deine Verbindung.'); });
   },
-  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, badges: j.badges, avatarUpload: j.avatarUpload, photos: j.photos }; }); },
+  settings: function () { return this.call('settings').then(function (j) { return { appTitle: j.appTitle, labels: j.labels, topics: j.topics, colors: j.colors, headings: j.headings, texts: j.texts, types: j.types, hero: j.hero, badges: j.badges, avatarUpload: j.avatarUpload, photos: j.photos, idd: j.idd }; }); },
   register: function (p) { return this.call('register', p); },
   login: function (id, pw) { return this.call('login', { id: id, password: pw }); },
   logout: function () { return this.call('logout', {}); },
@@ -1105,6 +1176,13 @@ var Server = {
   updateEvent: function (ev) { return this.call('updateEvent', { event: ev }); },
   adminUsers: function () { return this.call('adminUsers').then(function (j) { return { users: j.users, activity: j.activity, inactiveMonths: j.inactiveMonths }; }); },
   adminDeleteUser: function (id) { return this.call('adminDeleteUser', { id: id }); },
+  saveIdd: function (p) { return this.call('saveIdd', p); },
+  confirmAttendance: function (bookingId, status) { return this.call('confirmAttendance', { bookingId: bookingId, status: status }); },
+  iddCockpit: function () { return this.call('iddCockpit'); },
+  adminIdd: function () { return this.call('adminIdd').then(function (j) { return j.events; }); },
+  adminIddReopen: function (id) { return this.call('adminIddReopen', { id: id }); },
+  adminIddAdd: function (eventId, userId, reason) { return this.call('adminIddAdd', { eventId: eventId, userId: userId, reason: reason }); },
+  adminSetIddHost: function (id, on) { return this.call('adminSetIddHost', { id: id, on: !!on }); },
   deleteAccount: function (pw) { return this.call('deleteAccount', { password: pw }); },
   myData: function () {
     return fetch(API + '?action=myData', { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
@@ -1147,6 +1225,7 @@ var Local = (function () {
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
     if (!cfg.hero) cfg.hero = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
     if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
+    if (!cfg.idd) cfg.idd = { on: true, provider: 'R+V Allgemeine Versicherung AG', welcomeTitle: 'Begrüßung', welcomeText: 'Ankommen, kurze Vorstellung und Ablauf der Session.', farewellTitle: 'Verabschiedung', farewellText: 'Zusammenfassung, offene Fragen und Hinweis zur Teilnahmebestätigung.' };
     if (!cfg.headings) cfg.headings = JSON.parse(JSON.stringify(DEFAULT_TAX.headings));
     if (!cfg.texts) cfg.texts = JSON.parse(JSON.stringify(DEFAULT_TAX.texts));
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
@@ -1165,20 +1244,24 @@ var Local = (function () {
   function insertTest() {
     removeTest();
     var t = buildTestData(), ids = {}, now = nowIso(), pw = hashPw(TEST_PW);
-    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, showBadges: !!x.showBadges, bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
+    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, showBadges: !!x.showBadges, iddHost: !!x.iddHost, iddDuty: !!x.iddDuty, iddHours: x.iddHours === 30 ? 30 : 15, gbId: x.gbId || '', bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
     t.events.forEach(function (x) {
-      var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true);
+      var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true, 2);
       if (x.cancelled) { e.cancelled = true; e.cancelledAt = now; e.cancelReason = x.cancelReason || ''; }
       data.events.push(e);
     });
-    t.bookings.forEach(function (x) { if (!ids[x.user]) return; data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + x.eventId, userId: ids[x.user], created: now, rating: x.rating || 0, ratedAt: x.rating ? now : '', isTest: true }); });
+    t.bookings.forEach(function (x) { if (!ids[x.user]) return; data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + x.eventId, userId: ids[x.user], created: now, rating: x.rating || 0, ratedAt: x.rating ? now : '', isTest: true, idd: x.idd === 'yes' || x.idd === 'no' ? x.idd : '', confirmedAt: x.idd ? now : '', confirmedBy: x.idd ? 'Testdaten' : '' }); });
     data.events.forEach(function (e) { if (e.isTest && e.cancelled) data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId) addNote(b.userId, 'cancelled', e, e.cancelReason); }); });
     return { events: t.events, bookings: t.bookings, users: t.users };
   }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }
-  function readEvent(v, target, admin) {
+  /* iddMode: 0 = keine IDD erlaubt, 1 = erlaubt (wenn die IDD-Funktion an ist), 2 = Testdaten */
+  function readEvent(v, target, admin, iddMode) {
+    if (iddMode == null) iddMode = admin ? 1 : 0;
     var er = validateEvent(v, admin); var k = Object.keys(er);
     if (k.length) throw ApiErr('invalid', er[k[0]]);
+    if (v.idd) { if (!iddMode) throw ApiErr('forbidden', 'IDD-Veranstaltungen kannst Du erst nach Freischaltung durch die Administration anlegen.'); if (iddMode === 1 && !cfg.idd.on) throw ApiErr('invalid', 'Die IDD-Funktion ist nicht aktiv.'); }
+    target.idd = !!v.idd; target.iddTitle = v.idd ? String(v.iddTitle || '').replace(/\s+/g, ' ').trim() : ''; target.iddMinutes = v.idd ? Number(v.iddMinutes) : 0;
     target.title = v.title.trim(); target.category = v.category; target.type = v.type; target.topic = v.topic;
     target.date = v.date; target.start = v.start; target.duration = Number(v.duration); target.capacity = Number(v.capacity); target.teamsLink = v.teamsLink.trim();
     target.description = sanitizeHtml(v.description); target.placeholder = /^[a-z0-9-]{0,40}$/.test(v.placeholder || '') ? (v.placeholder || '') : '';
@@ -1252,6 +1335,14 @@ var Local = (function () {
     B.hidden = {}; data.users.forEach(function (u) { if (!u.showBadges) B.hidden[u.id] = 1; });
     return B;
   }
+  /* IDD (wie auf dem Server): Bestaetigung durch Anbietende 14 Tage nach dem Ende oder nach Freischaltung, Administration bis 31.01. des Folgejahres */
+  function iddPub() { var c = cfg.idd; return { on: !!c.on, provider: c.provider || '', frame: 5, welcome: { title: c.welcomeTitle || '', text: c.welcomeText || '' }, farewell: { title: c.farewellTitle || '', text: c.farewellText || '' } }; }
+  function iddHardLock(e) { return new Date(startDate(e).getFullYear() + 1, 0, 31, 23, 59, 59); }
+  function iddHostDeadline(e) { var d = new Date(endDate(e).getTime() + 14 * 864e5); if (e.reopenUntil) { var r = new Date(e.reopenUntil); if (r > d) d = r; } var hl = iddHardLock(e); return d > hl ? hl : d; }
+  function iddHostCan(e, now) { return !!e.idd && !e.cancelled && endDate(e) <= now && now <= iddHostDeadline(e); }
+  function iddAdminCan(e, now) { return !!e.idd && !e.cancelled && endDate(e) <= now && now <= iddHardLock(e); }
+  function needIdd() { if (!cfg.idd.on) throw ApiErr('invalid', 'Die IDD-Funktion ist nicht aktiv.'); }
+  function normGbId(v) { var x = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (!x) return ''; if (x.length !== 12) return null; return x.slice(0, 4) + '-' + x.slice(4, 8) + '-' + x.slice(8); }
   /* Fuer andere sichtbar: ohne Abzeichen, wenn die Person sie ausgeblendet hat */
   function pubLevel(B, uid) { return uid && B.hidden[uid] ? 0 : levelOf(B, uid); }
   function pubExpert(B, uid, cat, tp) { return !(uid && B.hidden[uid]) && expertOf(B, uid, cat, tp); }
@@ -1262,10 +1353,10 @@ var Local = (function () {
   function hostName(e) { var u = userById(e.ownerId); return u ? u.username : (e.host || 'Unbekannt'); }
   function avgOrZero(s, c) { return c >= MIN_RATINGS ? Math.round(s / c * 100) / 100 : 0; }
   function ratingOf(eventId) { var s = 0, c = 0, d = [0, 0, 0, 0, 0]; data.bookings.forEach(function (b) { if (b.eventId === eventId && b.rating > 0) { s += b.rating; c++; d[b.rating - 1]++; } }); return { avg: avgOrZero(s, c), count: c, dist: c >= MIN_RATINGS ? d : null }; }
-  function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff }; }
+  function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff, iddHost: !!u.iddHost, iddDuty: !!u.iddDuty, iddHours: u.iddHours === 30 ? 30 : 15, gbId: u.gbId || '' }; }
   function eventBase(B, e) {
     return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: pubLevel(B, e.ownerId), hostExpert: pubExpert(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
-      description: e.description, rev: e.rev || 0, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
+      description: e.description, rev: e.rev || 0, idd: !!e.idd && !!cfg.idd.on, iddTitle: e.idd && cfg.idd.on ? e.iddTitle || '' : '', iddMinutes: e.idd && cfg.idd.on ? e.iddMinutes || 0 : 0, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
     var held = !e.cancelled, owner = userById(e.ownerId);
@@ -1315,7 +1406,7 @@ var Local = (function () {
   var authFails = {};
   function throttle(key, check) { var f = authFails[key]; if (check) { if (f && f.n >= 5 && Date.now() - f.t < 300000) throw ApiErr('locked', 'Zu viele Fehlversuche. Bitte warte fünf Minuten und versuche es dann erneut.'); return; } if (!f || Date.now() - f.t > 600000) f = authFails[key] = { n: 0, t: 0 }; f.n++; f.t = Date.now(); }
   return {
-    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, badges: cfg.badges, avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
+    settings: function () { return wrap(function () { return { appTitle: cfg.appTitle, labels: cfg.labels, topics: cfg.topics, colors: cfg.colors, headings: cfg.headings, texts: cfg.texts, types: cfg.types, hero: cfg.hero, badges: cfg.badges, avatarUpload: !cfg.avatarUploadOff, idd: iddPub(), photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminSaveTaxonomy: function (p) {
       return wrap(function () {
         function names(list, what, max, old, usedFn, map) {
@@ -1372,6 +1463,14 @@ var Local = (function () {
           cfg.badges.levels = lv; applyTaxonomy(cfg);
         }
         if ('avatarUpload' in s) { cfg.avatarUploadOff = !s.avatarUpload; applyTaxonomy({ avatarUpload: !!s.avatarUpload }); }
+        if ('iddOn' in s) cfg.idd.on = !!s.iddOn;
+        if ('iddProvider' in s) {
+          var pv = String(s.iddProvider || '').trim(), wt = String(s.iddWelcomeTitle || '').trim(), wx = String(s.iddWelcomeText || '').trim(), ft = String(s.iddFarewellTitle || '').trim(), fx = String(s.iddFarewellText || '').trim();
+          if (pv.length < 3 || pv.length > 120) throw ApiErr('invalid', 'Der Bildungsdienstleister muss zwischen 3 und 120 Zeichen lang sein.');
+          if (wt.length < 2 || wt.length > 60 || ft.length < 2 || ft.length > 60) throw ApiErr('invalid', 'Die Titel für Begrüßung und Verabschiedung müssen zwischen 2 und 60 Zeichen lang sein.');
+          if (wx.length > 300 || fx.length > 300) throw ApiErr('invalid', 'Die Texte für Begrüßung und Verabschiedung dürfen höchstens 300 Zeichen lang sein.');
+          cfg.idd.provider = pv; cfg.idd.welcomeTitle = wt; cfg.idd.welcomeText = wx; cfg.idd.farewellTitle = ft; cfg.idd.farewellText = fx;
+        }
         if ('audience' in s) { var au = Number(s.audience); if (!(au >= 0 && au <= 1000000) || Math.floor(au) !== au) throw ApiErr('invalid', 'Die Größe der Zielgruppe muss zwischen 0 und 1.000.000 liegen.'); cfg.audience = au; }
         if ('expertMin' in s) { var em = Number(s.expertMin); if (!(em >= 1 && em <= 1000) || Math.floor(em) !== em) throw ApiErr('invalid', 'Die Mindestzahl für den Expertenstatus muss zwischen 1 und 1000 liegen.'); cfg.badges.expertMin = em; applyTaxonomy(cfg); }
         save(); return {};
@@ -1436,10 +1535,10 @@ var Local = (function () {
         if (startDate(e) <= new Date()) throw ApiErr('past', 'Die Veranstaltung hat bereits begonnen. Sie lässt sich nicht mehr bearbeiten.');
         if (Number(v.capacity) < booked(e.id)) throw ApiErr('invalid', 'Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (' + booked(e.id) + ') liegen.');
         var old = { date: e.date, start: e.start, duration: e.duration, teamsLink: e.teamsLink };
-        readEvent(v, e, false); var n = notifyChanges(e, old); save(); return { id: e.id, notified: n };
+        readEvent(v, e, false, me.iddHost || me.role !== 'user' || e.idd ? 1 : 0); var n = notifyChanges(e, old); save(); return { id: e.id, notified: n };
       });
     },
-    createEvent: function (v) { return wrap(function () { var me = curUser(true); var e = readEvent(v, { id: rid(8), ownerId: me.id, host: me.username, created: nowIso(), isTest: false }, false); data.events.push(e); save(); return { id: e.id }; }); },
+    createEvent: function (v) { return wrap(function () { var me = curUser(true); var e = readEvent(v, { id: rid(8), ownerId: me.id, host: me.username, created: nowIso(), isTest: false }, false, me.iddHost || me.role !== 'user' ? 1 : 0); data.events.push(e); save(); return { id: e.id }; }); },
     book: function (id) {
       return wrap(function () {
         var me = curUser(true), ev = data.events.filter(function (e) { return e.id === id; })[0], B = badges();
@@ -1499,8 +1598,10 @@ var Local = (function () {
       return wrap(function () {
         var me = curUser(true), B = badges(), now = new Date();
         return { events: data.events.filter(function (e) { return e.ownerId === me.id; }).map(function (ev) {
-          var o = eventBase(B, ev), people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { var bu = userById(b.userId); return { username: bu ? bu.username : 'Anonymisiert', level: pubLevel(B, b.userId), created: b.created }; }), r = ratingOf(ev.id);
-          o.teamsLink = ev.teamsLink; o.participants = people; o.booked = people.length; o.ended = eventEnded(ev); o.ratingAvg = r.avg; o.ratingCount = r.count; o.canCancel = !ev.cancelled && startDate(ev) > now; return o;
+          var o = eventBase(B, ev), people = data.bookings.filter(function (b) { return b.eventId === ev.id; }).map(function (b) { var bu = userById(b.userId); return { id: b.id, username: bu ? bu.username : 'Anonymisiert', level: pubLevel(B, b.userId), created: b.created, idd: b.idd || '' }; }), r = ratingOf(ev.id);
+          o.teamsLink = ev.teamsLink; o.participants = people; o.booked = people.length; o.ended = eventEnded(ev); o.ratingAvg = r.avg; o.ratingCount = r.count; o.canCancel = !ev.cancelled && startDate(ev) > now;
+          if (ev.idd && o.ended && !ev.cancelled && cfg.idd.on) o.iddConfirm = { open: iddHostCan(ev, now), until: iddHostDeadline(ev).toISOString(), locked: now > iddHardLock(ev) };
+          return o;
         }) };
       });
     },
@@ -1613,7 +1714,7 @@ var Local = (function () {
         needAdmin(); var B = badges(), now = Date.now(), act = [0, 0, 0, 0, 0];
         var users = data.users.map(function (u) {
           var k = 4; if (u.lastLogin) { var d = (now - new Date(u.lastLogin)) / 864e5; k = d < 7 ? 0 : d < 30 ? 1 : d < 90 ? 2 : 3; } act[k]++;
-          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, profilePublic: !!u.profilePublic, avatar: avInfo(u, true) };
+          return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, locked: !!u.locked, mustChange: !!u.mustChange, created: u.created, isTest: !!u.isTest, level: levelOf(B, u.id), offered: B.offered[u.id] || 0, profilePublic: !!u.profilePublic, avatar: avInfo(u, true), iddHost: !!u.iddHost, iddDuty: !!u.iddDuty, gbId: u.gbId || '' };
         });
         return { users: users, activity: act, inactiveMonths: INACTIVE_MONTHS };
       });
@@ -1633,15 +1734,82 @@ var Local = (function () {
         deleteUser(me, 'Die anbietende Person hat ihr Konto gelöscht.'); save(); sess.del('lt_me'); return {};
       });
     },
+    saveIdd: function (p) {
+      return wrap(function () {
+        needIdd(); var me = curUser(true), gb = normGbId(p.gbId);
+        if (gb === null) throw ApiErr('invalid', 'Die gutBeraten-ID besteht aus 12 Buchstaben oder Ziffern in drei Blöcken, zum Beispiel AB12-CD34-EF56.');
+        if (gb && data.users.some(function (u) { return u.id !== me.id && (u.gbId || '') === gb; })) throw ApiErr('taken', 'Diese gutBeraten-ID ist bereits einem anderen Konto zugeordnet.');
+        me.iddDuty = !!p.duty; me.iddHours = Number(p.hours) === 30 ? 30 : 15; if (me.iddDuty) me.gbId = gb; save(); return { me: meInfo(me, badges()) };
+      });
+    },
+    confirmAttendance: function (bookingId, status) {
+      return wrap(function () {
+        needIdd(); var me = curUser(true), now = new Date();
+        if (['yes', 'no', ''].indexOf(status) < 0) throw ApiErr('invalid', 'Ungültiger Status.');
+        var bk = data.bookings.filter(function (b) { return b.id === bookingId; })[0], ev = bk && data.events.filter(function (e) { return e.id === bk.eventId; })[0];
+        if (!bk || !ev || !ev.idd || !bk.userId) throw ApiErr('notfound', 'Diese Anmeldung gibt es nicht.');
+        var admin = me.role !== 'user', owner = ev.ownerId === me.id;
+        if (!owner && !admin) throw ApiErr('forbidden', 'Nur die anbietende Person oder die Administration kann Teilnahmen bestätigen.');
+        if (now > iddHardLock(ev)) throw ApiErr('locked', 'Die Teilnahmen dieser Veranstaltung sind seit dem 31.01. endgültig gesperrt.');
+        if (endDate(ev) > now) throw ApiErr('invalid', 'Teilnahmen lassen sich erst nach dem Ende der Veranstaltung bestätigen.');
+        if (ev.cancelled) throw ApiErr('invalid', 'Die Veranstaltung wurde abgesagt.');
+        if (!admin && !iddHostCan(ev, now)) throw ApiErr('locked', 'Die Frist zur Bestätigung ist abgelaufen. Die Administration kann sie für Dich wieder freischalten.');
+        bk.idd = status; bk.confirmedAt = status ? nowIso() : ''; bk.confirmedBy = status ? me.username : ''; save(); return { status: status };
+      });
+    },
+    iddCockpit: function () {
+      return wrap(function () {
+        var me = curUser(true), now = new Date(), items = [];
+        if (cfg.idd.on) data.bookings.forEach(function (b) {
+          if (b.userId !== me.id) return; var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0];
+          if (!ev || !ev.idd || ev.cancelled) return;
+          items.push({ eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', date: ev.date, start: ev.start, end: endHm(ev), duration: ev.duration, minutes: ev.iddMinutes, year: startDate(ev).getFullYear(), ended: endDate(ev) <= now, status: b.idd || '', confirmedAt: b.confirmedAt || '', locked: now > iddHardLock(ev) });
+        });
+        return { on: !!cfg.idd.on, duty: !!me.iddDuty, hours: me.iddHours === 30 ? 30 : 15, gbId: me.gbId || '', firstName: me.firstName, lastName: me.lastName, xv: me.xv, provider: cfg.idd.provider || '', items: items };
+      });
+    },
+    adminIdd: function () {
+      return wrap(function () {
+        needAdmin(); var now = new Date();
+        return data.events.filter(function (e) { return e.idd; }).map(function (e) {
+          var ow = userById(e.ownerId);
+          return { id: e.id, title: e.title, iddTitle: e.iddTitle || '', date: e.date, start: e.start, duration: e.duration, iddMinutes: e.iddMinutes, cancelled: !!e.cancelled, isTest: !!e.isTest, anonymized: !!e.anonymized, ended: endDate(e) <= now,
+            owner: ow ? { username: ow.username, firstName: ow.firstName, lastName: ow.lastName } : null, hostUntil: iddHostDeadline(e).toISOString(), hostOpen: iddHostCan(e, now), lockAt: iddHardLock(e).toISOString(), locked: now > iddHardLock(e),
+            bookings: data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var u = userById(b.userId); return { id: b.id, userId: u ? u.id : '', username: u ? u.username : (b.name || 'Anonymisiert'), firstName: u ? u.firstName : '', lastName: u ? u.lastName : '', xv: u ? u.xv : '', gbId: u ? u.gbId || '' : '', iddDuty: !!(u && u.iddDuty), status: b.idd || '', confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', addedBy: b.addedBy || '', addReason: b.addReason || '' }; }) };
+        });
+      });
+    },
+    adminIddReopen: function (id) {
+      return wrap(function () {
+        needAdmin(); var ev = data.events.filter(function (e) { return e.id === id && e.idd; })[0], now = new Date();
+        if (!ev) throw ApiErr('notfound', 'Diese IDD-Veranstaltung gibt es nicht.');
+        if (!iddAdminCan(ev, now)) throw ApiErr('locked', 'Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.');
+        ev.reopenUntil = new Date(now.getTime() + 14 * 864e5).toISOString(); save(); return { hostUntil: iddHostDeadline(ev).toISOString() };
+      });
+    },
+    adminIddAdd: function (eventId, userId, reason) {
+      return wrap(function () {
+        var me = needAdmin(), ev = data.events.filter(function (e) { return e.id === eventId && e.idd; })[0], u = userById(userId), now = new Date(); reason = String(reason || '').trim();
+        if (!ev) throw ApiErr('notfound', 'Diese IDD-Veranstaltung gibt es nicht.');
+        if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.');
+        if (!iddAdminCan(ev, now)) throw ApiErr('locked', 'Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.');
+        if (reason.length < 5 || reason.length > 300) throw ApiErr('invalid', 'Bitte gib eine Begründung mit 5 bis 300 Zeichen an.');
+        if (ev.ownerId === u.id) throw ApiErr('invalid', 'Die anbietende Person kann nicht als Teilnehmende eingetragen werden.');
+        var bk = data.bookings.filter(function (b) { return b.eventId === ev.id && b.userId === u.id; })[0];
+        if (!bk) { bk = { id: rid(8), eventId: ev.id, userId: u.id, created: nowIso(), rating: 0, ratedAt: '', isTest: false }; data.bookings.push(bk); }
+        bk.idd = 'yes'; bk.confirmedAt = nowIso(); bk.confirmedBy = me.username; bk.addedBy = me.username; bk.addReason = reason; save(); return {};
+      });
+    },
+    adminSetIddHost: function (id, on) { return wrap(function () { needAdmin(); var u = userById(id); if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.'); u.iddHost = !!on; save(); return {}; }); },
     myData: function () {
       return wrap(function () {
         var me = curUser(true);
         var o = { exported: nowIso(),
           account: { username: me.username, firstName: me.firstName, lastName: me.lastName, xv: me.xv, email: me.email, role: me.role, created: me.created, lastLogin: me.lastLogin || '', locked: !!me.locked },
-          profile: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, showBadges: !!me.showBadges, bio: me.bio || '', avatar: me.avatar || '', signIn: 'password' },
+          profile: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, showBadges: !!me.showBadges, bio: me.bio || '', avatar: me.avatar || '', signIn: 'password', iddDuty: !!me.iddDuty, iddHours: me.iddHours === 30 ? 30 : 15, gbId: me.gbId || '', iddHost: !!me.iddHost },
           archive: { offeredBeforeAnonymization: me.legacyOffered || 0, attendedBeforeAnonymization: me.legacyAttended || 0 },
           events: data.events.filter(function (e) { return e.ownerId === me.id; }).map(function (e) { var r = ratingOf(e.id); return { title: e.title, category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity, teamsLink: e.teamsLink, description: e.description, created: e.created, cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', participants: booked(e.id), ratingCount: r.count, ratingAvg: r.avg }; }),
-          bookings: data.bookings.filter(function (b) { return b.userId === me.id; }).map(function (b) { var e = data.events.filter(function (x) { return x.id === b.eventId; })[0]; return { eventTitle: e ? e.title : '', date: e ? e.date : '', start: e ? e.start : '', booked: b.created, myRating: b.rating || 0, ratedAt: b.ratedAt || '' }; }),
+          bookings: data.bookings.filter(function (b) { return b.userId === me.id; }).map(function (b) { var e = data.events.filter(function (x) { return x.id === b.eventId; })[0]; return { eventTitle: e ? e.title : '', date: e ? e.date : '', start: e ? e.start : '', booked: b.created, myRating: b.rating || 0, ratedAt: b.ratedAt || '', idd: !!(e && e.idd), iddTitle: e ? e.iddTitle || '' : '', iddMinutes: e && e.idd ? e.iddMinutes : 0, iddStatus: b.idd || '', confirmedAt: b.confirmedAt || '' }; }),
           notes: data.notes.filter(function (n) { return n.userId === me.id; }).map(function (n) { return { type: n.type, title: n.title, date: n.date, reason: n.reason, created: n.created, read: !!n.read }; }) };
         return new Blob([JSON.stringify(o, null, 2)], { type: 'application/json' });
       });
@@ -1691,7 +1859,7 @@ var Local = (function () {
         save(); return {};
       });
     },
-    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, audience: cfg.audience == null ? 6000 : cfg.audience, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
+    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, idd: iddPub(), audience: cfg.audience == null ? 6000 : cfg.audience, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminTestData: function (m) {
       return wrap(function () {
         needAdmin();
@@ -2174,7 +2342,7 @@ function weekdayOptions(selected, admin) {
 }
 function buildEventForm(o) {
   o = o || {}; var ev = o.event || {}, admin = !!o.admin;
-  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '' };
+  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '', idd: !!ev.idd, iddTitle: ev.iddTitle || '', iddMinutes: ev.iddMinutes || 0, iddTouched: !!ev.idd };
   var existingImg = ev.image || '', srcImg = null, previewSrc = existingImg;
   var f = {}; // Felder
   var form = h('form', { class: 'form', novalidate: true });
@@ -2281,7 +2449,37 @@ function buildEventForm(o) {
   cap.addEventListener('input', function () { f.capacity.setErr(''); }); link.addEventListener('input', function () { f.teamsLink.setErr(''); });
   rte.area.addEventListener('input', function () { f.description.setErr(''); });
 
-  function collect() { v.title = title.value; v.capacity = Number(cap.value); v.teamsLink = link.value; v.description = rte.getHTML(); return v; }
+  /* IDD: nur fuer freigeschaltete Anbietende (oder Administration) und nur dienstlich */
+  var canIdd = iddOn() && (!!ev.idd || admin || !!(state.me && state.me.iddHost)), iddFs = null, iddSync = function () { };
+  if (canIdd) {
+    var iddChk = h('input', { type: 'checkbox', id: 'f-idd', checked: v.idd });
+    var iddTitleIn = h('input', { type: 'text', id: 'f-iddtitle', maxlength: '150', value: v.iddTitle, autocomplete: 'off', placeholder: 'z. B. Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung' });
+    f.iddTitle = field('IDD-Titel für die Dokumentation', iddTitleIn, { id: 'f-iddtitle', req: true, hint: 'Sachlicher Titel, der den fachlichen Inhalt nennt. Er steht im IDD-Nachweis der Teilnehmenden.' });
+    var iddHints = h('div', { class: 'idd-hints', 'aria-live': 'polite' });
+    var iddMinSel = h('select', { id: 'f-iddmin' });
+    f.iddMinutes = field('Anrechenbare IDD-Zeit', iddMinSel, { id: 'f-iddmin', req: true, hint: 'Standard: Dauer minus 10 Minuten. Begrüßung und Verabschiedung zählen nicht zur Lernzeit.' });
+    var agendaBox = h('div'), privNote = h('p', { class: 'hint', text: 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.' });
+    var iddBody = h('div', { class: 'idd-body' }, [f.iddTitle, iddHints, f.iddMinutes, agendaBox]);
+    var showHints = function () { clear(iddHints); var hs = iddTitleHints(iddTitleIn.value); if (hs.length) iddHints.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Hinweis zum IDD-Titel' })].concat(hs.map(function (x) { return h('div', { text: x }); }))))); };
+    iddSync = function () {
+      var biz = v.category === 'dienstlich'; iddChk.disabled = !biz; if (!biz) iddChk.checked = false;
+      v.idd = biz && iddChk.checked; privNote.hidden = biz; iddBody.hidden = !v.idd;
+      var mx = (Number(v.duration) || 0) - 2 * (IDD.frame || 5); clear(iddMinSel);
+      if (mx < 5) iddMinSel.appendChild(h('option', { value: '', text: 'Bitte zuerst die Dauer wählen' }));
+      else {
+        if (!v.iddTouched || !v.iddMinutes || v.iddMinutes > mx) v.iddMinutes = mx;
+        for (var m = 5; m <= mx; m += 5) iddMinSel.appendChild(h('option', { value: String(m), text: m + ' Minuten' + (m === mx ? ' (Standard)' : ''), selected: m === v.iddMinutes }));
+      }
+      clear(agendaBox);
+      if (v.idd && v.start && v.duration) agendaBox.appendChild(agendaNode({ start: v.start, duration: Number(v.duration), iddTitle: iddTitleIn.value.trim() || 'Thema der Veranstaltung', title: '', iddMinutes: v.iddMinutes }));
+    };
+    iddChk.addEventListener('change', function () { iddSync(); if (iddChk.checked) iddTitleIn.focus(); });
+    iddTitleIn.addEventListener('input', function () { v.iddTitle = iddTitleIn.value; f.iddTitle.setErr(''); showHints(); iddSync(); });
+    iddMinSel.addEventListener('change', function () { v.iddMinutes = Number(iddMinSel.value) || 0; v.iddTouched = true; f.iddMinutes.setErr(''); iddSync(); });
+    iddFs = h('fieldset', { class: 'fs' }, [h('legend', { text: 'IDD-Weiterbildung' }), h('label', { class: 'chk' }, [iddChk, h('span', null, [h('b', { text: 'IDD-anrechenbare Veranstaltung' }), h('span', { class: 'hint', text: 'Nach Deiner Bestätigung der Teilnahme erhalten die Teilnehmenden die IDD-Zeit angerechnet.' })])]), privNote, iddBody]);
+    showHints();
+  }
+  function collect() { v.title = title.value; v.capacity = Number(cap.value); v.teamsLink = link.value; v.description = rte.getHTML(); if (!canIdd) v.idd = false; return v; }
   function validate() {
     collect(); var er = validateEvent(v, admin), first = null;
     Object.keys(f).forEach(function (k) { f[k].setErr(er[k] || ''); if (er[k] && !first) first = f[k]; });
@@ -2294,6 +2492,7 @@ function buildEventForm(o) {
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), h('div', { class: 'grid2' }, [f.type, f.capacity]), f.description, f.image]));
+  if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Teams-Link' }), f.teamsLink]));
   form.appendChild(box);
   form.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [submit].concat(extra)));
@@ -2301,7 +2500,7 @@ function buildEventForm(o) {
     e.preventDefault(); box.hidden = true;
     if (!validate()) return;
     submit.disabled = true; var old = submit.textContent; submit.textContent = 'Wird gespeichert …';
-    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder };
+    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder, idd: !!v.idd, iddTitle: String(v.iddTitle || '').replace(/\s+/g, ' ').trim(), iddMinutes: v.idd ? v.iddMinutes : 0 };
     Promise.resolve(o.onSubmit(payload)).catch(function (err) { box.hidden = false; box.textContent = err.message || 'Das Speichern ist fehlgeschlagen.'; box.scrollIntoView({ block: 'center', behavior: 'smooth' }); }).then(function () { submit.disabled = false; submit.textContent = old; });
   });
   return form;
@@ -2416,7 +2615,7 @@ function viewCatalog() {
   function tile(e) {
     var f = freeOf(e), full = f <= 0, st = statusChip(e);
     var t = h('article', { class: 'tile', role: 'listitem', tabindex: '0', 'aria-label': e.title + ', ' + dateFull(e.date) + ', ' + e.start + ' Uhr' + (full ? ', ausgebucht' : '') }, [
-      h('div', { class: 'tile-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type)]), (st || e.mine || e.own) ? h('div', { class: 'chips-b' }, [e.own ? chipEl('mine', 'Dein Angebot') : (e.mine ? chipEl('mine', 'Du bist angemeldet') : null), st]) : null]),
+      h('div', { class: 'tile-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), e.idd ? chipEl('idd', 'IDD') : null]), (st || e.mine || e.own) ? h('div', { class: 'chips-b' }, [e.own ? chipEl('mine', 'Dein Angebot') : (e.mine ? chipEl('mine', 'Du bist angemeldet') : null), st]) : null]),
       h('div', { class: 'tile-body' }, [h('h3', { text: e.title, title: e.title }), h('div', { class: 'tile-meta' }, [h('span', null, [h('b', { text: dateShort(e.date) }), ' ' + e.start + '\u2013' + endHm(e) + ' Uhr']), h('span', { class: 'tile-host' }, [e.duration + '\u00a0Minuten\u00a0\u00b7\u00a0', userTag(e.host, e.hostLevel, e.hostExpert, 'tile-host-n', e.hostPublic)])])])]);
     function open() { if (!full) openBooking(e, function () { refresh(); }); else toast('Diese Veranstaltung ist ausgebucht.', true); }
     t.addEventListener('click', open); t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
@@ -2435,14 +2634,17 @@ function openBooking(e, onChange) {
   var head = h('div', { class: 'bk-side' }, [h('div', { class: 'bk-img' }, [cover(e), h('div', { class: 'chips' }, [chipEl(e.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[e.category]), chipEl('type', e.type), statusChip(e)])]),
     h('dl', { class: 'bk-facts' }, [
       h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(e.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: e.start + ' – ' + endHm(e) + ' Uhr' })]),
-      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(e.host, e.hostLevel, e.hostExpert, '', e.hostPublic))])])]);
+      h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: e.duration + ' Minuten' })]), e.idd ? h('div', null, [h('dt', { text: 'IDD-Zeit' }), h('dd', { text: e.iddMinutes + ' Minuten' })]) : null, h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(e.host, e.hostLevel, e.hostExpert, '', e.hostPublic))])])]);
   var wrapper = h('div', { class: 'bk' }, [head, body]);
   var m = openModal(wrapper, { xwide: true, label: 'Anmeldung: ' + e.title, onClose: onChange });
   function showForm() {
     clear(body); body.classList.add('bk-form');
     var f = freeOf(e);
     body.appendChild(h('div', null, [h('h2', { text: e.title }), h('div', { class: 'chips-inline', style: 'margin-top:8px' }, chipEl('topic', capFirst(e.topic)))]));
-    body.appendChild(h('div', { class: 'rich bk-desc', tabindex: '0', html: sanitizeHtml(e.description) }));
+    /* IDD: Titel fuer die Dokumentation und Agenda im scrollbaren Bereich, damit die Aktionszeile unten bleibt */
+    var iddInfo = e.idd ? h('div', { class: 'idd-box' }, [h('h3', { text: 'IDD-anrechenbar: ' + e.iddMinutes + ' Minuten', style: 'margin:0' }), h('div', { class: 'hint', text: 'IDD-Titel: ' + e.iddTitle }), agendaNode(e),
+      state.me && state.me.iddDuty && !state.me.gbId ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'gutBeraten-ID fehlt' }), h('div', null, ['Damit die Zeit gemeldet werden kann, hinterlege Deine ID unter ', h('a', { href: '#/profil?tab=konto', text: 'Profil › Konto' }), '.'])])) : null]) : null;
+    body.appendChild(h('div', { class: 'bk-desc', tabindex: '0' }, [h('div', { class: 'rich', html: sanitizeHtml(e.description) }), iddInfo]));
     var foot = h('div', { class: 'bk-foot' }); body.appendChild(foot);
     if (e.own) { foot.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Das ist Deine eigene Veranstaltung. Die Teilnehmenden siehst Du unter „Meine Veranstaltungen“.' })); foot.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-veranstaltungen', text: 'Meine Veranstaltungen öffnen' }))); return; }
     if (e.mine) { foot.appendChild(h('div', { class: 'notice ok', role: 'status', text: 'Du bist für diese Veranstaltung angemeldet.' })); foot.appendChild(h('div', null, h('a', { class: 'btn btn-primary', href: '#/meine-anmeldungen', text: 'Meine Anmeldungen öffnen' }))); return; }
@@ -2511,7 +2713,7 @@ function participationCard(info, uid, o) {
   if (compact) node.appendChild(h('div', { class: 'chips-inline' }, chipEl('topic', capFirst(info.topic))));
   if (!compact) node.appendChild(h('dl', { class: 'facts f4' }, [
     h('div', null, [h('dt', { text: 'Datum' }), h('dd', { text: dateLong(info.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { text: info.start + ' – ' + endHm(info) + ' Uhr' })]),
-    h('div', null, [h('dt', { text: 'Dauer' }), h('dd', { text: info.duration + ' Minuten' })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(info.host, info.hostLevel, info.hostExpert, '', info.hostPublic))])]));
+    h('div', null, [h('dt', { text: info.idd ? 'Dauer / IDD-Zeit' : 'Dauer' }), h('dd', { text: info.duration + ' Minuten' + (info.idd ? ' / ' + info.iddMinutes + ' Minuten' : '') })]), h('div', null, [h('dt', { text: 'Angeboten von' }), h('dd', null, userTag(info.host, info.hostLevel, info.hostExpert, '', info.hostPublic))])]));
   if (info.cancelled) { node.appendChild(h('div', { class: 'notice warn', role: 'alert' }, h('div', { class: 'n-body' }, [h('b', { text: 'Diese Veranstaltung wurde abgesagt' }), h('div', { text: (info.cancelReason ? 'Grund: ' + info.cancelReason + ' ' : '') + 'Der Termin findet nicht statt.' })]))); return node; }
   if (info.teamsLink) node.appendChild(teamsBox(info.teamsLink));
   node.appendChild(h('div', { class: 'pc-cols' }, h('div', { class: 'pc-ics' }, h('button', { class: 'btn btn-primary', type: 'button', html: ico('download') + ' Kalendereintrag (.ics) herunterladen', onclick: function () { downloadIcs(info, uid); } }))));
@@ -2723,7 +2925,7 @@ function viewMyEvents() {
   function load() { Api.myEvents().then(function (r) { clear(box); render(r.events); }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
   function card(ev) {
     var node = h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:14px' });
-    node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(ev.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[ev.category]), chipEl('type', ev.type), chipEl('type', ev.topic), ev.cancelled ? chipEl('full', 'Abgesagt') : null, ev.isTest ? chipEl('type', 'Testdaten') : null]));
+    node.appendChild(h('div', { class: 'chips-inline' }, [chipEl(ev.category === 'dienstlich' ? 'biz' : 'priv', CAT_LABEL[ev.category]), chipEl('type', ev.type), chipEl('type', ev.topic), ev.idd ? chipEl('idd', 'IDD ' + ev.iddMinutes + ' Min.') : null, ev.cancelled ? chipEl('full', 'Abgesagt') : null, ev.isTest ? chipEl('type', 'Testdaten') : null]));
     node.appendChild(h('h3', { text: ev.title, style: 'overflow-wrap:anywhere' }));
     node.appendChild(h('dl', { class: 'facts f4 facts-wide' }, [h('div', null, [h('dt', { text: 'Datum' }), h('dd', { class: 'nowrap', text: dateFull(ev.date) })]), h('div', null, [h('dt', { text: 'Uhrzeit' }), h('dd', { class: 'nowrap', text: ev.start + ' – ' + endHm(ev) + ' Uhr' })]),
       h('div', null, [h('dt', { text: 'Angemeldet' }), h('dd', { text: ev.booked + ' von ' + ev.capacity })]), h('div', null, [h('dt', { text: ev.ended ? 'Bewertung' : 'Teams-Sitzung' }), h('dd', null, ev.ended ? (ev.cancelled ? '–' : ratingNode(ev.ratingAvg, ev.ratingCount)) : h('a', { href: ev.teamsLink, target: '_blank', rel: 'noopener noreferrer', text: 'Link öffnen' }))])]));
@@ -2731,8 +2933,19 @@ function viewMyEvents() {
     node.appendChild(h('h4', { text: 'Teilnehmende', style: 'margin:0' }));
     if (!ev.participants.length) node.appendChild(h('p', { class: 'hint', text: 'Noch niemand hat sich angemeldet.' }));
     else node.appendChild(h('div', { class: 'plist' }, ev.participants.map(function (p) { return userTag(p.username, p.level, false, 'chipu'); })));
+    if (ev.iddConfirm && ev.participants.length) node.appendChild(confirmBox(ev));
     if (ev.canCancel) node.appendChild(cancelBox(ev));
     return node;
+  }
+  /* IDD: Teilnahme bestaetigen. Nur bestaetigte Teilnahmen werden angerechnet; teilweise Teilnahmen gibt es nicht. */
+  function confirmBox(ev) {
+    var c = ev.iddConfirm, done = ev.participants.filter(function (p) { return p.idd; }).length;
+    var info = c.locked ? 'Die Teilnahmen sind endgültig gesperrt (31.01. des Folgejahres).' : c.open ? 'Bitte bestätige bis ' + dateFull(c.until.slice(0, 10)) + ', wer teilgenommen hat. Nur bestätigte Teilnahmen werden angerechnet.' : 'Die Frist ist abgelaufen. Fehlen noch Bestätigungen, wende Dich an die Administration.';
+    var rows = ev.participants.map(function (p) {
+      function b(st, label) { var on = p.idd === st; return h('button', { type: 'button', class: 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-secondary'), 'aria-pressed': String(on), disabled: !c.open, text: label, onclick: function () { Api.confirmAttendance(p.id, on ? '' : st).then(function () { load(); }, function (er) { if (authFail(er)) return; toast(er.message, true); }); } }); }
+      return h('div', { class: 'cf-row' }, [userTag(p.username, p.level, false, 'chipu'), h('span', { class: 'hint', text: p.idd === 'yes' ? 'teilgenommen' : p.idd === 'no' ? 'nicht teilgenommen' : 'offen' }), h('div', { class: 'cf-acts' }, [b('yes', 'Teilgenommen'), b('no', 'Nicht teilgenommen')])]);
+    });
+    return h('div', { class: 'idd-confirm' }, [h('h4', { text: 'Teilnahme bestätigen (IDD) · ' + done + ' von ' + ev.participants.length + ' erledigt', style: 'margin:0' }), h('p', { class: 'hint', text: info })].concat(rows));
   }
   function cancelBox(ev) {
     var reason = h('textarea', { id: 'v-reason-' + ev.id, rows: '2', maxlength: '300', placeholder: 'Zum Beispiel: Ich bin erkrankt. Ein neuer Termin folgt.' });
@@ -2768,6 +2981,102 @@ function viewMyEvents() {
 }
 
 /* ---- Profil ---- */
+/* ====================================================== IDD-Cockpit und Nachweis (je Kalenderjahr) */
+function iddCockpit(c) {
+  var nowY = new Date().getFullYear(), years = {};
+  c.items.forEach(function (x) { years[x.year] = 1; }); years[nowY] = 1;
+  var ys = Object.keys(years).map(Number).sort(function (a, b) { return b - a; });
+  var cur = Number(sess.get('lt_idd_y')) || (c.items.some(function (x) { return x.year === nowY; }) ? nowY : ys[0]);
+  if (ys.indexOf(cur) < 0) cur = ys[0];
+  var host = h('div');
+  function draw() {
+    clear(host); sess.set('lt_idd_y', String(cur));
+    var its = c.items.filter(function (x) { return x.year === cur; }), ok = its.filter(function (x) { return x.status === 'yes'; }), sum = ok.reduce(function (s, x) { return s + x.minutes; }, 0), goal = c.hours * 60;
+    var pend = its.filter(function (x) { return x.ended && !x.status && !x.locked; }), no = its.filter(function (x) { return x.status === 'no' || (x.ended && !x.status && x.locked); }), up = its.filter(function (x) { return !x.ended; });
+    var pct = Math.min(100, Math.round(sum / goal * 100));
+    var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kalenderjahr' }, ys.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
+    var pdf = h('button', { type: 'button', class: 'btn btn-primary', html: ico('download') + ' Nachweis ' + cur + ' als PDF', onclick: function () { saveBlob(iddPdf(c, cur), 'IDD-Nachweis-' + cur + '-' + (c.lastName || 'LearnTogether').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf'); } });
+    host.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between' }, [seg, pdf]));
+    host.appendChild(h('div', { class: 'st-kpis', style: 'margin-top:20px' }, [
+      h('div', { class: 'st-kpi' }, [h('b', { text: fmtMinutes(sum) }), h('span', { text: 'Bestätigte IDD-Zeit ' + cur })]),
+      h('div', { class: 'st-kpi' }, [h('b', { text: c.hours + ' Std.' }), h('span', { text: 'Weiterbildungspflicht' })]),
+      h('div', { class: 'st-kpi' }, [h('b', { text: sum >= goal ? 'erreicht' : fmtMinutes(goal - sum) }), h('span', { text: sum >= goal ? 'über die Plattform' : 'fehlen noch' })]),
+      h('div', { class: 'st-kpi' }, [h('b', { text: String(ok.length) }), h('span', { text: 'bestätigte Veranstaltungen' })])]));
+    host.appendChild(h('div', { class: 'idd-prog', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct), 'aria-label': pct + ' Prozent der Weiterbildungspflicht' }, h('i', { style: 'width:' + pct + '%' })));
+    host.appendChild(h('p', { class: 'hint', text: 'Bestätigungen für ' + cur + ' sind bis zum 31.01.' + (cur + 1) + ' möglich. Danach ist das Jahr abgeschlossen.' }));
+    function tbl(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (t) { return h('th', { text: t }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (x) { return h('td', null, x); })); }))])); }
+    function row(x, last) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), h('span', null, [h('b', { text: x.iddTitle }), h('div', { class: 'hint', text: x.title })]), x.start + '–' + x.end + ' Uhr', x.minutes + ' Min.', last]; }
+    host.appendChild(h('h3', { text: 'Angerechnet' }));
+    host.appendChild(ok.length ? tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Bestätigt am'], ok.sort(function (a, b) { return a.date < b.date ? -1 : 1; }).map(function (x) { return row(x, x.confirmedAt ? dateFull(x.confirmedAt.slice(0, 10)) : '–'); })) : h('p', { class: 'hint', text: 'In ' + cur + ' noch keine bestätigte Teilnahme.' }));
+    if (pend.length) { host.appendChild(h('h3', { text: 'Wartet auf Bestätigung' })); host.appendChild(tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Status'], pend.map(function (x) { return row(x, 'noch offen'); }))); }
+    if (up.length) { host.appendChild(h('h3', { text: 'Angemeldet' })); host.appendChild(tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Status'], up.map(function (x) { return row(x, 'anstehend'); }))); }
+    if (no.length) { host.appendChild(h('h3', { text: 'Nicht angerechnet' })); host.appendChild(tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Status'], no.map(function (x) { return row(x, x.status === 'no' ? 'nicht teilgenommen' : 'nicht bestätigt'); }))); }
+  }
+  draw();
+  return h('section', { class: 'prof-sec', id: 'idd-cockpit' }, [h('h2', { text: 'IDD-Cockpit' }),
+    h('p', { class: 'hint', text: 'Deine anrechenbare IDD-Bildungszeit über ' + state.settings.appTitle + ', je Kalenderjahr. Angerechnet werden nur bestätigte Teilnahmen. Weiterbildungen außerhalb der Plattform sind hier nicht enthalten.' }),
+    c.gbId ? null : h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'gutBeraten-ID fehlt' }), h('div', null, ['Ohne ID können Deine Zeiten nicht gemeldet werden. ', h('a', { href: '#/profil?tab=konto', text: 'Jetzt unter Konto hinterlegen' })])])),
+    host]);
+}
+/* IDD-Nachweis als PDF: alle bestaetigten Teilnahmen eines Kalenderjahres */
+function pdfWrap(str, width, size, bold) {
+  var words = String(str || '').split(/\s+/), lines = [], cur = '';
+  words.forEach(function (w) { var t = cur ? cur + ' ' + w : w; if (pdfW(t, size, bold) <= width || !cur) cur = t; else { lines.push(cur); cur = w; } });
+  if (cur) lines.push(cur); return lines.map(function (l) { return pdfFit(l, width, size, bold); });
+}
+function iddPdf(c, year) {
+  var PW = 595, PH = 842, ML = 48, CW = PW - 2 * ML, pages = [], cv = null, y = 0, INK = '#001957', GREY = '#5f6b85', LINE = '#d9dee9', appTitle = state.settings.appTitle;
+  var title = 'IDD-Weiterbildungsnachweis ' + year;
+  function f2(n) { return (Math.round(n * 100) / 100).toString(); }
+  function rect(x, yt, w, hh, col) { cv.push(pdfRgb(col) + ' rg ' + f2(x) + ' ' + f2(PH - yt - hh) + ' ' + f2(w) + ' ' + f2(hh) + ' re f'); }
+  function text(x, yb, str, size, bold, col, align) { str = String(str); var w = pdfW(str, size, bold); if (align === 'r') x -= w; cv.push('BT /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + pdfRgb(col) + ' rg ' + f2(x) + ' ' + f2(PH - yb) + ' Td <' + pdfHex(str) + '> Tj ET'); }
+  function line(x1, y1, x2, y2, col, wd) { cv.push(pdfRgb(col) + ' RG ' + (wd || .5) + ' w ' + f2(x1) + ' ' + f2(PH - y1) + ' m ' + f2(x2) + ' ' + f2(PH - y2) + ' l S'); }
+  function newPage() {
+    cv = []; pages.push(cv); rect(0, 0, PW, 54, INK); rect(0, 54, PW, 4, '#f79506'); text(ML, 38, 'R+V', 22, true, '#ffffff');
+    var at = appTitle.indexOf('@'), base = at < 0 ? appTitle : appTitle.slice(0, at), ad = at < 0 ? '' : appTitle.slice(at), wAd = pdfW(ad, 12, true);
+    text(PW - ML - wAd, 36, base, 12, true, '#ffffff', 'r'); if (ad) text(PW - ML, 36, ad, 12, true, '#f79506', 'r'); y = 86;
+  }
+  newPage();
+  var now = new Date(), its = c.items.filter(function (x) { return x.year === year && x.status === 'yes'; }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.start < b.start ? -1 : 1; });
+  var sum = its.reduce(function (s, x) { return s + x.minutes; }, 0);
+  text(ML, y + 16, title, 20, true, INK); y += 26;
+  text(ML, y + 10, 'Kalenderjahr ' + year + ' (01.01. bis 31.12.' + year + ') · erstellt am ' + pad(now.getDate()) + '.' + pad(now.getMonth() + 1) + '.' + now.getFullYear(), 9, false, GREY); y += 26;
+  [['Name', (c.firstName + ' ' + c.lastName).trim()], ['XV-Nummer', c.xv || '–'], ['gutBeraten-ID', c.gbId || 'nicht hinterlegt'], ['Bildungsdienstleister', c.provider || '–'], ['Lernform', 'Webinar live (Microsoft Teams)'], ['Weiterbildungspflicht', c.hours + ' Stunden je Kalenderjahr']].forEach(function (r) {
+    text(ML, y + 10, r[0], 9.5, false, GREY); text(ML + 140, y + 10, pdfFit(r[1], CW - 140, 10, true), 10, true, INK); y += 17;
+  });
+  y += 8; rect(ML, y, CW, 46, '#f3f5f9'); rect(ML, y, 3, 46, '#f79506');
+  text(ML + 14, y + 20, 'Anrechenbare Bildungszeit ' + year + ': ' + fmtMinutes(sum) + ' (' + sum + ' Minuten)', 12.5, true, INK);
+  text(ML + 14, y + 36, its.length + ' bestätigte Veranstaltung' + (its.length === 1 ? '' : 'en') + ' · ' + Math.min(100, Math.round(sum / (c.hours * 60) * 100)) + ' % der Weiterbildungspflicht über diese Plattform', 9, false, GREY); y += 62;
+  var X = [ML, ML + 66, ML + 140, ML + CW - 120, ML + CW - 62, ML + CW];
+  function head() { rect(ML, y, CW, 18, '#e3e8f3'); ['Datum', 'Uhrzeit', 'IDD-Titel', 'Minuten', 'Bestätigt'].forEach(function (t, i) { if (i === 3) text(X[4] - 6, y + 12.5, t, 8.5, true, INK, 'r'); else text(X[i] + 4, y + 12.5, t, 8.5, true, INK); }); y += 18; }
+  head();
+  if (!its.length) { text(ML + 4, y + 14, 'Keine bestätigten Teilnahmen in diesem Kalenderjahr.', 9, false, GREY); y += 22; }
+  its.forEach(function (x) {
+    var tl = pdfWrap(x.iddTitle, X[3] - X[2] - 10, 9, false), hh = Math.max(1, tl.length) * 11.5 + 8;
+    if (y + hh > PH - 90) { newPage(); head(); }
+    text(X[0] + 4, y + 13, x.date.split('-').reverse().join('.'), 9, false, INK); text(X[1] + 4, y + 13, x.start + '–' + x.end, 9, false, INK);
+    tl.forEach(function (l, i) { text(X[2] + 4, y + 13 + i * 11.5, l, 9, false, INK); });
+    text(X[4] - 6, y + 13, String(x.minutes), 9, true, INK, 'r'); text(X[4] + 4, y + 13, x.confirmedAt ? x.confirmedAt.slice(0, 10).split('-').reverse().join('.') : '–', 9, false, INK);
+    line(ML, y + hh, ML + CW, y + hh, LINE, .4); y += hh;
+  });
+  y += 18; if (y > PH - 110) newPage();
+  ['Angerechnet sind nur Teilnahmen, die die anbietende Person oder die Administration bestätigt hat.', 'Begrüßung und Verabschiedung (je ' + (IDD.frame || 5) + ' Minuten) zählen nicht zur Lernzeit.', 'Teilnahmen eines Kalenderjahres sind ab dem 31.01. des Folgejahres nicht mehr änderbar.', 'Maschinell erstellt über ' + appTitle + '.'].forEach(function (t) { pdfWrap(t, CW, 8.5, false).forEach(function (l) { text(ML, y + 10, l, 8.5, false, GREY); y += 12; }); });
+  var total = pages.length;
+  pages.forEach(function (p, i) { cv = p; line(ML, PH - 34, ML + CW, PH - 34, LINE, .5); text(ML, PH - 22, pdfFit(appTitle + ' · ' + title + ' · ' + (c.firstName + ' ' + c.lastName).trim(), CW - 80, 8, false), 8, false, GREY); text(ML + CW, PH - 22, 'Seite ' + (i + 1) + ' von ' + total, 8, false, GREY, 'r'); });
+  var objs = [], kids = [];
+  objs[0] = '<< /Type /Catalog /Pages 2 0 R >>'; objs[1] = null;
+  objs[2] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  pages.forEach(function (p) { var st = p.join('\n'), ci = objs.length + 1; objs.push('<< /Length ' + st.length + ' >>\nstream\n' + st + '\nendstream'); objs.push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + PW + ' ' + PH + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + ci + ' 0 R >>'); kids.push(objs.length + ' 0 R'); });
+  objs[1] = '<< /Type /Pages /Count ' + pages.length + ' /Kids [' + kids.join(' ') + '] >>';
+  objs.push('<< /Title <FEFF' + pdfUtf16(title) + '> /Creator (LearnTogether) /Producer (LearnTogether) >>');
+  var out = '%PDF-1.4\n', offs = [];
+  objs.forEach(function (o, i) { offs.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  var xr = out.length; out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+  offs.forEach(function (o) { out += ('0000000000' + o).slice(-10) + ' 00000 n \n'; });
+  out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R /Info ' + objs.length + ' 0 R >>\nstartxref\n' + xr + '\n%%EOF';
+  return new Blob([out], { type: 'application/pdf' });
+}
 function viewProfile(q) {
   var ps = pageShell('Konto', 'Mein <span class="accent">Profil</span>', null, true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
@@ -2869,6 +3178,23 @@ function viewProfile(q) {
     }
     return h('section', { class: 'prof-sec', id: 'notify-box' }, kids);
   }
+  /* IDD-Angaben: Pflicht, 15 oder 30 Stunden, gutBeraten-ID. Ohne IDD-Pflicht entfallen alle IDD-Optionen. */
+  function iddBox(me) {
+    if (!iddOn()) return null;
+    var duty = h('input', { type: 'checkbox', id: 'idd-duty', checked: !!me.iddDuty });
+    var h15 = h('input', { type: 'radio', name: 'idd-h', id: 'idd-h15', value: '15', checked: me.iddHours !== 30 }), h30 = h('input', { type: 'radio', name: 'idd-h', id: 'idd-h30', value: '30', checked: me.iddHours === 30 });
+    var gb = h('input', { type: 'text', id: 'idd-gb', value: me.gbId || '', maxlength: '14', autocomplete: 'off', placeholder: 'XXXX-XXXX-XXXX', style: 'text-transform:uppercase' });
+    var more = h('div', { class: 'grid2' }, [field('Weiterbildungspflicht je Kalenderjahr', h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Stunden je Kalenderjahr' }, [h('label', null, [h15, '15 Stunden']), h('label', null, [h30, '30 Stunden'])]), { legend: true }), field('gutBeraten-ID', gb, { id: 'idd-gb', hint: '12 Buchstaben oder Ziffern in drei Blöcken. Nötig, damit Deine Zeiten an gutBeraten gemeldet werden können.' })]);
+    function sync() { more.hidden = !duty.checked; }
+    duty.addEventListener('change', sync); sync();
+    var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'IDD-Angaben speichern' });
+    go.addEventListener('click', function () {
+      go.disabled = true; msg.hidden = true;
+      Api.saveIdd({ duty: duty.checked, hours: h30.checked ? 30 : 15, gbId: gb.value }).then(function (j) { go.disabled = false; setMe(j.me); toast('Deine IDD-Angaben sind gespeichert.'); route(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
+    });
+    return h('section', { class: 'prof-sec', id: 'idd-box' }, [h('h2', { text: 'IDD-Weiterbildung' }), h('p', { class: 'hint', text: 'Bist Du IDD-pflichtig, rechnet die Anwendung bestätigte Teilnahmen an IDD-Veranstaltungen an. Dein IDD-Cockpit erscheint nach der ersten bestätigten Teilnahme.' }),
+      h('div', { class: 'panel', style: 'max-width:760px;display:flex;flex-direction:column;gap:16px' }, [h('label', { class: 'chk' }, [duty, h('span', null, [h('b', { text: 'Ich bin IDD-pflichtig' }), h('span', { class: 'hint', text: 'Ohne Haken entfallen alle IDD-Angaben in Deinem Konto.' })])]), more, msg, h('div', null, go)])]);
+  }
   /* Meine Daten: Auskunft als Datei und Konto loeschen */
   function dataBox(me) {
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
@@ -2887,13 +3213,14 @@ function viewProfile(q) {
         msg.hidden = true;
         Api.deleteAccount(pw.value).then(function () { setMe(null); toast('Dein Konto ist gelöscht.'); location.hash = '#/'; }, function (er) { reset(); if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; });
       });
-      kids.push(h('h3', { text: 'Konto löschen' }), h('p', { class: 'hint', text: 'Dein Konto, Deine Kontaktdaten und Dein Profilbild werden sofort gelöscht. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten. Das lässt sich nicht rückgängig machen.' }),
+      kids.push(h('h3', { text: 'Konto löschen' }), h('p', { class: 'hint', text: 'Dein Konto, Deine Kontaktdaten und Dein Profilbild werden sofort gelöscht. Deine künftigen Veranstaltungen werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben nur anonym für die Statistik erhalten. Das lässt sich nicht rückgängig machen.' }), iddOn() && me.iddDuty ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'IDD-Nachweise' }), h('div', { text: 'Mit dem Konto werden auch Deine IDD-Teilnahmen gelöscht. Lade vorher im IDD-Cockpit Deine Nachweise als PDF herunter.' })])) : null,
         h('div', { class: 'form panel', style: 'gap:16px;max-width:760px' }, [h('div', { class: 'grid2' }, [field('Passwort zur Bestätigung', pw, { id: 'del-pw', req: true }), h('div')]), h('div', null, del)]));
     }
     kids.push(msg);
     return h('section', { class: 'prof-sec', id: 'data-box' }, kids);
   }
-  Api.profile().then(function (r) {
+  Promise.all([Api.profile(), iddOn() && state.me.iddDuty ? Api.iddCockpit().catch(function () { return null; }) : null]).then(function (res) {
+    var r = res[0], ck = res[1];
     clear(box); var me = r.me, b = r.badge, o = r.offered, a = r.attended;
     var experts = r.topics.filter(function (t) { return t.expert; });
     /* Kopf: Benutzername mit Abzeichen und Expertenstatus */
@@ -2927,9 +3254,9 @@ function viewProfile(q) {
       return sec('Meine Teilnahmen', 'Alle Veranstaltungen, die Du besucht hast, mit Deiner Bewertung.', [
         a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1, true) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]);
     }
-    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange), notifyBox(), dataBox(me)]); }
+    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange), iddBox(me), notifyBox(), dataBox(me)]); }
     if (me.mustChange) sess.set('lt_tab_prof', 'konto'); else if (q && q.tab) sess.set('lt_tab_prof', q.tab);
-    box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me, !!r.avatar && !r.avatar.hidden); }], ['konto', 'Konto', null, accountTab]]));
+    box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me, !!r.avatar && !r.avatar.hidden); }], ['konto', 'Konto', null, accountTab]].concat(ck && ck.duty && ck.items.some(function (x) { return x.status === 'yes'; }) ? [['idd', 'IDD-Cockpit', null, function () { return iddCockpit(ck); }]] : [])));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
   }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); });
   return ps.root;
@@ -2958,12 +3285,39 @@ function viewManual() {
 }
 
 /* ---- Admin ---- */
+/* ====================================================== PDF-Grundfunktionen (Statistik, IDD-Nachweis), ohne Bibliothek */
+/* ---- PDF-Erzeugung (ohne Bibliothek, Standardschrift Helvetica) ---- */
+var PDF_W = {
+  r: [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584],
+  b: [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
+};
+var PDF_CP = { '€': 128, '…': 133, '‘': 145, '’': 146, '“': 147, '”': 148, '„': 132, '•': 149, '–': 150, '—': 151 };
+function pdfByte(ch) { var c = ch.charCodeAt(0); if (PDF_CP[ch]) return PDF_CP[ch]; return c < 256 ? c : 63; }
+function pdfBase(ch) { return 'ÄÀÁÂÃÅ'.indexOf(ch) >= 0 ? 'A' : 'ÖÒÓÔÕ'.indexOf(ch) >= 0 ? 'O' : 'ÜÙÚÛ'.indexOf(ch) >= 0 ? 'U' : 'äàáâãå'.indexOf(ch) >= 0 ? 'a' : 'öòóôõ'.indexOf(ch) >= 0 ? 'o' : 'üùúû'.indexOf(ch) >= 0 ? 'u' : 'éèêë'.indexOf(ch) >= 0 ? 'e' : 'ÉÈÊË'.indexOf(ch) >= 0 ? 'E' : ch; }
+function pdfW(str, size, bold) {
+  var t = bold ? PDF_W.b : PDF_W.r, w = 0;
+  for (var i = 0; i < str.length; i++) {
+    var ch = pdfBase(str[i]), c = ch.charCodeAt(0);
+    w += c >= 32 && c <= 126 ? t[c - 32] : ch === 'ß' ? 611 : ch === '–' || ch === '—' ? 556 : ch === '…' ? 1000 : ch === '·' ? 278 : 556;
+  }
+  return w * size / 1000;
+}
+function pdfFit(str, width, size, bold) { str = String(str); if (pdfW(str, size, bold) <= width) return str; while (str.length > 1 && pdfW(str + '…', size, bold) > width) str = str.slice(0, -1); return str.replace(/\s+$/, '') + '…'; }
+function pdfHex(str) { var o = ''; for (var i = 0; i < str.length; i++) { var b = pdfByte(str[i]).toString(16); o += (b.length < 2 ? '0' : '') + b; } return o.toUpperCase(); }
+function pdfRgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(function (v) { return Math.round(v * 1000) / 1000; }).join(' '); }
+
+function pdfUtf16(s) { var o = ''; for (var i = 0; i < s.length; i++) { var h4 = s.charCodeAt(i).toString(16); o += ('0000' + h4).slice(-4); } return o.toUpperCase(); }
+function saveBlob(blob, name) {
+  if (CFG.mode === 'artifact') { toast('Downloads sind in der Artefakt-Vorschau gesperrt. In der IIS-Version wird ' + name + ' heruntergeladen.', true); return; }
+  var url = URL.createObjectURL(blob), a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+}
+
 function viewAdmin() {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' })), wrap = root.firstChild;
   var SECTIONS = [
-    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['users', 'Nutzer', 'Konten und Rechte'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte']]],
+    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['users', 'Nutzer', 'Konten und Rechte'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte'], ['idd', 'IDD', 'IDD-Veranstaltungen und Teilnahmen']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung'], ['photos', 'Fotos', 'Fotos als Platzhalterbilder'], ['badges', 'Abzeichen', 'Abzeichen und Expertenstatus']]],
-    ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
+    ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['iddset', 'IDD-Einstellungen', 'IDD-Einstellungen'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
   ];
   var section = sess.get('lt_admin_sec') || 'events';
   function panel() {
@@ -2987,7 +3341,7 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, photos: adminPhotos, users: adminUsers, general: adminGeneral, testdata: adminTest }[section];
+      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, photos: adminPhotos, users: adminUsers, general: adminGeneral, testdata: adminTest, idd: adminIdd, iddset: adminIddSet }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (authFail(er)) return; clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
@@ -3176,26 +3530,6 @@ function viewAdmin() {
     return h('section', { class: 'st-card' + (s.wide ? ' st-wide' : ''), 'aria-label': s.title }, [h('div', { class: 'st-head' }, [h('div', null, [h('h3', { text: s.title }), h('p', { class: 'hint', text: s.hint })]), pdf]), h('div', { html: inner })]);
   }
 
-  /* ---- PDF-Erzeugung (ohne Bibliothek, Standardschrift Helvetica) ---- */
-  var PDF_W = {
-    r: [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556, 1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584],
-    b: [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
-  };
-  var PDF_CP = { '€': 128, '…': 133, '‘': 145, '’': 146, '“': 147, '”': 148, '„': 132, '•': 149, '–': 150, '—': 151 };
-  function pdfByte(ch) { var c = ch.charCodeAt(0); if (PDF_CP[ch]) return PDF_CP[ch]; return c < 256 ? c : 63; }
-  function pdfBase(ch) { return 'ÄÀÁÂÃÅ'.indexOf(ch) >= 0 ? 'A' : 'ÖÒÓÔÕ'.indexOf(ch) >= 0 ? 'O' : 'ÜÙÚÛ'.indexOf(ch) >= 0 ? 'U' : 'äàáâãå'.indexOf(ch) >= 0 ? 'a' : 'öòóôõ'.indexOf(ch) >= 0 ? 'o' : 'üùúû'.indexOf(ch) >= 0 ? 'u' : 'éèêë'.indexOf(ch) >= 0 ? 'e' : 'ÉÈÊË'.indexOf(ch) >= 0 ? 'E' : ch; }
-  function pdfW(str, size, bold) {
-    var t = bold ? PDF_W.b : PDF_W.r, w = 0;
-    for (var i = 0; i < str.length; i++) {
-      var ch = pdfBase(str[i]), c = ch.charCodeAt(0);
-      w += c >= 32 && c <= 126 ? t[c - 32] : ch === 'ß' ? 611 : ch === '–' || ch === '—' ? 556 : ch === '…' ? 1000 : ch === '·' ? 278 : 556;
-    }
-    return w * size / 1000;
-  }
-  function pdfFit(str, width, size, bold) { str = String(str); if (pdfW(str, size, bold) <= width) return str; while (str.length > 1 && pdfW(str + '…', size, bold) > width) str = str.slice(0, -1); return str.replace(/\s+$/, '') + '…'; }
-  function pdfHex(str) { var o = ''; for (var i = 0; i < str.length; i++) { var b = pdfByte(str[i]).toString(16); o += (b.length < 2 ? '0' : '') + b; } return o.toUpperCase(); }
-  function pdfRgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(function (v) { return Math.round(v * 1000) / 1000; }).join(' '); }
-
   function buildPdf(title, filterText, kpis, stats, appTitle) {
     var PW = 595, PH = 842, ML = 40, CW = PW - 2 * ML, pages = [], c = null, y = 0;
     var INK = '#001957', GREY = '#5f6b85', LINE = '#d9dee9';
@@ -3285,11 +3619,6 @@ function viewAdmin() {
     offs.forEach(function (o) { out += ('0000000000' + o).slice(-10) + ' 00000 n \n'; });
     out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R /Info ' + objs.length + ' 0 R >>\nstartxref\n' + xr + '\n%%EOF';
     return new Blob([out], { type: 'application/pdf' });
-  }
-  function pdfUtf16(s) { var o = ''; for (var i = 0; i < s.length; i++) { var h4 = s.charCodeAt(i).toString(16); o += ('0000' + h4).slice(-4); } return o.toUpperCase(); }
-  function saveBlob(blob, name) {
-    if (CFG.mode === 'artifact') { toast('Downloads sind in der Artefakt-Vorschau gesperrt. In der IIS-Version wird ' + name + ' heruntergeladen.', true); return; }
-    var url = URL.createObjectURL(blob), a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
 
   /* ---- Statistik-Seite ---- */
@@ -3679,11 +4008,12 @@ function viewAdmin() {
           var acts = h('div', { class: 'acts' });
           if (meSuper && u.role !== 'superadmin') acts.appendChild(act(u.role === 'admin' ? 'Admin-Rechte entziehen' : 'Zum Admin machen', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetRole(u.id, u.role === 'admin' ? 'user' : 'admin'); }));
           if (u.role !== 'superadmin' || meSuper) acts.appendChild(act('Passwort zurücksetzen', 'Wirklich zurücksetzen?', 'btn-secondary', function () { return Api.adminResetPassword(u.id).then(function (r) { tempPassword(u, r.password); }); }));
+          if (iddOn()) acts.appendChild(act(u.iddHost ? 'IDD-Freischaltung entziehen' : 'IDD freischalten', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetIddHost(u.id, !u.iddHost); }));
           if (u.avatar) acts.appendChild(act('Profilbild löschen', 'Wirklich löschen?', 'btn-danger', function () { return Api.adminDeleteAvatar(u.id); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id) acts.appendChild(act(u.locked ? 'Entsperren' : 'Sperren', 'Wirklich?', u.locked ? 'btn-secondary' : 'btn-danger', function () { return Api.adminSetLocked(u.id, !u.locked); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id && (u.role !== 'admin' || meSuper)) acts.appendChild(act('Konto löschen', 'Endgültig löschen?', 'btn-danger', function () { return Api.adminDeleteUser(u.id).then(function () { toast('Das Konto ist gelöscht.'); }); }));
           tb.appendChild(h('tr', { class: u.locked ? 'past' : '' }, [
-            h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null])])])),
+            h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null, iddOn() && u.iddHost ? h('span', { class: 'tag', text: 'IDD-Anbietende' }) : null, iddOn() && u.iddDuty ? h('span', { class: 'tag', text: 'IDD-pflichtig' }) : null])])])),
             h('td', null, [u.firstName + ' ' + u.lastName, h('div', { class: 'hint', text: (u.xv || '–') })]), h('td', { text: u.email, style: 'overflow-wrap:anywhere' }),
             h('td', null, [h('b', { text: String(u.offered) }), h('div', { class: 'hint', text: 'angeboten' })]), h('td', { class: 'c-when', text: (u.created || '').slice(0, 10).split('-').reverse().join('.') }), h('td', { class: 'c-act' }, acts)]));
         });
@@ -3694,6 +4024,86 @@ function viewAdmin() {
       return h('div', null, [h('p', { class: 'lead', text: meSuper ? 'Hier siehst Du alle Konten. Als Hauptadministration kannst Du Admin-Rechte vergeben, Passwörter zurücksetzen, Konten sperren und löschen.' : 'Hier siehst Du alle Konten. Du kannst Passwörter zurücksetzen, Konten sperren und löschen. Admin-Rechte vergibt nur die Hauptadministration.' }),
         h('p', { class: 'hint', style: 'margin:0 0 16px', text: 'Zum Schutz der Beschäftigten zeigt die Liste weder Anmeldezeiten noch Teilnahmen je Person. Konten ohne Anmeldung seit ' + res.inactiveMonths + ' Monaten löscht die Anwendung automatisch.' }),
         h('div', { class: 'afilter' }, h('div', { class: 'afld wide' }, [h('label', { text: 'Suche' }), search])), h('div', { class: 'toolrow' }, count), host]);
+    });
+  }
+  /* IDD-Einstellungen: Hauptschalter, Bildungsdienstleister, Texte fuer Begruessung und Verabschiedung */
+  function adminIddSet() {
+    return Api.adminSettings().then(function (st) {
+      var c = st.idd || IDD, msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Speichern' });
+      var on = h('input', { type: 'checkbox', id: 's-idd-on', checked: !!c.on }), pv = inp('s-idd-prov', c.provider, 'text', { maxlength: '120' });
+      var wt = inp('s-idd-wt', c.welcome.title, 'text', { maxlength: '60' }), ft = inp('s-idd-ft', c.farewell.title, 'text', { maxlength: '60' });
+      var wx = h('textarea', { id: 's-idd-wx', rows: '2', maxlength: '300' }), fx = h('textarea', { id: 's-idd-fx', rows: '2', maxlength: '300' }); wx.value = c.welcome.text || ''; fx.value = c.farewell.text || '';
+      var form = h('form', { class: 'form panel', style: 'gap:20px;max-width:900px', novalidate: true }, [
+        h('label', { class: 'chk' }, [on, h('span', null, [h('b', { text: 'IDD-Funktion aktivieren' }), h('span', { class: 'hint', text: 'Ist sie aus, sind alle IDD-Angaben in der Anwendung ausgeblendet. Gespeicherte Daten bleiben erhalten.' })])]),
+        field('Bildungsdienstleister', pv, { id: 's-idd-prov', req: true, hint: 'Erscheint im IDD-Nachweis der Teilnehmenden, zum Beispiel „R+V Allgemeine Versicherung AG“.' }),
+        h('div', { class: 'grid2' }, [field('Erster Agenda-Block: Titel', wt, { id: 's-idd-wt', req: true }), field('Letzter Agenda-Block: Titel', ft, { id: 's-idd-ft', req: true })]),
+        h('div', { class: 'grid2' }, [field('Erster Agenda-Block: Text', wx, { id: 's-idd-wx' }), field('Letzter Agenda-Block: Text', fx, { id: 's-idd-fx' })]),
+        h('p', { class: 'hint', text: 'Beide Blöcke dauern je ' + (IDD.frame || 5) + ' Minuten und zählen nicht zur Lernzeit. Dazwischen steht ein Block mit dem IDD-Titel der Veranstaltung.' }), msg, h('div', null, go)]);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); go.disabled = true;
+        var p = { iddOn: on.checked, iddProvider: pv.value.trim(), iddWelcomeTitle: wt.value.trim(), iddWelcomeText: wx.value.trim(), iddFarewellTitle: ft.value.trim(), iddFarewellText: fx.value.trim() };
+        Api.adminSaveSettings(p).then(function () { go.disabled = false; applyTaxonomy({ idd: { on: p.iddOn, provider: p.iddProvider, frame: IDD.frame || 5, welcome: { title: p.iddWelcomeTitle, text: p.iddWelcomeText }, farewell: { title: p.iddFarewellTitle, text: p.iddFarewellText } } }); toast('IDD-Einstellungen gespeichert.'); say(msg, 'ok', p.iddOn ? 'Die IDD-Funktion ist aktiv.' : 'Die IDD-Funktion ist ausgeblendet.'); }, function (er) { go.disabled = false; if (authFail(er)) return; say(msg, 'bad', er.message); });
+      });
+      return form;
+    });
+  }
+  /* IDD: Veranstaltungen eines Kalenderjahres, Bestaetigungen, Nachtragen und erneute Freischaltung */
+  function adminIdd() {
+    if (!iddOn()) return Promise.resolve(h('div', { class: 'notice', role: 'status' }, 'Die IDD-Funktion ist ausgeschaltet. Du schaltest sie unter System › IDD-Einstellungen ein.'));
+    return Promise.all([Api.adminIdd(), Api.adminUsers()]).then(function (res) {
+      var evs = res[0], users = res[1].users, host = h('div'), nowY = new Date().getFullYear();
+      var ys = {}; evs.forEach(function (e) { ys[+e.date.slice(0, 4)] = 1; }); ys[nowY] = 1;
+      var years = Object.keys(ys).map(Number).sort(function (a, b) { return b - a; }), cur = Number(sess.get('lt_iddadm_y')) || nowY; if (years.indexOf(cur) < 0) cur = years[0];
+      function reload(openId) { return Api.adminIdd().then(function (l) { evs = l; draw(); if (openId) { var e = evs.filter(function (x) { return x.id === openId; })[0]; if (e) people(e); } }); }
+      function st(b) { return b.status === 'yes' ? 'teilgenommen' : b.status === 'no' ? 'nicht teilgenommen' : 'offen'; }
+      function people(e) {
+        var body = h('div', { class: 'modal-body people' }), m, edit = e.ended && !e.locked && !e.cancelled;
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'IDD-Teilnahmen' }), h('h2', { text: e.iddTitle, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + ' Uhr · ' + e.iddMinutes + ' Minuten IDD-Zeit · ' + e.title })]));
+        if (e.locked) body.appendChild(h('div', { class: 'notice', role: 'status' }, 'Seit dem ' + dateFull(e.lockAt.slice(0, 10)) + ' endgültig gesperrt.'));
+        else if (!e.ended) body.appendChild(h('div', { class: 'notice', role: 'status' }, 'Bestätigen ist erst nach dem Ende der Veranstaltung möglich.'));
+        var tb = h('tbody');
+        e.bookings.forEach(function (b, i) {
+          function sb(v, label) { var on = b.status === v; return h('button', { type: 'button', class: 'btn btn-sm ' + (on ? 'btn-primary' : 'btn-secondary'), 'aria-pressed': String(on), text: label, onclick: function () { Api.confirmAttendance(b.id, on ? '' : v).then(function () { m.close(); return reload(e.id); }, function (er) { toast(er.message, true); }); } }); }
+          tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, [h('b', { text: b.username }), b.addedBy ? h('div', { class: 'hint', text: 'Nachgetragen von ' + b.addedBy + ': ' + b.addReason }) : null]), h('td', { text: (b.firstName + ' ' + b.lastName).trim() || '–' }), h('td', { text: b.xv || '–' }),
+            h('td', null, b.gbId ? b.gbId : h('span', { class: 'tag past', text: 'fehlt' })), h('td', null, edit ? h('div', { class: 'cf-acts' }, [sb('yes', 'Teilgenommen'), sb('no', 'Nicht teilgenommen')]) : st(b))]));
+        });
+        body.appendChild(e.bookings.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'gutBeraten-ID', 'Status'].map(function (t) { return h('th', { text: t }); }))), tb])) : h('p', { class: 'hint', text: 'Keine Anmeldungen.' }));
+        if (edit) {
+          var who = h('input', { type: 'text', id: 'idd-add-user', placeholder: 'Benutzername oder XV-Nummer', autocomplete: 'off' }), why = h('input', { type: 'text', id: 'idd-add-reason', maxlength: '300', placeholder: 'z. B. per weitergeleitetem Teams-Link teilgenommen' }), msg = boxMsg();
+          var add = h('button', { type: 'button', class: 'btn btn-primary btn-sm', text: 'Teilnahme nachtragen' });
+          add.addEventListener('click', function () {
+            var q = who.value.trim().toLowerCase(), u = users.filter(function (x) { return x.username.toLowerCase() === q || (x.xv || '').toLowerCase() === q.replace(/[\s-]/g, ''); })[0];
+            if (!u) { say(msg, 'bad', 'Kein Konto mit diesem Benutzernamen oder dieser XV-Nummer gefunden.'); return; }
+            add.disabled = true; Api.adminIddAdd(e.id, u.id, why.value).then(function () { m.close(); toast('Teilnahme nachgetragen.'); return reload(e.id); }, function (er) { add.disabled = false; say(msg, 'bad', er.message); });
+          });
+          body.appendChild(h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:12px;margin-top:16px' }, [h('h3', { text: 'Teilnahme nachtragen', style: 'margin:0' }), h('div', { class: 'grid2' }, [field('Person', who, { id: 'idd-add-user' }), field('Begründung (Pflicht, steht im Protokoll)', why, { id: 'idd-add-reason' })]), msg, h('div', null, add)]));
+        }
+        m = openModal(body, { wide: true, label: 'IDD-Teilnahmen' });
+      }
+      function draw() {
+        clear(host); sess.set('lt_iddadm_y', String(cur));
+        var list = evs.filter(function (e) { return +e.date.slice(0, 4) === cur; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+        var held = list.filter(function (e) { return !e.cancelled; }), all = [], yes = 0, open = 0, noId = 0, mins = 0;
+        held.forEach(function (e) { e.bookings.forEach(function (b) { if (b.status === 'yes') { yes++; mins += e.iddMinutes; if (!b.gbId) noId++; } else if (!b.status && e.ended && !e.locked) open++; }); });
+        var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kalenderjahr' }, years.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
+        host.appendChild(seg);
+        host.appendChild(h('div', { class: 'st-kpis', style: 'margin-top:20px' }, [['IDD-Veranstaltungen', String(held.length)], ['Bestätigte Teilnahmen', String(yes)], ['Bestätigte IDD-Zeit', fmtMinutes(mins)], ['Offene Bestätigungen', String(open)], ['Bestätigt ohne gutBeraten-ID', String(noId)]].map(function (k) { return h('div', { class: 'st-kpi' }, [h('b', { text: k[1] }), h('span', { text: k[0] })]); })));
+        var lockD = new Date(cur + 1, 0, 31, 23, 59, 59);
+        host.appendChild(h('p', { class: 'hint', text: new Date() > lockD ? 'Das Jahr ' + cur + ' ist abgeschlossen. Teilnahmen lassen sich nicht mehr ändern.' : 'Teilnahmen für ' + cur + ' lassen sich bis zum 31.01.' + (cur + 1) + ' bestätigen oder nachtragen.' }));
+        if (!list.length) { host.appendChild(h('div', { class: 'empty' }, h('p', { text: 'Keine IDD-Veranstaltungen in ' + cur + '.' }))); return; }
+        var tb = h('tbody');
+        list.forEach(function (e) {
+          var y_ = e.bookings.filter(function (b) { return b.status === 'yes'; }).length, n_ = e.bookings.filter(function (b) { return b.status === 'no'; }).length, o_ = e.bookings.length - y_ - n_;
+          var fr = e.cancelled ? 'abgesagt' : !e.ended ? 'anstehend' : e.locked ? 'gesperrt' : e.hostOpen ? 'Anbietende bis ' + dateFull(e.hostUntil.slice(0, 10)) : 'nur Administration';
+          var acts = h('div', { class: 'acts' }, [h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Teilnahmen', onclick: function () { people(e); } })]);
+          if (e.ended && !e.locked && !e.cancelled && !e.hostOpen) acts.appendChild(twoStep(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Für Anbietende freischalten' }), 'Für Anbietende freischalten', 'Wirklich?', function (reset) { Api.adminIddReopen(e.id).then(function () { toast('Für 14 Tage freigeschaltet.'); return reload(); }, function (er) { reset(); toast(er.message, true); }); }));
+          tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [h('td', { class: 'nowrap', text: dateFull(e.date) }), h('td', null, [h('b', { text: e.iddTitle }), h('div', { class: 'hint', text: e.title })]), h('td', null, [h('span', { text: e.owner ? e.owner.username : 'Anonymisiert' }), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName }) : null]),
+            h('td', { text: e.iddMinutes + ' Min.' }), h('td', { text: y_ + ' / ' + n_ + ' / ' + o_ }), h('td', { text: fr }), h('td', { class: 'c-act' }, acts)]));
+        });
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'Anbietende', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+      }
+      draw();
+      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt.' }), host]);
     });
   }
   function adminPhotos() {

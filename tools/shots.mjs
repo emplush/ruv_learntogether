@@ -47,6 +47,16 @@ await shot('profil', { clip: { x: 0, y: 60, width: 1280, height: 1180 } }); awai
 await p.click('#av-edit'); await p.click('.modal button:has-text("Aus Bildern auswählen")'); await p.waitForSelector('.av-grid'); await p.waitForTimeout(300); await p.locator('.modal').last().screenshot({ path: path.join(out, 'profilbild.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape'); await p.keyboard.press('Escape');
 await go('#/profil?tab=oeffentlich'); await p.waitForSelector('#pub-box'); await p.locator('#pub-box').scrollIntoViewIfNeeded(); await p.locator('#pub-box').screenshot({ path: path.join(out, 'profil-freigaben.jpg'), type: 'jpeg', quality: 80 });
 await p.click('#pub-box button:has-text("So sehen andere")'); await p.waitForSelector('.pubprof h2'); await p.waitForTimeout(200); await p.locator('.modal').screenshot({ path: path.join(out, 'profil-oeffentlich.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
+// ---- IDD: Formular, Bestaetigung (anna.b), Konto und Cockpit (markus_v)
+await go('#/meine-veranstaltungen'); await p.waitForSelector('.panel h3'); await p.waitForTimeout(300);
+await p.locator('.panel:has(h3:text-is("Berufsunfähigkeit verständlich erklären")) button:has-text("Bearbeiten")').click(); await p.waitForSelector('.modal #f-idd', { state: 'attached' });
+await p.locator('.modal fieldset:has(#f-idd)').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await p.locator('.modal fieldset:has(#f-idd)').screenshot({ path: path.join(out, 'idd-formular.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+await p.click('.tabs-seg button:has-text("Vergangen")'); await p.waitForTimeout(300);
+const iddc = p.locator('.panel:has(h3:text-is("Betriebliche Altersversorgung im Mittelstand")) .idd-confirm'); await iddc.scrollIntoViewIfNeeded(); await iddc.screenshot({ path: path.join(out, 'idd-bestaetigen.jpg'), type: 'jpeg', quality: 80 });
+await p.click('.navout'); await p.waitForTimeout(300);
+await login('markus_v', 'Test-Passwort-2026');
+await go('#/profil?tab=konto'); await p.waitForSelector('#idd-box'); await p.locator('#idd-box').scrollIntoViewIfNeeded(); await p.locator('#idd-box').screenshot({ path: path.join(out, 'idd-konto.jpg'), type: 'jpeg', quality: 80 });
+await go('#/profil?tab=idd'); await p.waitForSelector('#idd-cockpit'); await p.setViewportSize({ width: 1280, height: 1100 }); await p.locator('#idd-cockpit').screenshot({ path: path.join(out, 'idd-cockpit.jpg'), type: 'jpeg', quality: 80 }); await p.setViewportSize({ width: 1280, height: 900 });
 await p.click('.navout'); await p.waitForTimeout(300);
 // ---- Administration
 await login('admin', 'RuVTest1234'); await p.waitForSelector('#p-cur');
@@ -64,4 +74,7 @@ await nav('Arten'); await shot('adm-arten', { clip: { x: 0, y: 60, width: 1280, 
 await nav('Fotos'); await p.waitForSelector('#fo-name'); await shot('adm-fotos', { clip: { x: 0, y: 60, width: 1280, height: 700 } });
 await nav('Abzeichen'); await p.waitForSelector('#bd-1'); await shot('adm-abzeichen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await nav('Archiv'); await p.waitForSelector('#ar-q'); await shot('adm-archiv', { clip: { x: 0, y: 60, width: 1280, height: 640 } });
+await p.click('.admin-nav button:text-is("IDD")'); await p.waitForSelector('.admin-content .st-kpis'); await p.waitForTimeout(300); await shot('adm-idd', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await p.locator('tr:has-text("Betriebliche Altersversorgung") button:has-text("Teilnahmen")').click(); await p.waitForSelector('.modal .people-tbl'); await p.locator('.modal').screenshot({ path: path.join(out, 'adm-idd-teilnahmen.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
+await nav('IDD-Einstellungen'); await p.waitForSelector('#s-idd-on'); await shot('adm-idd-einstellungen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await b.close(); console.log('Screenshots in', out);

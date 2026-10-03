@@ -67,7 +67,7 @@
 <li><b>Löschen:</b> entfernt eine archivierte Veranstaltung samt Anmeldungen endgültig, zum Beispiel auf Wunsch einer betroffenen Person.</li>
 </ul>
 <h3>Aufbewahrung und Anonymisierung</h3>
-<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie greift bei <b>dienstlichen</b> Veranstaltungen <b>fünf Jahre nach dem Ende</b>, ausschließlich für Nachweis und Anrechnung (IDD). Bei <b>privaten</b> Veranstaltungen greift sie nach <b>12 Monaten</b>, weil es dort keinen Nachweiszweck gibt. Auch abgesagte Veranstaltungen gehören dazu.</p>
+<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie greift bei <b>dienstlichen</b> Veranstaltungen am Ende des <b>fünften Jahres nach dem Kalenderjahr</b> der Veranstaltung, ausschließlich für Nachweis und Anrechnung (IDD). Bei <b>privaten</b> Veranstaltungen greift sie nach <b>12 Monaten</b>, weil es dort keinen Nachweiszweck gibt. Auch abgesagte Veranstaltungen gehören dazu.</p>
 <p>Bei der Anonymisierung passiert Folgendes:</p>
 <ul>
 <li>Der Bezug zu Anbieter und Teilnehmenden entfällt. Es steht „Anonymisiert“ statt Benutzername und Name.</li>
@@ -127,6 +127,7 @@
 <tr><td>Zum Admin machen / Admin-Rechte entziehen</td><td>Nur die Hauptadministration kann das. Das Konto sieht danach den Bereich Admin in der Navigation</td></tr>
 <tr><td>Passwort zurücksetzen</td><td>Erzeugt ein vorläufiges Passwort und zeigt es einmal an. Gib es der Person weiter. Beim nächsten Anmelden muss sie ein eigenes vergeben. Alle laufenden Sitzungen enden</td></tr>
 <tr><td>Sperren / Entsperren</td><td>Ein gesperrtes Konto kann sich nicht anmelden. Das Hauptadmin-Konto und Dein eigenes Konto lassen sich nicht sperren</td></tr>
+<tr><td>IDD freischalten / IDD-Freischaltung entziehen</td><td>Nur bei aktiver IDD-Funktion. Freigeschaltete Personen dürfen IDD-anrechenbare Veranstaltungen anlegen</td></tr>
 <tr><td>Konto löschen</td><td>Zum Beispiel beim Ausscheiden. Konto, Kontaktdaten, Profilbild und Mitteilungen werden gelöscht. Künftige Veranstaltungen der Person werden abgesagt, Angemeldete erhalten eine Mitteilung. Vergangene Veranstaltungen und Teilnahmen bleiben anonym erhalten. Admin-Konten löscht nur die Hauptadministration</td></tr>
 </table>
 <p>Nutzende können ihr Konto auch selbst löschen und alle eigenen Daten als Datei herunterladen (Profil › Konto › Meine Daten). Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch auf dieselbe Weise. Ausgenommen sind die Hauptadministration und Testkonten.</p>
@@ -239,7 +240,7 @@
 <li>Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Die Anwendung dient nicht der Leistungs- oder Verhaltenskontrolle.</li>
 <li>Dienstliche Veranstaltungen werden fünf Jahre, private 12 Monate nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
 <li>Anbietende können ihre Veranstaltung unter „Meine Veranstaltungen“ selbst absagen, auch mit bestehenden Anmeldungen. Angemeldete sehen die Absage als Mitteilung unter „Meine Anmeldungen“.</li>
-<li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. Eine IDD-Anrechnung ist noch nicht möglich und in Planung.</li>
+<li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. IDD-anrechenbare Veranstaltungen und Bestätigungen siehe Kapitel „IDD-Weiterbildung“.</li>
 <li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
 <li>Der Betrieb gilt als Proof of Concept. Prüfe vor einem breiten Einsatz Datenschutz, Betriebsrat und Berechtigungskonzept.</li>
 </ul>
@@ -259,6 +260,36 @@
 <tr><td>Fehlerprotokoll</td><td><code>error.log</code> ohne Passwörter, auf 2 MB begrenzt</td></tr>
 </table>
 <div class="tip"><b>Ohne HTTPS:</b> Die Anwendung setzt HTTPS nicht voraus. Ohne HTTPS gehen Passwörter und Sitzungs-Cookies aber unverschlüsselt durchs Netz. Betreibe sie dann nur im internen Netz und beschränke den Zugriff im IIS auf das Firmennetz. Richte HTTPS ein, sobald es möglich ist. Die Administration zeigt dazu oben einen Hinweis.</div>
+
+<h2>IDD-Weiterbildung</h2>
+<p>Die IDD-Funktion ist ab Werk <b>ausgeschaltet</b>. Du schaltest sie unter <b>System › IDD-Einstellungen</b> ein. Ist sie aus, sind alle IDD-Angaben ausgeblendet. Gespeicherte Daten bleiben erhalten.</p>
+{{FIGURE:adm-idd-einstellungen|Die IDD-Einstellungen mit Hauptschalter, Bildungsdienstleister und den Texten für Begrüßung und Verabschiedung.}}
+<table>
+<tr><th>Einstellung</th><th>Wirkung</th></tr>
+<tr><td>IDD-Funktion aktivieren</td><td>Blendet alle IDD-Angaben ein oder aus</td></tr>
+<tr><td>Bildungsdienstleister</td><td>Steht im IDD-Nachweis, Standard „R+V Allgemeine Versicherung AG“</td></tr>
+<tr><td>Erster und letzter Agenda-Block</td><td>Titel und Text für Begrüßung und Verabschiedung, je 5 Minuten, keine Lernzeit</td></tr>
+</table>
+<h3>Regeln</h3>
+<ul>
+<li>IDD-Veranstaltungen legen nur freigeschaltete Personen an. Du schaltest sie in der <b>Nutzerliste</b> mit <b>IDD freischalten</b> frei. Eine Freigabe einzelner Veranstaltungen gibt es nicht.</li>
+<li>IDD-Veranstaltungen sind immer dienstlich. Der <b>IDD-Titel</b> ist Pflicht. Die <b>IDD-Zeit</b> beträgt höchstens die Dauer minus 10 Minuten, in 5-Minuten-Schritten. Eine Mindestdauer gibt es nicht.</li>
+<li>Die Agenda besteht aus Begrüßung, einem Block zum Thema und Verabschiedung.</li>
+<li>Anbietende bestätigen die Teilnahme <b>14 Tage</b> nach dem Ende. Danach bestätigt die Administration oder schaltet die Bestätigung erneut für 14 Tage frei.</li>
+<li>Am <b>31.01. des Folgejahres</b> wird ein Kalenderjahr endgültig gesperrt. Danach kann niemand mehr Teilnahmen ändern, auch die Administration nicht.</li>
+<li>Angerechnet werden nur bestätigte Teilnahmen. Teilweise Teilnahmen gibt es nicht.</li>
+<li>Nutzende tragen im Konto ein, ob sie IDD-pflichtig sind, ob 15 oder 30 Stunden gelten und ihre gutBeraten-ID im Format XXXX-XXXX-XXXX.</li>
+</ul>
+<h3>Übersicht › IDD</h3>
+<p>Wähle oben das Kalenderjahr. Die Kennzahlen zeigen IDD-Veranstaltungen, bestätigte Teilnahmen, die bestätigte IDD-Zeit, offene Bestätigungen und bestätigte Teilnahmen ohne gutBeraten-ID. Die Tabelle zeigt je Veranstaltung den Stand „Ja / Nein / offen“ und wer gerade bestätigen darf.</p>
+{{FIGURE:adm-idd|Die IDD-Übersicht eines Kalenderjahres.}}
+<ul>
+<li><b>Teilnahmen</b> öffnet die Liste mit Name, XV-Nummer, gutBeraten-ID und Status. Du bestätigst dort mit <b>Teilgenommen</b> oder <b>Nicht teilgenommen</b>.</li>
+<li><b>Teilnahme nachtragen</b>: Trage Benutzername oder XV-Nummer und eine Begründung ein. Das geht auch für Personen ohne Buchung, etwa bei einem weitergeleiteten Teams-Link. Die Begründung steht bei der Teilnahme und im Admin-Protokoll.</li>
+<li><b>Für Anbietende freischalten</b> öffnet die Bestätigung für die anbietende Person erneut für 14 Tage, höchstens bis zur Jahressperre.</li>
+</ul>
+{{FIGURE:adm-idd-teilnahmen|Teilnahmen einer IDD-Veranstaltung mit gutBeraten-ID, Status und Nachtragen.}}
+<div class="tip">Die Meldung der Zeiten an gutBeraten folgt in einem späteren Schritt. Bis dahin laden Teilnehmende ihren Nachweis je Kalenderjahr als PDF im IDD-Cockpit herunter.</div>
 
 <h2>Benachrichtigungen</h2>
 <p>Die Anwendung verschickt keine E-Mails. Mitteilungen (Absage, Termin-Update, entfernte Anmeldung) erscheinen in der Navigation und auf der Startseite. Nutzende können unter Profil › Konto Browser-Benachrichtigungen einschalten. Diese erscheinen, solange die Anwendung in einem Tab offen ist. Sie brauchen <b>HTTPS</b>, ohne HTTPS ist der Schalter ausgegraut.</p>

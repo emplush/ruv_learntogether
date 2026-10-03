@@ -709,3 +709,20 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 .admin-warn { display: flex; flex-direction: column; gap: 12px; margin: 0 0 20px; }
 .admin-warn:empty { display: none; }
 .chk-sep { padding-top: 16px; border-top: 1px solid var(--line); }
+/* 0.29: IDD */
+.chip.idd { background: #f79506; color: #001957; }
+.agenda { margin-top: 12px; }
+.agenda h4 { margin: 0 0 8px; }
+.agenda-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.agenda-list li { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; }
+.agenda-list li.learn { border-left: 4px solid #f79506; padding-left: 7px; }
+.agenda-list .ag-t { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.agenda-list .ag-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.idd-box { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+.idd-body { display: flex; flex-direction: column; gap: 16px; }
+.idd-confirm { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cf-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cf-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.idd-prog { height: 10px; background: #e3e8f3; border-radius: 4px; overflow: hidden; margin: 16px 0 6px; }
+.idd-prog i { display: block; height: 100%; background: #f79506; }
+.idd-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
