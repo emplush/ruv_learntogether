@@ -142,6 +142,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .field > .seg { align-self: flex-start; }
 
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 .form { display: flex; flex-direction: column; gap: 32px; margin-top: 28px; }

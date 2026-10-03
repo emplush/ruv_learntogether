@@ -151,6 +151,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .field > .seg { align-self: flex-start; }
 
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 .form { display: flex; flex-direction: column; gap: 32px; margin-top: 28px; }
@@ -766,7 +767,7 @@ body > footer.foot { flex-shrink: 0; margin-top: 0; }
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.31.1", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.31.2", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -2619,7 +2620,7 @@ function buildEventForm(o) {
   var extra = o.extraButtons || [];
   var box = h('div', { class: 'notice bad', role: 'alert', hidden: true });
   /* Reihenfolge: Worum geht es? › Wann? › Was wird angeboten? › IDD (braucht die Dauer) › Teilnahme und Teams-Link */
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic]), h('div', { class: 'grid2' }, [f.type, h('div')])]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [h('div', { class: 'stack' }, [f.category, f.topic, f.type]), h('div')])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), f.description, f.image]));
   if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }

@@ -1849,7 +1849,7 @@ function buildEventForm(o) {
   var extra = o.extraButtons || [];
   var box = h('div', { class: 'notice bad', role: 'alert', hidden: true });
   /* Reihenfolge: Worum geht es? › Wann? › Was wird angeboten? › IDD (braucht die Dauer) › Teilnahme und Teams-Link */
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic]), h('div', { class: 'grid2' }, [f.type, h('div')])]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [h('div', { class: 'stack' }, [f.category, f.topic, f.type]), h('div')])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), f.description, f.image]));
   if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }

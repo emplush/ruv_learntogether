@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.31.2 (03.10.2026)
+- **Formular „Veranstaltung anbieten“:** Themenbereich, Thema und Art der Veranstaltung stehen links untereinander.
+- Screenshots und Präsentation angepasst.
+
 ## 0.31.1 (03.10.2026)
 - **Formular „Veranstaltung anbieten“:** „Wann findet es statt?“ steht jetzt vor „Was wird angeboten?“. Reihenfolge: Worum geht es? › Wann findet es statt? › Was wird angeboten? › IDD-Weiterbildung › Teilnahme und Teams-Link.
 - Benutzerhandbuch, Screenshots und Präsentation angepasst.
