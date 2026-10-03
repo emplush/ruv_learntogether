@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.28.0 (03.10.2026)
+- **Private Veranstaltungen:** Anonymisierung nach 12 Monaten statt 5 Jahren. Dienstliche bleiben bei 5 Jahren (Nachweis, IDD).
+- **Abzeichen nur nach Zustimmung:** Abzeichen und Rakete sehen andere erst, wenn die Person unter „Veröffentlichung“ zustimmt. Hinweis im Profil, solange sie nur selbst sichtbar sind.
+- **Termin-Update:** neuer Name der Mitteilung bei geändertem Termin oder Teams-Link. Die Kalenderdatei trägt einen Änderungsstand und aktualisiert den Eintrag.
+- **Benachrichtigungen:** Hinweis auf neue Mitteilungen auf der Startseite. Browser-Benachrichtigungen im Profil (Konto), solange ein Tab offen ist, nur mit HTTPS.
+- **Statistik:** Reichweite in der Zielgruppe und wiederkehrende Teilnehmende. Größe der Zielgruppe unter System › Allgemein (Standard 6000).
+- **Single Sign-on vorbereitet:** Felder für Verzeichnis-Kennung und Art der Anmeldung, Konzept mit zwei Wegen im Papier IT-Sicherheit und Datenschutz.
+- **Präsentation:** Pilotziele für rund 6.000 Personen neu hergeleitet, Fristen und Abzeichen angepasst.
+
 ## 0.27.0 (03.10.2026)
 Zweite Prüfung auf Datenschutz, Mitbestimmung, Nutzen und Vollständigkeit.
 - **Veranstaltungen bearbeiten:** Anbietende ändern ihre Veranstaltung bis zum Beginn selbst (Termin, Teams-Link, Beschreibung, Bild, Platzzahl). Bei neuem Termin oder Link erhalten Angemeldete die Mitteilung „Geändert“. Gilt auch für Änderungen durch die Administration.

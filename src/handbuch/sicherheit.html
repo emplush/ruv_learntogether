@@ -27,8 +27,10 @@
 <tr><td>Benutzername</td><td>Anzeige auf Kacheln und Listen</td><td>alle</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Vor- und Nachname, XV-Nummer, E-Mail-Adresse</td><td>Zuordnung, Nachweis, Kontakt durch die Administration</td><td>die Person selbst, Administration; E-Mail nur nach Freigabe auch andere</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Passwort</td><td>Anmeldung</td><td>niemand (nur als Hash gespeichert)</td><td>bis zur Löschung des Kontos</td></tr>
-<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst; Administration nur bei dienstlichen Veranstaltungen, bei privaten nur die Anzahl; Anbietende sehen nur Benutzernamen</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
-<tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst; Administration nur bei dienstlichen Veranstaltungen, bei privaten nur die Anzahl; Anbietende sehen nur Benutzernamen</td><td>dienstlich 5 Jahre, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>dienstlich 5 Jahre, privat 12 Monate nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Abzeichen und Expertenstatus</td><td>Anerkennung</td><td>die Person selbst; andere nur nach Zustimmung</td><td>berechnet, nicht gespeichert</td></tr>
+<tr><td>Einstellung Browser-Benachrichtigung</td><td>Hinweis auf neue Mitteilungen</td><td>nur im eigenen Browser gespeichert</td><td>bis zum Ausschalten</td></tr>
 <tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Rückmeldung an Anbietende</td><td>niemand einzeln; Anbietende sehen ihren Durchschnitt ab 3 Bewertungen; Administration nur zusammengefasst nach Monat, Bereich und Thema</td><td>mit der Anmeldung, danach anonym</td></tr>
 <tr><td>Profil, Beschreibung, Profilbild</td><td>freiwillige Vorstellung</td><td>nur nach Freigabe</td><td>bis zur Änderung oder Löschung</td></tr>
 <tr><td>Letzte Anmeldung</td><td>automatische Löschung inaktiver Konten</td><td>niemand einzeln; Administration nur als Gesamtzahl</td><td>bis zur nächsten Anmeldung</td></tr>
@@ -51,7 +53,7 @@
 <h3>Grundsätze</h3>
 <ul>
 <li><b>Datensparsam:</b> Nur Daten, die für Anmeldung, Organisation und den späteren Nachweis nötig sind.</li>
-<li><b>Privat voreingestellt:</b> Profile sind nicht öffentlich. Jede weitere Angabe geben Nutzende einzeln frei.</li>
+<li><b>Privat voreingestellt:</b> Profile sind nicht öffentlich, Abzeichen nur für die Person selbst sichtbar. Jede weitere Angabe geben Nutzende einzeln frei.</li>
 <li><b>Pseudonym im Alltag:</b> Andere sehen nur den frei gewählten Benutzernamen. Echte Namen sieht nur die Administration.</li>
 <li><b>Zweckbindung:</b> Die Daten dienen nur Organisation und Nachweis. Die Anwendung gibt nichts an andere Systeme weiter.</li>
 <li><b>Freiwillig:</b> Teilnahme, Angebot, Bewertung, Profil, Profilbild und Abzeichen sind freiwillig.</li>
@@ -66,7 +68,8 @@
 </table>
 <h3>Fristen</h3>
 <ul>
-<li>Veranstaltungen und Anmeldungen werden <b>5 Jahre</b> nach dem Ende automatisch anonymisiert. Die Frist folgt der Nachweispflicht der IDD.</li>
+<li>Dienstliche Veranstaltungen und Anmeldungen werden <b>5 Jahre</b> nach dem Ende automatisch anonymisiert. Die Frist folgt der Nachweispflicht der IDD.</li>
+<li>Private Veranstaltungen und Anmeldungen werden schon nach <b>12 Monaten</b> anonymisiert. Für sie gibt es keinen Nachweiszweck.</li>
 <li>Konten ohne Anmeldung seit <b>24 Monaten</b> löscht die Anwendung automatisch.</li>
 <li>Das Admin-Protokoll bleibt <b>12 Monate</b>. Das Fehlerprotokoll ist auf 2 MB begrenzt und enthält keine Passwörter.</li>
 <li>Bei einer Löschung werden Kontaktdaten, Profilbild und Mitteilungen sofort entfernt. Künftige eigene Veranstaltungen werden abgesagt. Vergangene Teilnahmen bleiben nur anonym für die Statistik.</li>
@@ -86,7 +89,7 @@
 <tr><td>Bewertungen</td><td>Anonym. Niemand sieht, wer wie bewertet hat. Die anbietende Person sieht ihren Durchschnitt ab drei Bewertungen. Die Administration sieht keine Sterne je Veranstaltung oder Person, nur Werte je Monat, Bereich und Thema, und erst ab drei verschiedenen Anbietenden.</td></tr>
 <tr><td>Ranglisten</td><td>Gibt es nicht. Die Statistik zeigt nur zusammengefasste Werte, zum Beispiel je Monat, Thema oder Format.</td></tr>
 <tr><td>Aktivität</td><td>Die Administration sieht keine Anmeldezeiten und keine Teilnahmen je Person. Die Statistik zeigt nur, wie viele Konten in einem Zeitraum aktiv waren.</td></tr>
-<tr><td>Abzeichen und Expertenstatus</td><td>Richten sich nach der Zahl angebotener Veranstaltungen. Sie dienen der Anerkennung und lassen sich ausblenden.</td></tr>
+<tr><td>Abzeichen und Expertenstatus</td><td>Richten sich nach der Zahl angebotener Veranstaltungen und dienen der Anerkennung. Andere sehen sie erst nach Zustimmung der Person (Opt-in), widerruflich.</td></tr>
 <tr><td>Teilnehmendenlisten</td><td>Anbietende sehen nur Benutzernamen. Echte Namen sieht die Administration nur bei dienstlichen Veranstaltungen, für Organisation und späteren Nachweis. Wer an privaten Veranstaltungen teilnimmt, sieht die Administration nicht.</td></tr>
 <tr><td>Schnittstellen</td><td>Keine. Keine Übergabe an Personal-, Zeit- oder Vertriebssysteme.</td></tr>
 <tr><td>Arbeitszeit</td><td>Wird nicht erfasst. Teilnehmende an dienstlichen Sessions stempeln sich selbst ein und aus.</td></tr>
@@ -138,14 +141,34 @@
 <tr><td>Demo-Version im Browser</td><td>nur für Tests</td><td>Keine echten Daten in die Demo eingeben</td></tr>
 </table>
 
-<h2>Offene Entscheidungen</h2>
-<p>Drei Punkte sind keine Frage der Technik, sondern der Abstimmung mit Datenschutz und Betriebsrat. Die Anwendung lässt sich jeweils schnell anpassen.</p>
+<h2>Entscheidungen</h2>
 <table>
-<tr><th>Frage</th><th>Heute</th><th>Empfehlung</th></tr>
-<tr><td>Wie lange bleiben Daten privater Veranstaltungen gespeichert?</td><td>5 Jahre wie bei dienstlichen</td><td>Kürzer, zum Beispiel 12 Monate. Die 5 Jahre begründet die IDD, die nur dienstliche Sessions betrifft.</td></tr>
-<tr><td>Sind Abzeichen ohne eigene Entscheidung sichtbar?</td><td>Ja, abschaltbar im Profil</td><td>Beibehalten als Anerkennung oder auf „erst nach Zustimmung“ umstellen</td></tr>
-<tr><td>Werden neue Konten geprüft?</td><td>Nein, Selbstregistrierung</td><td>Für den Pilot ausreichend; bei breitem Einsatz Freischaltung oder Unternehmensverzeichnis</td></tr>
+<tr><th>Frage</th><th>Stand</th></tr>
+<tr><td>Wie lange bleiben Daten privater Veranstaltungen gespeichert?</td><td>Entschieden: 12 Monate. Dienstliche Veranstaltungen 5 Jahre wegen der IDD.</td></tr>
+<tr><td>Sind Abzeichen ohne eigene Entscheidung sichtbar?</td><td>Entschieden: nein. Abzeichen und Rakete erscheinen erst nach Zustimmung.</td></tr>
+<tr><td>Werden neue Konten geprüft?</td><td>Offen. Für den Pilot reicht die Selbstregistrierung. Ziel ist die Anmeldung über das Unternehmenskonto (siehe Single Sign-on).</td></tr>
 </table>
+
+<h2>Benachrichtigungen</h2>
+<p>Die Anwendung verschickt keine E-Mails. Bei Absage oder Termin-Update erhalten Angemeldete eine Mitteilung in der Anwendung. Sie erscheint in der Navigation und auf der Startseite. Die Kalenderdatei trägt einen Änderungsstand und aktualisiert den vorhandenen Eintrag.</p>
+<table>
+<tr><th>Weg</th><th>Bewertung</th></tr>
+<tr><td>Browser-Benachrichtigung bei geöffnetem Tab</td><td>Umgesetzt. Kein externer Dienst, die Anwendung fragt alle drei Minuten nach. Setzt HTTPS voraus, sonst bleibt der Schalter aus.</td></tr>
+<tr><td>Web-Push aufs Handy</td><td>Nicht empfohlen. Braucht HTTPS, einen einmaligen Aufruf auf dem Handy und einen externen Push-Dienst von Google, Apple oder Mozilla. Ohne vorherigen Aufruf auf dem Handy ist Push technisch unmöglich.</td></tr>
+<tr><td>Microsoft Teams (Aktivitätsfeed oder Chat)</td><td>Empfohlen als nächster Schritt. Erreicht das Handy über die vorhandene Teams-App. Setzt SSO mit Microsoft Entra ID und eine Freigabe der IT für Microsoft Graph voraus.</td></tr>
+</table>
+
+<h2>Single Sign-on: Konzept</h2>
+<p>Ziel ist die Anmeldung mit dem Unternehmenskonto. Dann entfallen eigene Passwörter, die Registrierung und das Risiko fremder XV-Nummern. Vorbereitet sind Felder am Konto für die Kennung im Verzeichnis und die Art der Anmeldung. Die Sitzung entsteht an einer Stelle im Server, die auch SSO nutzt.</p>
+<table>
+<tr><th></th><th>Weg A: Windows-Anmeldung am IIS</th><th>Weg B: Microsoft Entra ID (OpenID Connect)</th></tr>
+<tr><td>Funktionsweise</td><td>IIS prüft das Windows-Konto (Kerberos), nur für eine Anmeldeseite</td><td>Weiterleitung zur Microsoft-Anmeldung, Rückgabe eines signierten Tokens</td></tr>
+<tr><td>Voraussetzungen</td><td>Geräte in der Domäne oder per VPN, Windows-Authentifizierung am IIS</td><td>HTTPS, App-Registrierung in Entra ID, ausgehende Verbindung des Servers zu Microsoft</td></tr>
+<tr><td>Ohne HTTPS möglich</td><td>Ja, das Passwort geht nicht übers Netz. Das Sitzungs-Cookie bleibt ungeschützt</td><td>Nein</td></tr>
+<tr><td>Zusatznutzen</td><td>Schnell im Intranet umsetzbar</td><td>Grundlage für Teams-Benachrichtigungen und Zugriff von unterwegs</td></tr>
+</table>
+<p><b>Übergang:</b> Beim ersten SSO-Anmelden verknüpft die Person ihr bestehendes Konto einmalig mit dem alten Passwort. Neue Personen erhalten ein Konto mit Name und E-Mail-Adresse aus dem Verzeichnis. Die XV-Nummer kommt aus dem Verzeichnis, falls dort gepflegt. Ein lokales Notfall-Konto der Hauptadministration bleibt. Aus dem Verzeichnis übernimmt die Anwendung nur Name, E-Mail-Adresse und Kennung.</p>
+<p><b>Empfehlung:</b> Weg B, sobald HTTPS steht, weil er Teams-Benachrichtigungen ermöglicht. Weg A als schnelle Zwischenlösung im Intranet.</p>
 
 <h2>Checkliste für den Start</h2>
 <ol>
@@ -171,7 +194,8 @@
 <li>Antworten tragen <code>no-store</code>.</li>
 <li>Die Administration erhält keine Einzelbewertungen, keine Sterne je Veranstaltung, keine Anmeldezeiten und keine Teilnahmen je Person.</li>
 <li>Bei privaten Veranstaltungen erhält die Administration keine Namen der Teilnehmenden.</li>
-<li>Ändert die anbietende Person Termin oder Teams-Link, erhalten Angemeldete eine Mitteilung.</li>
+<li>Ändert die anbietende Person Termin oder Teams-Link, erhalten Angemeldete ein Termin-Update.</li>
+<li>Neue Konten zeigen ihr Abzeichen erst nach Zustimmung.</li>
 <li>Durchschnittswerte erscheinen erst ab drei Bewertungen.</li>
 <li>Ausgeblendete Abzeichen erscheinen nirgends.</li>
 <li>Gelöschte Konten können sich nicht mehr anmelden.</li>

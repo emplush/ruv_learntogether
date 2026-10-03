@@ -33,7 +33,7 @@
       tot.pt += x.n; tot.cap += x.cap; if (!x.n) tot.zero++; if (x.n >= x.cap) tot.full++;
       if (!x.e.anonymized) hosts[x.e.host.toLowerCase()] = 1;
       var r = x.e.ratingCount || 0; rt.all += r;
-      if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; tot.hours += x.n * x.e.duration / 60; if (!x.c) tot.hoursBiz += x.n * x.e.duration / 60; tot.held++; (x.e.bookings || []).forEach(function (b) { if (b.p) reach[b.p] = 1; }); }
+      if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; tot.hours += x.n * x.e.duration / 60; if (!x.c) tot.hoursBiz += x.n * x.e.duration / 60; tot.held++; (x.e.bookings || []).forEach(function (b) { if (b.p) reach[b.p] = (reach[b.p] || 0) + 1; }); }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
     /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu Anbietenden. Gezeigt wird ein Wert erst,
@@ -44,6 +44,7 @@
     RB.forEach(function (b) { var c = b.c === 'privat' ? 1 : 0; b.h.forEach(function (x) { hostsBy[c][x] = 1; hostsAll[x] = 1; }); });
     var okCat = [Object.keys(hostsBy[0]).length >= MIN_RATINGS, Object.keys(hostsBy[1]).length >= MIN_RATINGS];
     if (Object.keys(hostsAll).length >= MIN_RATINGS) RB.forEach(function (b) { var c = b.c === 'privat' ? 1 : 0; b.d.forEach(function (n, i) { rt.sum += n * (i + 1); rt.n += n; if (okCat[c]) rt.d[i][c] += n; }); });
+    var reachN = Object.keys(reach).length, repeatN = Object.keys(reach).filter(function (k) { return reach[k] >= 2; }).length;
     var now = Date.now(), active30 = act[0] + act[1];
     var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
     /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
@@ -52,7 +53,8 @@
     function kpi(group, label, value) { return { group: group, label: label, value: value }; }
     var kpis = [
       kpi('ueberblick', 'Veranstaltungen', stNum(tot.ev)), kpi('ueberblick', 'Anmeldungen', stNum(tot.pt)), kpi('ueberblick', 'Ø Auslastung', tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–'),
-      kpi('ueberblick', 'Lernstunden', stNum(Math.round(tot.hours))), kpi('ueberblick', 'Erreichte Personen', stNum(Object.keys(reach).length)),
+      kpi('ueberblick', 'Lernstunden', stNum(Math.round(tot.hours))), kpi('ueberblick', 'Erreichte Personen', stNum(reachN)),
+      all.audience ? kpi('ueberblick', 'Reichweite in der Zielgruppe', stPct(reachN, all.audience) + ' %') : null, kpi('ueberblick', 'Wiederkehrende Teilnehmende', reachN ? stPct(repeatN, reachN) + ' %' : '–'),
       kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'Anbietende', stNum(Object.keys(hosts).length)),
       kpi('veranstaltungen', 'Durchgeführt', stNum(tot.held)), kpi('veranstaltungen', 'Dienstliche Lernstunden', stNum(Math.round(tot.hoursBiz))),
       kpi('veranstaltungen', 'Ø Anmeldungen je Veranstaltung', tot.ev ? stDec(tot.pt / tot.ev) : '–'), kpi('veranstaltungen', 'Ohne Anmeldung', stNum(tot.zero)), kpi('veranstaltungen', 'Ausgebucht', stNum(tot.full)),
@@ -60,7 +62,7 @@
       kpi('nutzende', 'Neue Konten im Zeitraum', stNum(inRange.length)), kpi('nutzende', 'Aktiv in den letzten 30 Tagen', stNum(active30)), kpi('nutzende', 'Öffentliche Profile', acc.length ? stPct(pubN, acc.length) + ' %' : '–'),
       kpi('nutzende', 'Mit Profilbild', stNum(avN)), kpi('nutzende', 'Mit Expertenstatus', stNum(Object.keys(experts).length)),
       kpi('bewertungen', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('bewertungen', 'Abgegebene Bewertungen', stNum(rt.all)), kpi('bewertungen', 'Bewertungsquote', rt.ended ? stPct(rt.all, rt.ended) + ' %' : '–'),
-      kpi('bewertungen', 'Bewertete Veranstaltungen', stNum(rt.ratedEv))];
+      kpi('bewertungen', 'Bewertete Veranstaltungen', stNum(rt.ratedEv))].filter(Boolean);
     var names = stSeriesNames(), stats = [];
     function add(group, s) { s.group = group; stats.push(s); }
     /* Monate lückenlos */
@@ -298,8 +300,8 @@
 
   /* ---- Statistik-Seite ---- */
   function adminStats() {
-    return Promise.all([Api.adminEvents(), Api.adminUsers()]).then(function (res) {
-      var list = res[0], users = res[1];
+    return Promise.all([Api.adminEvents(), Api.adminUsers(), Api.adminSettings()]).then(function (res) {
+      var list = res[0], users = res[1]; list.audience = res[2].audience || 0;
       var F = { from: '', to: '', cat: '', noTest: false }, host = h('div');
       var from = h('input', { type: 'date', id: 'sf-from', 'aria-label': 'Zeitraum von' }), to = h('input', { type: 'date', id: 'sf-to', 'aria-label': 'Zeitraum bis' });
       var cat = h('select', { id: 'sf-cat', 'aria-label': 'Bereich' }, [h('option', { value: '', text: 'Alle' }), h('option', { value: 'dienstlich', text: CAT_LABEL.dienstlich }), h('option', { value: 'privat', text: CAT_LABEL.privat })]);

@@ -36,7 +36,7 @@ function add(e, kids) {
 }
 function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e; }
 /* Datenschutz: Durchschnittswerte erst ab drei Bewertungen; Konten ohne Anmeldung werden nach 24 Monaten geloescht (wie auf dem Server) */
-var MIN_RATINGS = 3, INACTIVE_MONTHS = 24;
+var MIN_RATINGS = 3, INACTIVE_MONTHS = 24, RETAIN_PRIVATE_MONTHS = 12;
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function svg(path, extra) { return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + path + '</svg>'; }
@@ -154,7 +154,8 @@ var RETAIN_YEARS = 5;
 function endDate(e) { return new Date(startDate(e).getTime() + e.duration * 60000); }
 function eventEnded(e) { return endDate(e) <= new Date(); }
 /* Zeitpunkt der Anonymisierung: fuenf Jahre nach dem Ende, fuer alle Veranstaltungen (privat, dienstlich, abgesagt) */
-function anonymizeOn(e) { var x = endDate(e); x.setFullYear(x.getFullYear() + RETAIN_YEARS); return x; }
+/* dienstlich 5 Jahre (Nachweis, IDD), privat 12 Monate (kein Nachweiszweck) */
+function anonymizeOn(e) { var x = endDate(e); if (e.category === 'privat') x.setMonth(x.getMonth() + RETAIN_PRIVATE_MONTHS); else x.setFullYear(x.getFullYear() + RETAIN_YEARS); return x; }
 function dateShort(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.'; }
 function dateFull(s) { var d = parseYmd(s); return DAY_S[d.getDay()] + ', ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear(); }
 function dateLong(s) { var d = parseYmd(s); return DAY_L[d.getDay()] + ', ' + pad(d.getDate()) + '. ' + MONTH_L[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -244,7 +245,7 @@ function buildTestData() {
   var L = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_TESTDATEN%40thread.v2/0';
   var TU = [['anna.b', 'Anna', 'Berger'], ['markus_v', 'Markus', 'Vogel'], ['sabine.k', 'Sabine', 'Krüger'], ['tobias_l', 'Tobias', 'Lang'], ['julia.n', 'Julia', 'Neumann'], ['stefan_r', 'Stefan', 'Roth'], ['katrin.a', 'Katrin', 'Albrecht'], ['jonas.p', 'Jonas', 'Peters'], ['miriam.k', 'Miriam', 'Kessler'], ['oliver_s', 'Oliver', 'Sander'],
     ['lena.h', 'Lena', 'Hoffmann'], ['paul_r', 'Paul', 'Richter'], ['nina.w', 'Nina', 'Wagner'], ['felix.b', 'Felix', 'Braun'], ['clara_s', 'Clara', 'Schulz'], ['max.keller', 'Max', 'Keller'], ['sophie.l', 'Sophie', 'Lorenz'], ['david_w', 'David', 'Winter'], ['emma.f', 'Emma', 'Fuchs'], ['lukas.b', 'Lukas', 'Brandt']];
-  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', avatar: ['p-frau-1', 'p-mann-2', 't-katze', 'p-mann-3', '', 'p-mann-1', 'm-schirm', '', 'p-frau-4', 'p-mann-6', 'p-frau-2'][i] || '', showAvatar: i < 3, isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
+  var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', avatar: ['p-frau-1', 'p-mann-2', 't-katze', 'p-mann-3', '', 'p-mann-1', 'm-schirm', '', 'p-frau-4', 'p-mann-6', 'p-frau-2'][i] || '', showAvatar: i < 3, isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, showBadges: i !== 4, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
   var RATE = [5, 4, 5, 3, 4, 5, 4, 2, 5, 4];
   // [Titel, Host, Kategorie, Art, Thema, Tag-Index, Start, Dauer, Kapazitaet, gebucht, Bild, Beschreibung]
   var rows = [
@@ -328,7 +329,7 @@ function buildIcs(ev, uid) {
   var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//R+V//LearnTogether//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:STANDARD', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET', 'END:STANDARD',
     'BEGIN:DAYLIGHT', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST', 'END:DAYLIGHT', 'END:VTIMEZONE',
-    'BEGIN:VEVENT', 'UID:' + String(uid || ev.id).replace(/[^A-Za-z0-9]/g, '') + '@learntogether', 'DTSTAMP:' + stamp, 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
+    'BEGIN:VEVENT', 'UID:' + String(uid || ev.id).replace(/[^A-Za-z0-9]/g, '') + '@learntogether', 'DTSTAMP:' + stamp, 'SEQUENCE:' + (ev.rev || 0), 'DTSTART;TZID=Europe/Berlin:' + f(s), 'DTEND;TZID=Europe/Berlin:' + f(e),
     'SUMMARY:' + icsEsc(state.settings.appTitle + ' - ' + ev.title), 'DESCRIPTION:' + icsEsc(icsDescription(ev)), 'LOCATION:Microsoft Teams', 'URL:' + ev.teamsLink, 'STATUS:CONFIRMED',
     'BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:Erinnerung', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return L.map(fold).join('\r\n') + '\r\n';
@@ -437,7 +438,7 @@ var Local = (function () {
   function insertTest() {
     removeTest();
     var t = buildTestData(), ids = {}, now = nowIso(), pw = hashPw(TEST_PW);
-    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
+    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, showBadges: !!x.showBadges, bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
     t.events.forEach(function (x) {
       var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true);
       if (x.cancelled) { e.cancelled = true; e.cancelledAt = now; e.cancelReason = x.cancelReason || ''; }
@@ -521,7 +522,7 @@ var Local = (function () {
     var B = { offered: {}, topic: {} };
     data.events.forEach(function (e) { if (e.cancelled || e.anonymized || !e.ownerId || !eventEnded(e)) return; B.offered[e.ownerId] = (B.offered[e.ownerId] || 0) + 1; var k = e.ownerId + '|' + e.category + '|' + e.topic; B.topic[k] = (B.topic[k] || 0) + 1; });
     data.users.forEach(function (u) { if (u.legacyOffered) B.offered[u.id] = (B.offered[u.id] || 0) + u.legacyOffered; Object.keys(u.legacyTopics || {}).forEach(function (k) { B.topic[u.id + '|' + k] = (B.topic[u.id + '|' + k] || 0) + u.legacyTopics[k]; }); });
-    B.hidden = {}; data.users.forEach(function (u) { if (u.hideBadges) B.hidden[u.id] = 1; });
+    B.hidden = {}; data.users.forEach(function (u) { if (!u.showBadges) B.hidden[u.id] = 1; });
     return B;
   }
   /* Fuer andere sichtbar: ohne Abzeichen, wenn die Person sie ausgeblendet hat */
@@ -537,7 +538,7 @@ var Local = (function () {
   function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff }; }
   function eventBase(B, e) {
     return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: pubLevel(B, e.ownerId), hostExpert: pubExpert(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
-      description: e.description, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
+      description: e.description, rev: e.rev || 0, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
     var held = !e.cancelled, owner = userById(e.ownerId);
@@ -580,6 +581,7 @@ var Local = (function () {
     if (e.date !== old.date || e.start !== old.start || e.duration !== old.duration) parts.push('Neuer Termin: ' + e.date.split('-').reverse().join('.') + ', ' + e.start + ' bis ' + endHm(e) + ' Uhr. Bitte passe Deinen Kalender an.');
     if (e.teamsLink !== old.teamsLink) parts.push('Der Teams-Link hat sich geändert. Den neuen Link findest Du unter Meine Anmeldungen.');
     if (!parts.length) return 0;
+    e.rev = (e.rev || 0) + 1;
     var n = 0; data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId) { addNote(b.userId, 'changed', e, parts.join(' ')); n++; } }); return n;
   }
   function addNote(userId, type, e, reason) { data.notes.push({ id: rid(8), userId: userId, type: type, eventId: e.id, title: e.title, date: e.date, start: e.start, reason: reason || '', created: nowIso(), read: false }); }
@@ -643,6 +645,7 @@ var Local = (function () {
           cfg.badges.levels = lv; applyTaxonomy(cfg);
         }
         if ('avatarUpload' in s) { cfg.avatarUploadOff = !s.avatarUpload; applyTaxonomy({ avatarUpload: !!s.avatarUpload }); }
+        if ('audience' in s) { var au = Number(s.audience); if (!(au >= 0 && au <= 1000000) || Math.floor(au) !== au) throw ApiErr('invalid', 'Die Größe der Zielgruppe muss zwischen 0 und 1.000.000 liegen.'); cfg.audience = au; }
         if ('expertMin' in s) { var em = Number(s.expertMin); if (!(em >= 1 && em <= 1000) || Math.floor(em) !== em) throw ApiErr('invalid', 'Die Mindestzahl für den Expertenstatus muss zwischen 1 und 1000 liegen.'); cfg.badges.expertMin = em; applyTaxonomy(cfg); }
         save(); return {};
       });
@@ -792,7 +795,7 @@ var Local = (function () {
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(me.id + '|') !== 0) return; var p = k.split('|'); topics.push({ category: p[1], topic: p[2], count: B.topic[k], expert: B.topic[k] >= s.expertMin }); });
         var next = null; for (var i = 0; i < s.levels.length; i++) if (heldOffered < s.levels[i]) { next = s.levels[i]; break; }
         return { me: meInfo(me, B), badge: { level: levelOf(B, me.id), offered: heldOffered, levels: s.levels, next: next, expertMin: s.expertMin },
-          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: avgOrZero(rs, rc), ratingCount: rc, minRatings: MIN_RATINGS, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, hideBadges: !!me.hideBadges, bio: me.bio || '' }, avatar: avInfo(me, true), avatarUpload: !cfg.avatarUploadOff };
+          offered: { held: heldOffered, upcoming: upO, cancelled: canO, ratingAvg: avgOrZero(rs, rc), ratingCount: rc, minRatings: MIN_RATINGS, list: offered }, attended: { held: heldA, upcoming: upA, rated: rated, list: attended }, topics: topics, pub: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, showBadges: !!me.showBadges, bio: me.bio || '' }, avatar: avInfo(me, true), avatarUpload: !cfg.avatarUploadOff };
       });
     },
     updateAccount: function (p) {
@@ -838,7 +841,7 @@ var Local = (function () {
         var me = curUser(true), bio = String(p.bio || '').replace(/\r/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
         if (bio.length > 300) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 300 Zeichen lang sein.');
         if ((bio.match(/\n/g) || []).length > 6) throw ApiErr('invalid', 'Die Beschreibung darf höchstens 7 Zeilen haben.');
-        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.showAvatar = !!p.showAvatar && !!me.avatar; me.hideBadges = !!p.hideBadges; me.bio = bio.trim(); save(); return {};
+        me.profilePublic = !!p.isPublic; me.showRating = !!p.showRating; me.showExpert = !!p.showExpert; me.showEmail = !!p.showEmail; me.showUpcoming = !!p.showUpcoming; me.showAvatar = !!p.showAvatar && !!me.avatar; me.showBadges = !!p.showBadges; me.bio = bio.trim(); save(); return {};
       });
     },
     publicProfile: function (username) {
@@ -849,7 +852,7 @@ var Local = (function () {
         var p = { username: u.username, level: pubLevel(B, u.id), bio: u.bio || '', offered: B.offered[u.id] || 0, topics: [] }, experts = [];
         if (u.showAvatar) { var av = avInfo(u, false); if (av) p.avatar = av; }
         Object.keys(B.topic).forEach(function (k) { if (k.indexOf(u.id + '|') !== 0) return; var q = k.split('|'); p.topics.push({ category: q[1], topic: q[2], count: B.topic[k] }); if (B.topic[k] >= s.expertMin) experts.push({ category: q[1], topic: q[2] }); });
-        if (u.showExpert && !u.hideBadges) p.experts = experts;
+        if (u.showExpert && u.showBadges) p.experts = experts;
         if (u.showEmail) p.email = u.email;
         if (u.showRating) { var rs = u.legacyRatingSum || 0, rc = u.legacyRatingCount || 0; data.events.forEach(function (ev) { if (ev.ownerId !== u.id || ev.cancelled || !eventEnded(ev)) return; data.bookings.forEach(function (b) { if (b.eventId === ev.id && b.rating > 0) { rs += b.rating; rc++; } }); }); p.ratingAvg = avgOrZero(rs, rc); p.ratingCount = rc; }
         if (u.showUpcoming) p.upcoming = data.events.filter(function (ev) { return ev.ownerId === u.id && !ev.cancelled && startDate(ev) > now; }).map(function (ev) { return { id: ev.id, category: ev.category, title: ev.title, topic: ev.topic, type: ev.type, date: ev.date, start: ev.start, duration: ev.duration, capacity: ev.capacity, booked: booked(ev.id), mine: !!me && data.bookings.some(function (b) { return b.eventId === ev.id && b.userId === me.id; }), own: !!me && me.id === u.id }; });
@@ -908,7 +911,7 @@ var Local = (function () {
         var me = curUser(true);
         var o = { exported: nowIso(),
           account: { username: me.username, firstName: me.firstName, lastName: me.lastName, xv: me.xv, email: me.email, role: me.role, created: me.created, lastLogin: me.lastLogin || '', locked: !!me.locked },
-          profile: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, hideBadges: !!me.hideBadges, bio: me.bio || '', avatar: me.avatar || '' },
+          profile: { isPublic: !!me.profilePublic, showRating: !!me.showRating, showExpert: !!me.showExpert, showEmail: !!me.showEmail, showUpcoming: !!me.showUpcoming, showAvatar: !!me.showAvatar, showBadges: !!me.showBadges, bio: me.bio || '', avatar: me.avatar || '', signIn: 'password' },
           archive: { offeredBeforeAnonymization: me.legacyOffered || 0, attendedBeforeAnonymization: me.legacyAttended || 0 },
           events: data.events.filter(function (e) { return e.ownerId === me.id; }).map(function (e) { var r = ratingOf(e.id); return { title: e.title, category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity, teamsLink: e.teamsLink, description: e.description, created: e.created, cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', participants: booked(e.id), ratingCount: r.count, ratingAvg: r.avg }; }),
           bookings: data.bookings.filter(function (b) { return b.userId === me.id; }).map(function (b) { var e = data.events.filter(function (x) { return x.id === b.eventId; })[0]; return { eventTitle: e ? e.title : '', date: e ? e.date : '', start: e ? e.start : '', booked: b.created, myRating: b.rating || 0, ratedAt: b.ratedAt || '' }; }),
@@ -961,7 +964,7 @@ var Local = (function () {
         save(); return {};
       });
     },
-    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
+    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, audience: cfg.audience == null ? 6000 : cfg.audience, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminTestData: function (m) {
       return wrap(function () {
         needAdmin();
@@ -1334,7 +1337,7 @@ function starPicker(onChoose) {
 var state = { settings: { appTitle: DEFAULT_TITLE }, events: [], me: null };
 function isAdmin() { return !!state.me && (state.me.role === 'admin' || state.me.role === 'superadmin'); }
 function goLogin() { var cur = (location.hash || '#/').slice(1); if (/^\/(anmelden|registrieren)/.test(cur)) cur = '/'; location.hash = '#/anmelden?next=' + encodeURIComponent(cur); }
-function setMe(me) { state.me = me || null; renderNav(); }
+function setMe(me) { state.me = me || null; renderNav(); if (state.me) startNotifyPoll(); }
 function refreshMe() { return Api.me().then(function (j) { setMe(j.me); return j.me; }, function () { setMe(null); return null; }); }
 /* Fehler, die eine Anmeldung verlangen: Sitzung abgelaufen oder Konto gesperrt */
 function authFail(er) {
@@ -1583,6 +1586,28 @@ function loading() { return h('div', { class: 'empty' }, [h('p', { text: 'Wird g
 /* ---- Katalog ---- */
 var filters = { cat: 'dienstlich', q: '', types: [], topic: 'all', dur: 'all', tod: 'all' };
 /* Hinweis auf der Startseite: Profil veröffentlichen (dauerhaft ausblendbar, gespeichert im Konto) */
+/* Browser-Benachrichtigungen (ohne Push-Dienst): Abfrage alle drei Minuten, solange ein Tab offen ist */
+function notifySupported() { return typeof window.Notification === 'function' && window.isSecureContext !== false; }
+function notifyOn() { return notifySupported() && Notification.permission === 'granted' && store.get('lt_notify') === '1'; }
+var notifyTimer = null, notifySeen = -1;
+function startNotifyPoll() {
+  if (notifyTimer || !notifyOn()) return;
+  notifySeen = state.me ? state.me.unread || 0 : 0;
+  notifyTimer = setInterval(function () {
+    if (!state.me || !notifyOn()) return;
+    Api.me().then(function (j) {
+      var n = j.me ? j.me.unread || 0 : 0;
+      if (n > notifySeen) { try { var no = new Notification(state.settings.appTitle, { body: n === 1 ? 'Es gibt eine neue Mitteilung zu Deinen Anmeldungen.' : 'Es gibt ' + n + ' neue Mitteilungen zu Deinen Anmeldungen.', tag: 'lt-notes' }); no.onclick = function () { window.focus(); location.hash = '#/meine-anmeldungen'; }; } catch (e) { } }
+      notifySeen = n; if (j.me && state.me && j.me.unread !== state.me.unread) setMe(j.me);
+    }, function () { });
+  }, 180000);
+}
+/* Hinweis auf neue Mitteilungen (Termin-Update, Absage) auf der Startseite */
+function noteHint() {
+  var me = state.me; if (!me || !me.unread) return null;
+  return h('div', { class: 'pub-hint note-hint', role: 'status' }, [h('div', { class: 'pub-hint-t' }, [h('b', { text: me.unread === 1 ? 'Eine neue Mitteilung' : me.unread + ' neue Mitteilungen' }), h('span', { text: 'Es gibt Neuigkeiten zu Deinen Anmeldungen, zum Beispiel ein Termin-Update oder eine Absage.' })]),
+    h('a', { class: 'btn btn-primary btn-sm', href: '#/meine-anmeldungen', text: 'Mitteilungen ansehen' })]);
+}
 function pubHint() {
   var me = state.me; if (!me || me.profilePublic || me.publicHintOff) return null;
   var box = h('div', { class: 'pub-hint', role: 'status' }, [h('div', { class: 'pub-hint-t' }, [h('b', { text: 'Zeig der Community, was Du kannst' }), h('span', { text: 'Veröffentliche Dein Profil. Dann sehen andere Deine Themen und Abzeichen und finden Dich leichter.' })]),
@@ -1622,7 +1647,7 @@ function viewCatalog() {
 
   root.appendChild(h('div', { class: 'hero' }, h('div', { class: 'wrap wide' }, [topline('Informelles Lernen im Außendienst'), h('h1', { html: hlHtml(HERO.title) }),
     h('p', { text: HERO.text }),
-    h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' })), pubHint()])));
+    h('p', { class: 'hero-cta' }, h('a', { class: 'btn btn-secondary', href: '#/anbieten', text: 'Selbst etwas anbieten' })), noteHint(), pubHint()])));
   root.appendChild(h('div', { class: 'wrap wide' }, h('div', { class: 'toolbar' }, [
     h('div', { class: 'r1' }, [h('div', { class: 'grp' }, [h('span', { class: 'lbl', text: 'Bereich' }), switchSeg]), h('div', { class: 'search', html: ico('search') }, search)]),
     typeChips,
@@ -1905,7 +1930,7 @@ var NOTE_TEXT = {
   cancelled: function (n) { return { t: 'Abgesagt: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. ' + (n.reason ? 'Grund: ' + n.reason : 'Der Termin findet nicht statt.') }; },
   deleted: function (n) { return { t: 'Entfernt: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. Die Administration hat die Veranstaltung gelöscht.' }; },
   removed: function (n) { return { t: 'Abgemeldet: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. Die Administration hat Deine Anmeldung entfernt.' }; },
-  changed: function (n) { return { t: 'Geändert: ' + n.title, x: n.reason || 'Die Veranstaltung wurde geändert.' }; }
+  changed: function (n) { return { t: 'Termin-Update: ' + n.title, x: n.reason || 'Die Veranstaltung wurde geändert.' }; }
 };
 
 /* ---- Meine Anmeldungen ---- */
@@ -2023,7 +2048,7 @@ function viewProfile(q) {
   function tile(label, value, sub) { return h('div', { class: 'st-kpi' }, [h('b', null, value), h('span', { text: label }), sub ? h('span', { class: 'hint', text: sub }) : null]); }
   function table(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (c) { return h('th', { text: c }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (c) { return h('td', null, c); })); }))])); }
   function publicBox(pub, me, avatarOk) {
-    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming, showAvatar: !!pub.showAvatar, hideBadges: !!pub.hideBadges };
+    var v = { isPublic: !!pub.isPublic, showRating: !!pub.showRating, showExpert: !!pub.showExpert, showEmail: !!pub.showEmail, showUpcoming: !!pub.showUpcoming, showAvatar: !!pub.showAvatar, showBadges: !!pub.showBadges };
     var noAv = !avatarOk;
     var subs = [];
     function chk(key, label, hint, master) {
@@ -2041,9 +2066,9 @@ function viewProfile(q) {
       chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen'), chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : null)]);
     sync();
     /* Abzeichen und Rakete erscheinen auch ohne oeffentliches Profil neben dem Benutzernamen, deshalb eigener Schalter */
-    var bc = h('input', { type: 'checkbox', id: 'pp-badges', checked: !v.hideBadges });
-    bc.addEventListener('change', function () { v.hideBadges = !bc.checked; });
-    var badgeOpt = h('label', { class: 'chk' }, [bc, h('span', null, [h('b', { text: 'Abzeichen und Expertenstatus anzeigen' }), h('span', { class: 'hint', text: 'Erscheinen neben Deinem Benutzernamen, auch ohne öffentliches Profil. Ohne Haken sehen nur Du sie.' })])]);
+    var bc = h('input', { type: 'checkbox', id: 'pp-badges', checked: v.showBadges });
+    bc.addEventListener('change', function () { v.showBadges = bc.checked; });
+    var badgeOpt = h('label', { class: 'chk' }, [bc, h('span', null, [h('b', { text: 'Abzeichen und Expertenstatus anzeigen' }), h('span', { class: 'hint', text: 'Erst mit Deiner Zustimmung erscheinen sie neben Deinem Benutzernamen, auch ohne öffentliches Profil. Ohne Haken siehst nur Du sie.' })])]);
     go.addEventListener('click', function () {
       go.disabled = true; var p = Object.assign({ bio: bio.value }, v);
       Api.saveProfile(p).then(function () { go.disabled = false; msg.hidden = false; msg.className = 'notice ok'; msg.textContent = v.isPublic ? 'Gespeichert. Dein Profil ist öffentlich.' : 'Gespeichert. Dein Profil ist nicht öffentlich.'; toast('Gespeichert.'); refreshMe(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.className = 'notice bad'; msg.textContent = er.message; });
@@ -2100,6 +2125,23 @@ function viewProfile(q) {
     });
     return h('section', { class: 'prof-sec', id: 'pw-box' }, [h('h2', { text: 'Passwort ändern' }), forced ? h('div', { class: 'notice warn', role: 'alert', style: 'margin-bottom:12px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Bitte vergib ein eigenes Passwort' }), h('div', { text: 'Dein Konto nutzt noch ein vorläufiges Passwort. Wähle jetzt ein neues, bevor Du weitermachst.' })])) : null, form]);
   }
+  /* Browser-Benachrichtigungen: nur mit HTTPS (sicherer Kontext); Einstellung gilt je Geraet und Browser */
+  function notifyBox() {
+    var kids = [h('h2', { text: 'Benachrichtigungen' }), h('p', { class: 'hint', text: 'Neue Mitteilungen siehst Du immer oben in der Navigation und auf der Startseite. Zusätzlich kann Dein Browser Dich mit einer Systemmeldung hinweisen, solange die Anwendung in einem Tab geöffnet ist.' })];
+    if (!notifySupported()) kids.push(h('div', { class: 'notice', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Auf diesem Gerät nicht verfügbar' }), h('div', { text: window.isSecureContext === false ? 'Browser-Benachrichtigungen brauchen eine verschlüsselte Verbindung (HTTPS). Sobald die Anwendung über HTTPS läuft, kannst Du sie hier einschalten.' : 'Dieser Browser unterstützt keine Benachrichtigungen.' })])));
+    else {
+      var st = h('p', { class: 'hint', 'aria-live': 'polite' });
+      var on = h('input', { type: 'checkbox', id: 'nt-on', checked: notifyOn() });
+      function upd() { st.textContent = Notification.permission === 'denied' ? 'Der Browser blockiert Benachrichtigungen. Erlaube sie in den Website-Einstellungen des Browsers.' : (notifyOn() ? 'Eingeschaltet auf diesem Gerät.' : 'Ausgeschaltet.'); on.checked = notifyOn(); }
+      on.addEventListener('change', function () {
+        if (!on.checked) { store.del('lt_notify'); upd(); return; }
+        Notification.requestPermission().then(function (p) { if (p === 'granted') { store.set('lt_notify', '1'); startNotifyPoll(); toast('Benachrichtigungen sind eingeschaltet.'); } upd(); });
+      });
+      upd();
+      kids.push(h('div', { class: 'panel', style: 'max-width:760px;display:flex;flex-direction:column;gap:8px' }, [h('label', { class: 'chk' }, [on, h('span', null, [h('b', { text: 'Browser-Benachrichtigungen bei neuen Mitteilungen' }), h('span', { class: 'hint', text: 'Gilt nur für diesen Browser auf diesem Gerät.' })])]), st]));
+    }
+    return h('section', { class: 'prof-sec', id: 'notify-box' }, kids);
+  }
   /* Meine Daten: Auskunft als Datei und Konto loeschen */
   function dataBox(me) {
     var msg = h('div', { class: 'notice bad', role: 'alert', hidden: true });
@@ -2144,7 +2186,8 @@ function viewProfile(q) {
     var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }));
     function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', null, title), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
     function overview() {
-      return h('div', null, [facts, h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername. Ändern kannst Du sie unter „Konto“.' }), kp,
+      var hiddenBadge = (b.level || experts.length) && !r.pub.showBadges ? h('div', { class: 'notice', role: 'status', style: 'margin-top:16px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Dein Abzeichen siehst nur Du' }), h('div', null, ['Andere sehen Abzeichen und Rakete erst, wenn Du zustimmst. ', h('a', { href: '#/profil?tab=oeffentlich', text: 'Unter Veröffentlichung freigeben' })])])) : null;
+      return h('div', null, [facts, hiddenBadge, h('p', { class: 'hint', style: 'margin-top:8px', text: 'Name, XV-Nummer und E-Mail-Adresse sehen nur Du und die Administration. Für andere erscheint nur Dein Benutzername. Ändern kannst Du sie unter „Konto“.' }), kp,
         sec('Abzeichen', 'Das Abzeichen richtet sich nach der Zahl Deiner durchgeführten Veranstaltungen. Es erscheint neben Deinem Benutzernamen. Unter „Veröffentlichung“ kannst Du es ausblenden.', [lv]),
         sec([rocketNode(), ' Themen und Expertenstatus'], 'Ab ' + b.expertMin + ' Veranstaltungen in einem Thema erhältst Du dort den Expertenstatus. Dann erscheint die Rakete neben Deinem Namen auf der Kachel.',
           [r.topics.length ? table(['Bereich', 'Thema', 'Sessions', 'Status'], r.topics.slice().sort(function (x, y) { return y.count - x.count; }).map(function (t) { return [CAT_LABEL[t.category] || t.category, capFirst(t.topic), String(t.count), t.expert ? h('span', { class: 'utag' }, [rocketNode(), ' Experte']) : 'noch ' + (b.expertMin - t.count) + ' bis zum Expertenstatus']; })) : h('p', { class: 'hint', text: 'Du hast noch keine Veranstaltung durchgeführt.' })])]);
@@ -2157,7 +2200,7 @@ function viewProfile(q) {
       return sec('Meine Teilnahmen', 'Alle Veranstaltungen, die Du besucht hast, mit Deiner Bewertung.', [
         a.list.length ? table(['Datum', 'Veranstaltung', 'Thema', 'Angeboten von', 'Meine Bewertung'], a.list.slice().sort(function (x, y) { return x.date < y.date ? 1 : -1; }).map(function (x) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), x.title, CAT_LABEL[x.category] + ' · ' + capFirst(x.topic), userTag(x.host, x.hostLevel, false), x.rating ? ratingNode(x.rating, 1, true) : h('span', { class: 'hint', text: 'nicht bewertet' })]; })) : h('p', { class: 'hint', text: 'Du hast noch an keiner Veranstaltung teilgenommen.' })]);
     }
-    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange), dataBox(me)]); }
+    function accountTab() { return h('div', null, [accountBox(me), passwordBox(!!me.mustChange), notifyBox(), dataBox(me)]); }
     if (me.mustChange) sess.set('lt_tab_prof', 'konto'); else if (q && q.tab) sess.set('lt_tab_prof', q.tab);
     box.appendChild(tabs('lt_tab_prof', [['uebersicht', 'Übersicht', null, overview], ['veranstaltungen', 'Veranstaltungen', o.list.length, offeredTab], ['teilnahmen', 'Teilnahmen', a.list.length, attendedTab], ['oeffentlich', 'Veröffentlichung', null, function () { return publicBox(r.pub, me, !!r.avatar && !r.avatar.hidden); }], ['konto', 'Konto', null, accountTab]]));
     if (me.mustChange) setTimeout(function () { var p = $('#p-cur'); if (p) p.focus(); }, 30);
@@ -2531,13 +2574,15 @@ function viewAdmin() {
     return Api.adminSettings().then(function (s) {
       var isLocal = !!s.local;
       var title = inp('s-title', s.appTitle, 'text', { maxlength: '60' }), avUp = h('input', { type: 'checkbox', id: 's-avup', checked: s.avatarUpload !== false });
+      var aud = inp('s-aud', s.audience == null ? 6000 : s.audience, 'number', { min: '0', max: '1000000', step: '1', inputmode: 'numeric' });
       var msg = boxMsg(), go = h('button', { class: 'btn btn-primary', type: 'submit', text: 'Speichern' });
       var form = h('form', { class: 'form panel', style: 'gap:20px;max-width:900px', novalidate: true }, [
         field('Titel der Anwendung', title, { id: 's-title', req: true, hint: 'Erscheint im Kopf der Seite und im Browser-Tab, z. B. „LearnTogether@AD“ oder später „LearnTogether@R+V“.' }),
+        field('Größe der Zielgruppe (Personen)', aud, { id: 's-aud', hint: 'Grundlage der Kennzahl „Reichweite“ in der Statistik, zum Beispiel 6000 für den Außendienst. 0 blendet die Kennzahl aus.' }),
         h('label', { class: 'chk' }, [avUp, h('span', null, [h('b', { text: 'Hochladen eigener Profilbilder erlauben' }), h('span', { class: 'hint', text: 'Ist die Funktion aus, wählen Nutzende nur aus den illustrierten Profilbildern. Bereits hochgeladene Bilder sind dann nur für die Person selbst sichtbar.' })])]), msg, h('div', null, go)]);
       form.addEventListener('submit', function (e) {
         e.preventDefault(); msg.hidden = true; go.disabled = true;
-        var p = { appTitle: title.value, avatarUpload: avUp.checked };
+        var p = { appTitle: title.value, avatarUpload: avUp.checked, audience: Number(aud.value) };
         Api.adminSaveSettings(p).then(function () { go.disabled = false; state.settings.appTitle = title.value.trim(); applyTitle(); applyTaxonomy({ avatarUpload: avUp.checked }); toast('Einstellungen gespeichert.'); }, function (er) { go.disabled = false; say(msg, 'bad', er.message); });
       });
       return form;

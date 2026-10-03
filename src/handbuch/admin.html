@@ -67,7 +67,7 @@
 <li><b>Löschen:</b> entfernt eine archivierte Veranstaltung samt Anmeldungen endgültig, zum Beispiel auf Wunsch einer betroffenen Person.</li>
 </ul>
 <h3>Aufbewahrung und Anonymisierung</h3>
-<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie greift <b>fünf Jahre nach dem Ende</b> einer Veranstaltung, <b>unabhängig davon, ob sie privat oder dienstlich war</b>. Auch abgesagte Veranstaltungen gehören dazu. Bis dahin bleiben die Daten gespeichert, ausschließlich für Nachweis und Anrechnung (IDD).</p>
+<p>Die Anonymisierung läuft automatisch, ein Zutun ist nicht nötig. Sie greift bei <b>dienstlichen</b> Veranstaltungen <b>fünf Jahre nach dem Ende</b>, ausschließlich für Nachweis und Anrechnung (IDD). Bei <b>privaten</b> Veranstaltungen greift sie nach <b>12 Monaten</b>, weil es dort keinen Nachweiszweck gibt. Auch abgesagte Veranstaltungen gehören dazu.</p>
 <p>Bei der Anonymisierung passiert Folgendes:</p>
 <ul>
 <li>Der Bezug zu Anbieter und Teilnehmenden entfällt. Es steht „Anonymisiert“ statt Benutzername und Name.</li>
@@ -82,7 +82,7 @@
 {{FIGURE:adm-statistik|Die Statistik in Bereichen mit Kennzahlen und Auswertungen.}}
 <table>
 <tr><th>Bereich</th><th>Kennzahlen</th><th>Auswertungen</th></tr>
-<tr><td>Überblick</td><td>Veranstaltungen, Anmeldungen, Ø Auslastung, Lernstunden, erreichte Personen, registrierte Konten, Ø Bewertung, Anbietende</td><td>Veranstaltungen, Lernstunden und Teilnehmende pro Monat</td></tr>
+<tr><td>Überblick</td><td>Veranstaltungen, Anmeldungen, Ø Auslastung, Lernstunden, erreichte Personen, Reichweite in der Zielgruppe, wiederkehrende Teilnehmende, registrierte Konten, Ø Bewertung, Anbietende</td><td>Veranstaltungen, Lernstunden und Teilnehmende pro Monat</td></tr>
 <tr><td>Veranstaltungen</td><td>Durchgeführt, dienstliche Lernstunden, Ø Anmeldungen, ohne Anmeldung, ausgebucht, abgesagt, Absagequote, Ø Vorlauf der Anmeldung</td><td>Auslastung pro Monat, Monatsübersicht, Wochentag, Tageszeit, Auslastung, Bilder der Veranstaltungen, gefragteste Veranstaltungen, Veranstaltungen ohne Anmeldung</td></tr>
 <tr><td>Themen und Formate</td><td>–</td><td>Teilnehmende nach Thema, Art und Dauer, Angebot nach Thema</td></tr>
 <tr><td>Nutzende</td><td>Neue Konten im Zeitraum, aktiv in den letzten 30 Tagen, öffentliche Profile, mit Profilbild, mit Expertenstatus</td><td>Registrierungen pro Monat, letzte Anmeldung (nur gesamt), Konten nach Abzeichen, Profile und Profilbilder</td></tr>
@@ -90,7 +90,7 @@
 <tr><td>Datenschutz</td><td>Personenbezogen gespeichert, anonymisiert</td><td>Personenbezogene Daten, nächste Anonymisierungen</td></tr>
 </table>
 <p>Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in „Abgesagt“ und die Absagequote. Die Bewertungsquote setzt abgegebene Bewertungen ins Verhältnis zu den Anmeldungen bei beendeten Veranstaltungen. Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
-<p><b>Lernstunden</b> sind Teilnahmen mal Dauer bei durchgeführten Veranstaltungen. <b>Erreichte Personen</b> zählt jede Person einmal, die an mindestens einer durchgeführten Veranstaltung teilgenommen hat. Beide Werte eignen sich für den Bericht an das Management.</p>
+<p><b>Lernstunden</b> sind Teilnahmen mal Dauer bei durchgeführten Veranstaltungen. <b>Erreichte Personen</b> zählt jede Person einmal, die an mindestens einer durchgeführten Veranstaltung teilgenommen hat. <b>Reichweite</b> setzt die erreichten Personen ins Verhältnis zur Größe der Zielgruppe (System › Allgemein). <b>Wiederkehrende Teilnehmende</b> ist der Anteil der erreichten Personen mit mindestens zwei Teilnahmen. Diese Werte eignen sich für den Bericht an das Management.</p>
 <div class="tip"><b>Keine Leistungs- oder Verhaltenskontrolle:</b> Die Statistik zeigt nur zusammengefasste Werte. Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Sterne erhält die Statistik nur zusammengefasst nach Monat, Bereich und Thema, ohne Bezug zu Anbietenden. Ein Wert erscheint erst ab drei Bewertungen und drei verschiedenen Anbietenden. Die Bewertungsquote zählt alle Bewertungen.</div>
 <h3>Als PDF speichern</h3>
 <p>Jede Auswertung hat oben rechts einen Button <b>PDF</b>. <b>Bereich als PDF</b> speichert den gewählten Bereich. Der <b>Gesamtbericht als PDF</b> enthält alle Kennzahlen und Auswertungen der aktuellen Auswahl, mit Filterangaben, Datum und Seitenzahlen. Das PDF entsteht im Browser, die Daten verlassen den Rechner nicht.</p>
@@ -161,6 +161,8 @@
 <li>Hochgeladene Profilbilder liegen in <code>AppData\Data\avatar</code>. Der Server gibt sie nur an die Person selbst, an die Administration oder bei freigegebenem öffentlichem Profil heraus.</li>
 </ul>
 
+<h2>Allgemeine Einstellungen</h2>
+<p>Unter <b>System › Allgemein</b> legst Du außerdem die <b>Größe der Zielgruppe</b> fest, zum Beispiel 6000 für den Außendienst. Daraus berechnet die Statistik die Kennzahl „Reichweite in der Zielgruppe“. Mit 0 blendest Du sie aus.</p>
 <h2>Titel der Anwendung</h2>
 <p>Unter <b>System › Allgemein</b> änderst Du den Titel (2 bis 60 Zeichen), etwa von „LearnTogether@AD“ zu „LearnTogether@R+V“. Er erscheint im Seitenkopf, im Browser-Tab, im Betreff der Kalenderdatei und in den PDF-Berichten.</p>
 
@@ -228,14 +230,14 @@
 <h2>Datenschutz und Spielregeln</h2>
 <ul>
 <li>Die Anwendung speichert Konten (Benutzername, echter Name, XV-Nummer, E-Mail-Adresse, Passwort-Hash), Veranstaltungen, Anmeldungen, Bewertungen und Mitteilungen. Sie verschickt keine E-Mails.</li>
-<li>Öffentlich sichtbar ist standardmäßig nur der Benutzername mit Abzeichen. Nutzende können ihr Profil freigeben (Benutzername, Zahl der Sessions, Themen mit Anzahl, Beschreibung) und zusätzlich Gesamtbewertung, Expertenthemen, E-Mail-Adresse und kommende Veranstaltungen. Echter Name und XV-Nummer bleiben bei der betroffenen Person und der Administration.</li>
+<li>Öffentlich sichtbar ist standardmäßig nur der Benutzername. Abzeichen erscheinen erst nach Zustimmung der Person. Nutzende können ihr Profil freigeben (Benutzername, Zahl der Sessions, Themen mit Anzahl, Beschreibung) und zusätzlich Gesamtbewertung, Expertenthemen, E-Mail-Adresse und kommende Veranstaltungen. Echter Name und XV-Nummer bleiben bei der betroffenen Person und der Administration.</li>
 <li>Der Teams-Link wird nur angemeldeten Personen angezeigt und steht nicht im Katalog.</li>
 <li>Anbietende sehen Teilnehmende nur mit Benutzernamen. Bewertungen sehen sie als Durchschnitt je Session, erst ab drei Bewertungen. Einzelne Bewertungen sieht niemand, auch nicht die Administration.</li>
-<li>Abzeichen und Rakete können Nutzende ausblenden. Profil und Profilbild sind freiwillig.</li>
+<li>Abzeichen und Rakete sehen andere erst nach Zustimmung (Profil › Veröffentlichung). Profil und Profilbild sind freiwillig.</li>
 <li>Wer an privaten Veranstaltungen teilnimmt, zeigt die Anwendung der Administration nicht. Sterne gibt es für die Administration nur zusammengefasst nach Monat, Bereich und Thema.</li>
 <li>Nutzende können ihre Daten herunterladen (Auskunft) und ihr Konto selbst löschen. Konten ohne Anmeldung seit 24 Monaten löscht die Anwendung automatisch.</li>
 <li>Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Die Anwendung dient nicht der Leistungs- oder Verhaltenskontrolle.</li>
-<li>Alle Veranstaltungen werden fünf Jahre nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
+<li>Dienstliche Veranstaltungen werden fünf Jahre, private 12 Monate nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>
 <li>Anbietende können ihre Veranstaltung unter „Meine Veranstaltungen“ selbst absagen, auch mit bestehenden Anmeldungen. Angemeldete sehen die Absage als Mitteilung unter „Meine Anmeldungen“.</li>
 <li>Arbeitszeit: Dienstliche Sessions können als Arbeitszeit zählen, Teilnehmende stechen sich selbst ein. Private Sessions zählen nicht. Eine IDD-Anrechnung ist noch nicht möglich und in Planung.</li>
 <li>Inhalte müssen legal, respektvoll und jugendfrei sein. Du kannst Veranstaltungen jederzeit bearbeiten oder löschen.</li>
@@ -257,6 +259,18 @@
 <tr><td>Fehlerprotokoll</td><td><code>error.log</code> ohne Passwörter, auf 2 MB begrenzt</td></tr>
 </table>
 <div class="tip"><b>Ohne HTTPS:</b> Die Anwendung setzt HTTPS nicht voraus. Ohne HTTPS gehen Passwörter und Sitzungs-Cookies aber unverschlüsselt durchs Netz. Betreibe sie dann nur im internen Netz und beschränke den Zugriff im IIS auf das Firmennetz. Richte HTTPS ein, sobald es möglich ist. Die Administration zeigt dazu oben einen Hinweis.</div>
+
+<h2>Benachrichtigungen</h2>
+<p>Die Anwendung verschickt keine E-Mails. Mitteilungen (Absage, Termin-Update, entfernte Anmeldung) erscheinen in der Navigation und auf der Startseite. Nutzende können unter Profil › Konto Browser-Benachrichtigungen einschalten. Diese erscheinen, solange die Anwendung in einem Tab offen ist. Sie brauchen <b>HTTPS</b>, ohne HTTPS ist der Schalter ausgegraut.</p>
+<div class="tip">Echte Push-Nachrichten aufs Handy setzen einen externen Push-Dienst von Google, Apple oder Mozilla, HTTPS und einen ersten Aufruf auf dem Handy voraus. Wir empfehlen stattdessen Benachrichtigungen über Microsoft Teams, sobald SSO mit Microsoft Entra ID eingerichtet ist.</div>
+
+<h2>Single Sign-on (vorbereitet)</h2>
+<p>Die Anmeldung über das Unternehmenskonto ist geplant. Vorbereitet sind:</p>
+<ul>
+<li>Felder am Konto für die Kennung im Unternehmensverzeichnis und die Art der Anmeldung. Sie sind noch leer und werden bei „Meine Daten herunterladen“ mit ausgegeben.</li>
+<li>Die Sitzung entsteht an genau einer Stelle im Server. Eine SSO-Anmeldung nutzt dieselbe Stelle, alle Schutzmaßnahmen bleiben.</li>
+<li>Ein Umsetzungskonzept mit zwei Wegen (Windows-Anmeldung am IIS oder Microsoft Entra ID) steht im Papier „IT-Sicherheit und Datenschutz“.</li>
+</ul>
 
 <h2>Häufige Fragen</h2>
 <h3>Kann ich Anmeldungen für andere Personen vornehmen?</h3>

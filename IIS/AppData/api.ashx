@@ -52,7 +52,10 @@ namespace LearnTogether
         public string avatar { get; set; }        // "" | "upload" | Kennung eines Platzhalter-Profilbilds
         public long avatarVer { get; set; }
         public bool showAvatar { get; set; }
-        public bool hideBadges { get; set; }      // Abzeichen und Expertenstatus fuer andere ausblenden
+        public bool hideBadges { get; set; }      // veraltet (bis 0.27): ersetzt durch showBadges
+        public bool showBadges { get; set; }      // Abzeichen und Expertenstatus fuer andere zeigen: nur nach Zustimmung (Standard: aus)
+        public string extId { get; set; }         // Vorbereitung Single Sign-on: Kennung im Unternehmensverzeichnis (noch nicht genutzt)
+        public string authSource { get; set; }    // Vorbereitung Single Sign-on: "" = Passwort, spaeter z. B. "windows" oder "entra"
         public List<string> sessions { get; set; } // aktive Sitzungen "Kennung:Ablauf" (Abmelden beendet die Sitzung auch auf dem Server)
         public UserRec() { role = "user"; legacyTopics = new Dictionary<string, int>(); sessions = new List<string>(); }
     }
@@ -75,6 +78,7 @@ namespace LearnTogether
         public bool hasImage { get; set; }
         public string placeholder { get; set; }   // Kennung des gewaehlten Platzhalterbildes (ohne eigenes Bild)
         public long imgVer { get; set; }
+        public int rev { get; set; }              // Aenderungsstand (SEQUENCE in der Kalenderdatei)
         public bool isTest { get; set; }
         public string created { get; set; }
         public bool cancelled { get; set; }
@@ -149,6 +153,7 @@ namespace LearnTogether
         public List<int> badgeLevels { get; set; }
         public int expertMin { get; set; }
         public bool avatarUploadOff { get; set; }      // Hochladen eigener Profilbilder abgeschaltet
+        public int audience { get; set; }              // Groesse der Zielgruppe fuer die Kennzahl Reichweite
         public List<PhotoRec> photos { get; set; }      // eigene Fotos als Platzhalterbilder
         public SettingsRec()
         {
@@ -171,6 +176,7 @@ namespace LearnTogether
             heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
             badgeLevels = new List<int>(new int[] { 1, 5, 10, 20, 40, 80 });
             expertMin = 5;
+            audience = 6000;
         }
     }
 
@@ -209,11 +215,12 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.27.0";
+        const string Version = "0.28.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
         const int RetainYears = 5;
+        const int RetainPrivateMonths = 12;
         const int SessionHours = 8;
         const int MinRatings = 3;        // Durchschnittswerte erst ab drei Bewertungen, damit niemand auf einzelne Stimmen schliessen kann
         const int InactiveMonths = 24;   // Konten ohne Anmeldung werden danach automatisch geloescht
@@ -580,7 +587,8 @@ namespace LearnTogether
             {
                 if (e.anonymized) continue;
                 DateTime due;
-                try { due = StartOfSafe(e.date, e.start).AddMinutes(e.duration).AddYears(RetainYears); }
+                // dienstlich 5 Jahre (Nachweis, IDD), privat 12 Monate (kein Nachweiszweck)
+                try { DateTime end = StartOfSafe(e.date, e.start).AddMinutes(e.duration); due = e.category == "privat" ? end.AddMonths(RetainPrivateMonths) : end.AddYears(RetainYears); }
                 catch (FormatException) { continue; }
                 if (now < due) continue;
                 bool held = !e.cancelled;
@@ -609,7 +617,7 @@ namespace LearnTogether
         Badges BuildBadges(DataFile d, SettingsRec s, DateTime now)
         {
             Badges b = new Badges(); b.s = s;
-            foreach (UserRec u in d.users) if (u.hideBadges) b.hidden.Add(u.id);
+            foreach (UserRec u in d.users) if (!u.showBadges) b.hidden.Add(u.id);
             foreach (EventRec e in d.events)
             {
                 if (e.cancelled || e.anonymized || string.IsNullOrEmpty(e.ownerId) || !Ended(e, now)) continue;
@@ -1113,7 +1121,7 @@ namespace LearnTogether
             x["description"] = e.description; x["isTest"] = e.isTest;
             x["placeholder"] = e.placeholder ?? "";
             x["image"] = e.hasImage ? "AppData/api.ashx?action=img&id=" + e.id + "&v=" + e.imgVer : null;
-            x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
+            x["rev"] = e.rev; x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
             return x;
         }
 
@@ -1289,6 +1297,7 @@ namespace LearnTogether
             }
             if (ev.teamsLink != oldLink) parts.Add("Der Teams-Link hat sich ge\u00e4ndert. Den neuen Link findest Du unter Meine Anmeldungen.");
             if (parts.Count == 0) return 0;
+            ev.rev++;
             int n = 0;
             foreach (BookingRec bk in d.bookings) if (bk.eventId == ev.id && !string.IsNullOrEmpty(bk.userId)) { AddNote(d, bk.userId, "changed", ev, string.Join(" ", parts.ToArray())); n++; }
             return n;
@@ -1437,7 +1446,7 @@ namespace LearnTogether
                     offered = new { held = heldOffered, upcoming = upcomingOffered, cancelled = cancelledOffered, ratingAvg = AvgOrZero(ratingSum, ratingCount), ratingCount = ratingCount, minRatings = MinRatings, list = offered },
                     attended = new { held = heldAttended, upcoming = upcomingAttended, rated = rated, list = attended },
                     topics = topics,
-                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, hideBadges = me.hideBadges, bio = me.bio ?? "" },
+                    pub = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, showBadges = me.showBadges, bio = me.bio ?? "" },
                     avatar = AvatarInfo(me, s, true), avatarUpload = !s.avatarUploadOff
                 });
             }
@@ -1454,7 +1463,7 @@ namespace LearnTogether
             lock (Gate)
             {
                 DataFile d = LoadData(); UserRec me = Auth(d, true);
-                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.showAvatar = B(b, "showAvatar") && !string.IsNullOrEmpty(me.avatar); me.hideBadges = B(b, "hideBadges"); me.bio = bio.Trim();
+                me.profilePublic = B(b, "isPublic"); me.showRating = B(b, "showRating"); me.showExpert = B(b, "showExpert"); me.showEmail = B(b, "showEmail"); me.showUpcoming = B(b, "showUpcoming"); me.showAvatar = B(b, "showAvatar") && !string.IsNullOrEmpty(me.avatar); me.showBadges = B(b, "showBadges"); me.bio = bio.Trim();
                 SaveData(d);
                 Send(new { ok = true });
             }
@@ -1651,7 +1660,7 @@ namespace LearnTogether
                     if (kv.Value >= s.expertMin) experts.Add(new { category = q[1], topic = q[2] });
                 }
                 p["topics"] = topics;
-                if (u.showExpert && !u.hideBadges) p["experts"] = experts;
+                if (u.showExpert && u.showBadges) p["experts"] = experts;
                 if (u.showEmail) p["email"] = u.email;
                 if (u.showRating)
                 {
@@ -1791,7 +1800,7 @@ namespace LearnTogether
                 {
                     exported = NowIso(),
                     account = new { username = me.username, firstName = me.firstName, lastName = me.lastName, xv = me.xv, email = me.email, role = me.role, created = me.created, lastLogin = me.lastLogin ?? "", locked = me.locked, activeSessions = me.sessions == null ? 0 : me.sessions.Count },
-                    profile = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, hideBadges = me.hideBadges, bio = me.bio ?? "", avatar = me.avatar ?? "" },
+                    profile = new { isPublic = me.profilePublic, showRating = me.showRating, showExpert = me.showExpert, showEmail = me.showEmail, showUpcoming = me.showUpcoming, showAvatar = me.showAvatar, showBadges = me.showBadges, bio = me.bio ?? "", avatar = me.avatar ?? "", signIn = string.IsNullOrEmpty(me.authSource) ? "password" : me.authSource },
                     archive = new { offeredBeforeAnonymization = me.legacyOffered, attendedBeforeAnonymization = me.legacyAttended },
                     events = evs, bookings = bks, notes = notes
                 };
@@ -1903,7 +1912,7 @@ namespace LearnTogether
             SettingsRec s = LoadSettings();
             DataFile d = LoadData();
             int tu = 0, te = 0; foreach (UserRec u in d.users) if (u.isTest) tu++; foreach (EventRec e in d.events) if (e.isTest) te++;
-            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection });
+            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection, audience = s.audience });
         }
 
         void AdminSaveSettings()
@@ -1939,6 +1948,12 @@ namespace LearnTogether
                     s.badgeLevels = lv;
                 }
                 if (b.ContainsKey("avatarUpload")) s.avatarUploadOff = !B(b, "avatarUpload");
+                if (b.ContainsKey("audience"))
+                {
+                    int au = I(b, "audience");
+                    if (au < 0 || au > 1000000) throw new ApiException("invalid", "Die Gr\u00f6\u00dfe der Zielgruppe muss zwischen 0 und 1.000.000 liegen.");
+                    s.audience = au;
+                }
                 if (b.ContainsKey("expertMin"))
                 {
                     int em = I(b, "expertMin");
@@ -1976,7 +1991,7 @@ namespace LearnTogether
                         Dictionary<string, object> x = o as Dictionary<string, object>; if (x == null) continue;
                         UserRec u = new UserRec(); u.id = "t-" + NewId(); u.username = S(x, "username"); u.firstName = S(x, "firstName"); u.lastName = S(x, "lastName"); u.xv = S(x, "xv"); u.email = S(x, "email").ToLowerInvariant();
                         u.pwHash = testHash; u.created = NowIso(); u.isTest = true;
-                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
+                        u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.showBadges = B(x, "showBadges"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
                         if (d.users.Exists(delegate (UserRec y) { return y.username.ToLowerInvariant() == u.username.ToLowerInvariant() || y.email == u.email || y.xv == u.xv; })) continue;
                         d.users.Add(u); ids[u.username] = u.id; nu++;
                     }
