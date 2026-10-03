@@ -276,7 +276,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.31.0";
+        const string Version = "0.31.1";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;

@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.31.1 (03.10.2026)
+- **Formular „Veranstaltung anbieten“:** „Wann findet es statt?“ steht jetzt vor „Was wird angeboten?“. Reihenfolge: Worum geht es? › Wann findet es statt? › Was wird angeboten? › IDD-Weiterbildung › Teilnahme und Teams-Link.
+- Benutzerhandbuch, Screenshots und Präsentation angepasst.
+
 ## 0.31.0 (03.10.2026)
 - **Beschreibung des Lerninhalts (IDD):** neues Pflichtfeld mit den 11 Kategorien der Weiterbildungsdatenbank von gutBeraten. Es erscheint in Info-Kachel, Kalendereintrag, IDD-Cockpit, IDD-Übersicht, IDD-Archiv und im PDF-Nachweis. Der Server nimmt nur Werte aus der festen Liste an.
 - **Reihenfolge im Formular „Veranstaltung anbieten“:** Worum geht es? (Titel, Themenbereich, Thema, Art) › Was wird angeboten? (Beschreibung, Bild) › Wann findet es statt? › IDD-Weiterbildung › Teilnahme und Teams-Link. Die Agenda folgt damit auf die Dauer.
