@@ -93,20 +93,21 @@
 <h2>Eine Veranstaltung anbieten</h2>
 <p>Jede angemeldete Person kann eine Veranstaltung anbieten. Öffne dazu <b>Veranstaltung anbieten</b> und fülle das Formular aus. Als Anbieter erscheint automatisch Dein Benutzername. Felder mit einem <span class="accent">*</span> sind Pflicht.</p>
 {{FIGURE:anbieten|Das Formular zum Anlegen einer Veranstaltung.}}
-<p>Das Formular ist in vier Abschnitte gegliedert:</p>
+<p>Das Formular folgt der Reihenfolge Deiner Planung. Erst legst Du Thema und Angebot fest, dann Tag und Dauer. Danach folgen die IDD-Angaben, falls Du freigeschaltet bist. Sie brauchen die Dauer. Zum Schluss kommen Teilnehmendenzahl und Teams-Link.</p>
 <table>
 <tr><th>Abschnitt und Feld</th><th>Was Du eingibst</th></tr>
 <tr><td><b>Worum geht es?</b><br>Titel</td><td>Ein aussagekräftiger Name, bis zu 100 Zeichen</td></tr>
 <tr><td>Auswahl des Themenbereichs</td><td>Dienstlich oder privat. Davon hängen die Themen zur Auswahl ab</td></tr>
 <tr><td>Thema</td><td>Dienstlich: fachlich oder vertrieblich. Privat: Sport, Freizeit, Essen &amp; Trinken, Reisen oder Sonstiges</td></tr>
+<tr><td>Art der Veranstaltung</td><td>Zum Beispiel Workshop, Austausch oder Best Practice. Die Auswahl legt die Administration fest</td></tr>
+<tr><td><b>Was wird angeboten?</b><br>Beschreibung</td><td>Der Text für den Katalog, mit Formatierungen. Er wird im Katalog angezeigt, sobald jemand auf die Kachel klickt</td></tr>
+<tr><td>Bild</td><td>Optional. Ein quadratisches Bild für die Kachel</td></tr>
 <tr><td><b>Wann findet es statt?</b><br>Tag</td><td>Ein Datum aus dem Datumsfeld. Nur Montag bis Freitag sind möglich; ein Wochenende wird abgelehnt</td></tr>
 <tr><td>Dauer</td><td>15 bis 120 Minuten in 15-Minuten-Schritten</td></tr>
 <tr><td>Startzeit</td><td>Nur Zeiten, die zur gewählten Dauer passen (siehe unten)</td></tr>
-<tr><td><b>Was wird angeboten?</b><br>Art der Veranstaltung</td><td>Zum Beispiel Workshop, Austausch oder Best Practice. Die Auswahl legt die Administration fest</td></tr>
-<tr><td>Maximale Teilnehmendenzahl</td><td>Wie viele Personen teilnehmen können (1 bis 50)</td></tr>
-<tr><td>Beschreibung</td><td>Der Text für den Katalog, mit Formatierungen. Er wird im Katalog angezeigt, sobald jemand auf die Kachel klickt</td></tr>
-<tr><td>Bild</td><td>Optional. Ein quadratisches Bild für die Kachel</td></tr>
-<tr><td><b>Teams-Link</b></td><td>Der Einladungslink Deiner Teams-Besprechung</td></tr>
+<tr><td><b>IDD-Weiterbildung</b></td><td>Nur mit Freischaltung und nur bei dienstlichen Themen. IDD-Titel, Beschreibung des Lerninhalts und Agenda (siehe Kapitel IDD)</td></tr>
+<tr><td><b>Teilnahme und Teams-Link</b><br>Maximale Teilnehmendenzahl</td><td>Wie viele Personen teilnehmen können (1 bis 50)</td></tr>
+<tr><td>Teams-Link</td><td>Der Einladungslink Deiner Teams-Besprechung</td></tr>
 </table>
 <h3>Zeitfenster und Startzeit</h3>
 <p>Veranstaltungen sind nur in zwei Zeitfenstern möglich:</p>
@@ -237,7 +238,7 @@
 <p>Unter Profil › <b>Konto</b> › <b>IDD-Weiterbildung</b> setzt Du den Haken bei <b>Ich bin IDD-pflichtig</b>. Wähle dann 15 oder 30 Stunden je Kalenderjahr und trage Deine <b>gutBeraten-ID</b> ein. Sie hat das Format XXXX-XXXX-XXXX, 12 Buchstaben oder Ziffern. Ohne ID können Deine Zeiten nicht an gutBeraten gemeldet werden. Bist Du nicht IDD-pflichtig, entfallen alle weiteren IDD-Angaben.</p>
 {{FIGURE:idd-konto|Die IDD-Angaben im Konto: Pflicht, Stunden je Kalenderjahr und gutBeraten-ID.}}
 <h3>IDD-Veranstaltungen erkennen und buchen</h3>
-<p>IDD-anrechenbare Veranstaltungen tragen im Katalog den Chip <b>IDD</b>. Die Info-Kachel zeigt die <b>Dauer</b> und die <b>IDD-Zeit</b> getrennt. Dazu kommt die Agenda: Begrüßung (5 Minuten), die Inhalte mit ihrer Dauer und IDD-Bildungszeit und die Verabschiedung (5 Minuten). Begrüßung und Verabschiedung zählen nicht zur Lernzeit.</p>
+<p>IDD-anrechenbare Veranstaltungen tragen im Katalog den Chip <b>IDD</b>. Die Info-Kachel zeigt die <b>Dauer</b> und die <b>IDD-Zeit</b> getrennt und nennt den Lerninhalt. Dazu kommt die Agenda: Begrüßung (5 Minuten), die Inhalte mit ihrer Dauer und IDD-Bildungszeit und die Verabschiedung (5 Minuten). Begrüßung und Verabschiedung zählen nicht zur Lernzeit.</p>
 <h3>Wann die Zeit angerechnet wird</h3>
 <ul>
 <li>Nach der Veranstaltung bestätigt die anbietende Person, wer teilgenommen hat. Nur <b>bestätigte</b> Teilnahmen werden angerechnet. Teilweise Teilnahmen gibt es nicht.</li>
@@ -247,16 +248,17 @@
 <h3>Das IDD-Cockpit</h3>
 <p>Nach Deiner ersten bestätigten Teilnahme erscheint im Profil der Bereich <b>IDD-Cockpit</b>. Wähle oben das Kalenderjahr. Du siehst Deine bestätigte IDD-Zeit, Deine Weiterbildungspflicht, was noch fehlt und jede Veranstaltung mit ihrer Zeit. Darunter stehen Teilnahmen, die noch auf Bestätigung warten, und Deine Anmeldungen. Das Cockpit zeigt nur Zeiten aus dieser Plattform.</p>
 {{FIGURE:idd-cockpit|Das IDD-Cockpit mit bestätigter Zeit, Ziel und den angerechneten Veranstaltungen.}}
-<p>Mit <b>Nachweis als PDF</b> speicherst Du alle bestätigten Teilnahmen eines Kalenderjahres. Das PDF enthält Deinen Namen, Deine XV-Nummer und gutBeraten-ID, den Bildungsdienstleister, die Lernform und je Veranstaltung Datum, Uhrzeit, IDD-Titel, Minuten und das Datum der Bestätigung.</p>
+<p>Mit <b>Nachweis als PDF</b> speicherst Du alle bestätigten Teilnahmen eines Kalenderjahres. Das PDF enthält Deinen Namen, Deine XV-Nummer und gutBeraten-ID, den Bildungsdienstleister, die Lernform und je Veranstaltung Datum, Uhrzeit, IDD-Titel, Lerninhalt, Minuten und das Datum der Bestätigung.</p>
 <h3>Für Anbietende: eine IDD-Veranstaltung anlegen</h3>
 <p>IDD-Veranstaltungen kannst Du anlegen, wenn die Administration Dich dafür freigeschaltet hat. Sie sind immer dienstlich.</p>
 <ol>
 <li>Setze beim Anbieten im Abschnitt <b>IDD-Weiterbildung</b> den Haken bei <b>IDD-anrechenbare Veranstaltung</b>.</li>
 <li>Trage einen <b>IDD-Titel</b> ein. Er ist Pflicht und steht im Nachweis der Teilnehmenden. Nenne sachlich den fachlichen Inhalt, zum Beispiel „Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung“.</li>
-<li>Plane die <b>Agenda</b>. Der Abschnitt IDD-Weiterbildung steht über „Wann findet es statt?“. Nach der Wahl der Dauer klickst Du auf <b>Agenda bearbeiten</b>. Im Fenster legst Du je Eintrag <b>Inhalte</b>, <b>Dauer</b> und <b>IDD-Bildungszeit</b> fest. Einträge kannst Du ändern, hinzufügen, löschen und mit den Pfeilen verschieben. Zusammen müssen sie die Dauer minus 10 Minuten füllen. Die IDD-Bildungszeit eines Eintrags kann kürzer sein als seine Dauer, etwa bei einer Pause. Die IDD-Zeit der Veranstaltung ist die Summe.</li>
+<li>Wähle die <b>Beschreibung des Lerninhalts</b>. Die Liste entspricht den Kategorien der Weiterbildungsdatenbank von gutBeraten, zum Beispiel „Privat-Sach-/Schadenversicherung“ oder „Versicherungsspezifische Software“. Die Angabe ist Pflicht und steht im Nachweis.</li>
+<li>Plane die <b>Agenda</b>. Der Abschnitt IDD-Weiterbildung steht unter „Wann findet es statt?“, denn die Agenda braucht die Dauer. Nach der Wahl der Dauer klickst Du auf <b>Agenda bearbeiten</b>. Im Fenster legst Du je Eintrag <b>Inhalte</b>, <b>Dauer</b> und <b>IDD-Bildungszeit</b> fest. Einträge kannst Du ändern, hinzufügen, löschen und mit den Pfeilen verschieben. Zusammen müssen sie die Dauer minus 10 Minuten füllen. Die IDD-Bildungszeit eines Eintrags kann kürzer sein als seine Dauer, etwa bei einer Pause. Die IDD-Zeit der Veranstaltung ist die Summe.</li>
 </ol>
 <p>Die Anwendung prüft den IDD-Titel und gibt einen Hinweis, wenn er nicht zu den Anrechnungsregeln passt. Das betrifft etwa sehr kurze Titel, reine Formatangaben wie „Austausch“, Freizeitthemen, Software-Bedienung oder reine Verkaufstechniken. Der Hinweis sperrt das Speichern nicht.</p>
-{{FIGURE:idd-formular|Der Abschnitt IDD-Weiterbildung mit IDD-Titel, Agenda und IDD-Bildungszeit.}}
+{{FIGURE:idd-formular|Der Abschnitt IDD-Weiterbildung mit IDD-Titel, Beschreibung des Lerninhalts und Agenda.}}
 {{FIGURE:idd-agenda|Agenda bearbeiten: Inhalte, Dauer und IDD-Bildungszeit je Eintrag.}}
 <h3>Für Anbietende: Teilnahme bestätigen</h3>
 <p>Nach dem Ende der Veranstaltung findest Du sie unter Meine Veranstaltungen › <b>Vergangen</b>. Klicke bei jeder Person auf <b>Teilgenommen</b> oder <b>Nicht teilgenommen</b>. Ein zweiter Klick nimmt die Auswahl zurück. Dafür hast Du <b>14 Tage</b> Zeit. Danach kann die Administration die Bestätigung für Dich wieder freischalten oder selbst eintragen.</p>

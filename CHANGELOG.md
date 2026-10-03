@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.31.0 (03.10.2026)
+- **Beschreibung des Lerninhalts (IDD):** neues Pflichtfeld mit den 11 Kategorien der Weiterbildungsdatenbank von gutBeraten. Es erscheint in Info-Kachel, Kalendereintrag, IDD-Cockpit, IDD-Übersicht, IDD-Archiv und im PDF-Nachweis. Der Server nimmt nur Werte aus der festen Liste an.
+- **Reihenfolge im Formular „Veranstaltung anbieten“:** Worum geht es? (Titel, Themenbereich, Thema, Art) › Was wird angeboten? (Beschreibung, Bild) › Wann findet es statt? › IDD-Weiterbildung › Teilnahme und Teams-Link. Die Agenda folgt damit auf die Dauer.
+- Handbücher, Papier IT-Sicherheit und Datenschutz, Screenshots und Präsentation aktualisiert.
+
 ## 0.30.0 (03.10.2026)
 - **Agenda bearbeiten (IDD):** im Popup mit Einträgen aus „Inhalte“, „Dauer“ und „IDD-Bildungszeit“. Einträge anpassen, hinzufügen, löschen und verschieben. Begrüßung und Verabschiedung bleiben fest. Die Einträge füllen zusammen die Dauer minus 10 Minuten, die IDD-Zeit ist die Summe der Bildungszeiten.
 - **IDD-Optionen im Formular** stehen jetzt über „Wann findet es statt?“.

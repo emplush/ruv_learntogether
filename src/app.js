@@ -39,6 +39,8 @@ function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e; 
 var MIN_RATINGS = 3, INACTIVE_MONTHS = 24, RETAIN_PRIVATE_MONTHS = 12;
 /* IDD-Einstellungen aus den Settings (Hauptschalter, Bildungsdienstleister, Begruessung und Verabschiedung je 5 Minuten) */
 var IDD = { on: false, provider: '', frame: 5, welcome: { title: 'Begrüßung', text: '' }, farewell: { title: 'Verabschiedung', text: '' } };
+/* Beschreibung des Lerninhalts: Kategorien wie in der Weiterbildungsdatenbank von gutBeraten (wie auf dem Server) */
+var IDD_CONTENTS = ['Privat-Vorsorge-Lebens-/Rentenversicherung', 'Privat-Vorsorge-Kranken-/Pflegeversicherung', 'Privat-Sach-/Schadenversicherung', 'Firmenkunden-Vorsorge (BAV/Personenversicherung)', 'Firmenkunden-Sach-/Schadenversicherung', 'Mehrere versicherungsrelevante Themen', 'Kundenorientierte Beratung im Versicherungsvertrieb', 'Management einer Vertriebseinheit in der Versicherungswirtschaft', 'Wirtschaftswissenschaften mit Bezug zur Versicherungsvermittlung/-beratung', 'Personalführung mit Bezug zur Versicherungsvermittlung/-beratung', 'Versicherungsspezifische Software'];
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function svg(path, extra) { return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"' + (extra || '') + '>' + path + '</svg>'; }
@@ -225,6 +227,7 @@ function validateEvent(v, admin) {
   if (plainText(v.description).length < 10) e.description = 'Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.';
   if (v.idd) {
     if (v.category !== 'dienstlich') e.idd = 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.';
+    if (IDD_CONTENTS.indexOf(v.iddContent) < 0) e.iddContent = 'Bitte wähle die Beschreibung des Lerninhalts.';
     var it = String(v.iddTitle || '').replace(/\s+/g, ' ').trim(); if (it.length < 5 || it.length > 150) e.iddTitle = 'Bitte gib einen IDD-Titel mit 5 bis 150 Zeichen an. Er ist bei IDD-Veranstaltungen Pflicht.';
     var room = Number(v.duration) - 2 * (IDD.frame || 5), ag = v.agenda && v.agenda.length ? v.agenda : null, sm = 0, si = 0, bad = '';
     if (!v.duration) bad = 'Bitte wähle zuerst die Dauer. Danach planst Du die Agenda.';
@@ -317,11 +320,11 @@ function buildTestData() {
   users.forEach(function (u, i) { if (i >= 1 && i <= 9) { u.iddDuty = true; u.iddHours = i === 3 ? 30 : 15; if (i !== 8) u.gbId = 'RVTD-' + (1000 + i) + '-GB' + pad(i); } });
   var ly = new Date(new Date().getFullYear() - 1, 11, 10); while (ly.getDay() === 0 || ly.getDay() === 6) ly.setDate(ly.getDate() - 1);
   var IDDEV = [
-    ['i01', 'Berufsunfähigkeit verständlich erklären', 0, d[2], '07:00', 60, 50, 'Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung', 6, null],
-    ['i02', 'Betriebliche Altersversorgung im Mittelstand', 0, pastDay, '17:00', 60, 50, 'Betriebliche Altersversorgung: Durchführungswege und Beratungspflichten', 6, ['yes', 'yes', 'yes', 'no', '', '']],
-    ['i03', 'Jahresrückblick Kfz-Tarife', 3, ymd(ly), '17:00', 90, 80, 'Kfz-Versicherung: Tarifmerkmale und Beratung im Schadenfall', 5, ['yes', 'yes', 'yes', 'yes', 'no']]];
+    ['i01', 'Berufsunfähigkeit verständlich erklären', 0, d[2], '07:00', 60, 50, 'Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung', 6, null, IDD_CONTENTS[0]],
+    ['i02', 'Betriebliche Altersversorgung im Mittelstand', 0, pastDay, '17:00', 60, 50, 'Betriebliche Altersversorgung: Durchführungswege und Beratungspflichten', 6, ['yes', 'yes', 'yes', 'no', '', ''], IDD_CONTENTS[3]],
+    ['i03', 'Jahresrückblick Kfz-Tarife', 3, ymd(ly), '17:00', 90, 80, 'Kfz-Versicherung: Tarifmerkmale und Beratung im Schadenfall', 5, ['yes', 'yes', 'yes', 'yes', 'no'], IDD_CONTENTS[2]]];
   IDDEV.forEach(function (r) {
-    events.push({ id: r[0], title: r[1], owner: TU[r[2]][0], category: 'dienstlich', type: TYPES[0], topic: mapTopic('dienstlich', 'fachlich'), date: r[3], start: r[4], duration: r[5], capacity: 12, teamsLink: L, description: descHtml('Testfall für eine IDD-anrechenbare Veranstaltung.', ['Fachlicher Input', 'Fragen aus der Beratungspraxis']), imageData: '', placeholder: phGuess(r[1], 'fachlich'), idd: true, iddTitle: r[7], iddMinutes: r[6] });
+    events.push({ id: r[0], title: r[1], owner: TU[r[2]][0], category: 'dienstlich', type: TYPES[0], topic: mapTopic('dienstlich', 'fachlich'), date: r[3], start: r[4], duration: r[5], capacity: 12, teamsLink: L, description: descHtml('Testfall für eine IDD-anrechenbare Veranstaltung.', ['Fachlicher Input', 'Fragen aus der Beratungspraxis']), imageData: '', placeholder: phGuess(r[1], 'fachlich'), idd: true, iddTitle: r[7], iddMinutes: r[6], iddContent: r[10] });
     for (var b = 0; b < r[8]; b++) bookings.push({ user: TU[(r[2] + 1 + b) % TU.length][0], eventId: r[0], rating: 0, idd: r[9] ? r[9][b] : '' });
   });
   return { users: users, events: events, bookings: bookings };
@@ -374,7 +377,7 @@ function iddTitleHints(t) {
   var words = t.split(' ').filter(function (w) { return w.length > 1; }).length;
   if (t.length < 15 || words < 3) out.push('Der Titel ist sehr kurz. Nenne den fachlichen Inhalt genauer, zum Beispiel „Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung“.');
   if (IDD_FREI.test(t)) out.push('Freizeitthemen sind nicht IDD-anrechenbar. Wähle ein fachliches Thema der Versicherungsvermittlung.');
-  if (IDD_SOFT.test(t)) out.push('Software-Bedienung und Selbstmanagement zählen in der Regel nicht als IDD-Weiterbildung.');
+  if (IDD_SOFT.test(t)) out.push('Allgemeine Bürosoftware und Selbstmanagement zählen in der Regel nicht. Versicherungsspezifische Software wählst Du als Lerninhalt aus.');
   if (IDD_SALES.test(t)) out.push('Reine Verkaufs- oder Akquisetechniken zählen in der Regel nicht. Stelle den Bezug zu Kundenberatung, Bedarfsermittlung oder Produkten her.');
   if (IDD_FORMAT.test(t) && !IDD_FACH.test(t)) out.push('Der Titel nennt vor allem das Format. Nenne das fachliche Thema.');
   else if (!IDD_FACH.test(t) && !IDD_FREI.test(t)) out.push('Im Titel ist kein Bezug zu Versicherungsprodukten, Beratung, Recht oder Kundenschutz erkennbar. Ergänze das fachliche Thema.');
@@ -384,7 +387,7 @@ function icsDescription(ev) {
   var desc = htmlToText(ev.description).slice(0, 700);
   return ['Deine Anmeldung bei ' + state.settings.appTitle, '', ev.title, CAT_LABEL[ev.category] + ' \u00b7 ' + ev.type + ' \u00b7 ' + ev.topic, '',
     'Datum:         ' + dateLong(ev.date), 'Uhrzeit:       ' + ev.start + ' \u2013 ' + endHm(ev) + ' Uhr', 'Dauer:         ' + ev.duration + ' Minuten', 'Angeboten von: ' + ev.host, '',
-    'Teams-Sitzung: ' + ev.teamsLink, ''].concat(ev.idd && iddOn() ? ['IDD-anrechenbar: ' + ev.iddMinutes + ' Minuten', 'IDD-Titel: ' + ev.iddTitle, 'Agenda:'].concat(iddAgenda(ev).map(function (r) { return minToHm(r.from) + '–' + minToHm(r.to) + '  ' + r.title + (r.learn ? '' : ' (keine Lernzeit)'); })).concat(['']) : []).concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Abmelden kannst Du Dich unter „Meine Anmeldungen“.']).join('\n');
+    'Teams-Sitzung: ' + ev.teamsLink, ''].concat(ev.idd && iddOn() ? ['IDD-anrechenbar: ' + ev.iddMinutes + ' Minuten', 'IDD-Titel: ' + ev.iddTitle].concat(ev.iddContent ? ['Lerninhalt: ' + ev.iddContent] : []).concat(['Agenda:']).concat(iddAgenda(ev).map(function (r) { return minToHm(r.from) + '–' + minToHm(r.to) + '  ' + r.title + (r.learn ? '' : ' (keine Lernzeit)'); })).concat(['']) : []).concat(desc ? ['Worum geht es?', desc, ''] : []).concat(['Abmelden kannst Du Dich unter „Meine Anmeldungen“.']).join('\n');
 }
 function buildIcs(ev, uid) {
   var s = startDate(ev), e = new Date(s.getTime() + ev.duration * 60000);
@@ -529,6 +532,8 @@ var Local = (function () {
     if (k.length) throw ApiErr('invalid', er[k[0]]);
     if (v.idd) { if (!iddMode) throw ApiErr('forbidden', 'IDD-Veranstaltungen kannst Du erst nach Freischaltung durch die Administration anlegen.'); if (iddMode === 1 && !cfg.idd.on) throw ApiErr('invalid', 'Die IDD-Funktion ist nicht aktiv.'); }
     target.idd = !!v.idd; target.iddTitle = v.idd ? String(v.iddTitle || '').replace(/\s+/g, ' ').trim() : '';
+    if (v.idd && iddMode !== 2 && IDD_CONTENTS.indexOf(v.iddContent) < 0) throw ApiErr('invalid', 'Bitte wähle die Beschreibung des Lerninhalts.');
+    target.iddContent = v.idd ? (IDD_CONTENTS.indexOf(v.iddContent) >= 0 ? v.iddContent : IDD_CONTENTS[6]) : '';
     if (v.idd) { var room = Number(v.duration) - 10, ag = (v.agenda && v.agenda.length ? v.agenda : [{ content: target.iddTitle, minutes: room, iddMinutes: Number(v.iddMinutes) || room }]).map(function (b) { return { content: String(b.content || '').replace(/\s+/g, ' ').trim(), minutes: Number(b.minutes), iddMinutes: Number(b.iddMinutes) }; });
       var sm = 0, si = 0; ag.forEach(function (b) { sm += b.minutes; si += b.iddMinutes; });
       if (sm !== room) throw ApiErr('invalid', 'Die Einträge der Agenda müssen zusammen ' + room + ' Minuten dauern. Aktuell sind es ' + sm + ' Minuten.');
@@ -607,7 +612,7 @@ var Local = (function () {
     return B;
   }
   /* IDD (wie auf dem Server): Bestaetigung durch Anbietende 14 Tage nach dem Ende oder nach Freischaltung, Administration bis 31.01. des Folgejahres */
-  function iddPub() { var c = cfg.idd; return { on: !!c.on, provider: c.provider || '', frame: 5, welcome: { title: c.welcomeTitle || '', text: c.welcomeText || '' }, farewell: { title: c.farewellTitle || '', text: c.farewellText || '' } }; }
+  function iddPub() { var c = cfg.idd; return { on: !!c.on, provider: c.provider || '', frame: 5, contents: IDD_CONTENTS, welcome: { title: c.welcomeTitle || '', text: c.welcomeText || '' }, farewell: { title: c.farewellTitle || '', text: c.farewellText || '' } }; }
   function iddHardLock(e) { return new Date(startDate(e).getFullYear() + 1, 0, 31, 23, 59, 59); }
   function iddHostDeadline(e) { var d = new Date(endDate(e).getTime() + 14 * 864e5); if (e.reopenUntil) { var r = new Date(e.reopenUntil); if (r > d) d = r; } var hl = iddHardLock(e); return d > hl ? hl : d; }
   function iddHostCan(e, now) { return !!e.idd && !e.cancelled && endDate(e) <= now && now <= iddHostDeadline(e); }
@@ -627,7 +632,7 @@ var Local = (function () {
   function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff, iddHost: !!u.iddHost, iddDuty: !!u.iddDuty, iddHours: u.iddHours === 30 ? 30 : 15, gbId: u.gbId || '' }; }
   function eventBase(B, e) {
     return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: pubLevel(B, e.ownerId), hostExpert: pubExpert(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
-      description: e.description, rev: e.rev || 0, idd: !!e.idd && !!cfg.idd.on, iddTitle: e.idd && cfg.idd.on ? e.iddTitle || '' : '', iddMinutes: e.idd && cfg.idd.on ? e.iddMinutes || 0 : 0, agenda: e.idd && cfg.idd.on ? e.agenda || [] : null, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
+      description: e.description, rev: e.rev || 0, idd: !!e.idd && !!cfg.idd.on, iddTitle: e.idd && cfg.idd.on ? e.iddTitle || '' : '', iddMinutes: e.idd && cfg.idd.on ? e.iddMinutes || 0 : 0, agenda: e.idd && cfg.idd.on ? e.agenda || [] : null, iddContent: e.idd && cfg.idd.on ? e.iddContent || '' : '', isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
     var held = !e.cancelled, owner = userById(e.ownerId);
@@ -648,7 +653,7 @@ var Local = (function () {
     data.bookings.forEach(function (b) {
       if (b.userId !== u.id || b.idd !== 'yes') return; var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0];
       if (!ev || !ev.idd || ev.cancelled) return;
-      items.push({ bookingId: b.id, eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', date: ev.date, start: ev.start, end: endHm(ev), minutes: ev.iddMinutes, confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', provider: cfg.idd.provider || '' });
+      items.push({ bookingId: b.id, eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', iddContent: ev.iddContent || '', date: ev.date, start: ev.start, end: endHm(ev), minutes: ev.iddMinutes, confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', provider: cfg.idd.provider || '' });
     });
     if (items.length) data.iddArchive.push({ id: rid(8), firstName: u.firstName, lastName: u.lastName, xv: u.xv, gbId: u.gbId || '', iddHours: u.iddHours === 30 ? 30 : 15, deletedAt: nowIso(), reason: reason, items: items });
   }
@@ -1050,7 +1055,7 @@ var Local = (function () {
         if (cfg.idd.on) data.bookings.forEach(function (b) {
           if (b.userId !== me.id) return; var ev = data.events.filter(function (e) { return e.id === b.eventId; })[0];
           if (!ev || !ev.idd || ev.cancelled) return;
-          items.push({ eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', date: ev.date, start: ev.start, end: endHm(ev), duration: ev.duration, minutes: ev.iddMinutes, year: startDate(ev).getFullYear(), ended: endDate(ev) <= now, status: b.idd || '', confirmedAt: b.confirmedAt || '', locked: now > iddHardLock(ev) });
+          items.push({ eventId: ev.id, title: ev.title, iddTitle: ev.iddTitle || '', iddContent: ev.iddContent || '', date: ev.date, start: ev.start, end: endHm(ev), duration: ev.duration, minutes: ev.iddMinutes, year: startDate(ev).getFullYear(), ended: endDate(ev) <= now, status: b.idd || '', confirmedAt: b.confirmedAt || '', locked: now > iddHardLock(ev) });
         });
         return { on: !!cfg.idd.on, duty: !!me.iddDuty, hours: me.iddHours === 30 ? 30 : 15, gbId: me.gbId || '', firstName: me.firstName, lastName: me.lastName, xv: me.xv, provider: cfg.idd.provider || '', items: items };
       });
@@ -1060,7 +1065,7 @@ var Local = (function () {
         needAdmin(); var now = new Date();
         return data.events.filter(function (e) { return e.idd; }).map(function (e) {
           var ow = userById(e.ownerId);
-          return { id: e.id, title: e.title, iddTitle: e.iddTitle || '', date: e.date, start: e.start, duration: e.duration, iddMinutes: e.iddMinutes, cancelled: !!e.cancelled, isTest: !!e.isTest, anonymized: !!e.anonymized, ended: endDate(e) <= now,
+          return { id: e.id, title: e.title, iddTitle: e.iddTitle || '', iddContent: e.iddContent || '', date: e.date, start: e.start, duration: e.duration, iddMinutes: e.iddMinutes, cancelled: !!e.cancelled, isTest: !!e.isTest, anonymized: !!e.anonymized, ended: endDate(e) <= now,
             owner: ow ? { username: ow.username, firstName: ow.firstName, lastName: ow.lastName } : null, hostUntil: iddHostDeadline(e).toISOString(), hostOpen: iddHostCan(e, now), lockAt: iddHardLock(e).toISOString(), locked: now > iddHardLock(e),
             bookings: data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var u = userById(b.userId), ar = !u && data.iddArchive.filter(function (a) { return a.items.some(function (it) { return it.bookingId === b.id; }); })[0];
               if (ar) return { id: b.id, userId: '', username: 'Konto gelöscht', firstName: ar.firstName, lastName: ar.lastName, xv: ar.xv, gbId: ar.gbId, iddDuty: true, status: b.idd || '', confirmedAt: b.confirmedAt || '', confirmedBy: b.confirmedBy || '', addedBy: b.addedBy || '', addReason: b.addReason || '', archived: true };
@@ -1689,7 +1694,7 @@ function openAgendaEditor(o, onApply) {
 }
 function buildEventForm(o) {
   o = o || {}; var ev = o.event || {}, admin = !!o.admin;
-  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '', idd: !!ev.idd, iddTitle: ev.iddTitle || '', iddMinutes: ev.iddMinutes || 0, iddTouched: !!ev.idd };
+  var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '', idd: !!ev.idd, iddTitle: ev.iddTitle || '', iddContent: ev.iddContent || '', iddMinutes: ev.iddMinutes || 0, iddTouched: !!ev.idd };
   var existingImg = ev.image || '', srcImg = null, previewSrc = existingImg;
   var f = {}; // Felder
   var form = h('form', { class: 'form', novalidate: true });
@@ -1805,10 +1810,13 @@ function buildEventForm(o) {
     var iddTitleIn = h('input', { type: 'text', id: 'f-iddtitle', maxlength: '150', value: v.iddTitle, autocomplete: 'off', placeholder: 'z. B. Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung' });
     f.iddTitle = field('IDD-Titel für die Dokumentation', iddTitleIn, { id: 'f-iddtitle', req: true, hint: 'Sachlicher Titel, der den fachlichen Inhalt nennt. Er steht im IDD-Nachweis der Teilnehmenden.' });
     var iddHints = h('div', { class: 'idd-hints', 'aria-live': 'polite' });
+    var iddContentSel = h('select', { id: 'f-iddcontent' }, [h('option', { value: '', text: 'Bitte wählen' })].concat(((IDD.contents && IDD.contents.length) ? IDD.contents : IDD_CONTENTS).map(function (c) { return h('option', { value: c, text: c, selected: c === v.iddContent }); })));
+    iddContentSel.addEventListener('change', function () { v.iddContent = iddContentSel.value; f.iddContent.setErr(''); });
+    f.iddContent = field('Beschreibung des Lerninhalts', iddContentSel, { id: 'f-iddcontent', req: true, hint: 'Kategorie wie in der Weiterbildungsdatenbank von gutBeraten. Sie steht im IDD-Nachweis.' });
     var agSum = h('div', { class: 'ag-sum', 'aria-live': 'polite' }), agPrev = h('div'), agBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'f-agenda', text: 'Agenda bearbeiten' });
     f.iddMinutes = field('Agenda und IDD-Bildungszeit', h('div', { class: 'ag-field' }, [agSum, agPrev, h('div', null, agBtn)]), { legend: true, req: true, hint: 'Begrüßung und Verabschiedung dauern je ' + (IDD.frame || 5) + ' Minuten und zählen nicht zur Lernzeit. Dazwischen planst Du die Inhalte.' });
     var privNote = h('p', { class: 'hint', text: 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.' });
-    var iddBody = h('div', { class: 'idd-body' }, [f.iddTitle, iddHints, f.iddMinutes]);
+    var iddBody = h('div', { class: 'idd-body' }, [f.iddTitle, iddHints, f.iddContent, f.iddMinutes]);
     var showHints = function () { clear(iddHints); var hs = iddTitleHints(iddTitleIn.value); if (hs.length) iddHints.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Hinweis zum IDD-Titel' })].concat(hs.map(function (x) { return h('div', { text: x }); }))))); };
     var room = function () { return (Number(v.duration) || 0) - 2 * (IDD.frame || 5); };
     var defaultAgenda = function () { return [{ content: iddTitleIn.value.trim() || 'Thema der Veranstaltung', minutes: room(), iddMinutes: room(), auto: true }]; };
@@ -1840,18 +1848,19 @@ function buildEventForm(o) {
   var submit = h('button', { type: 'submit', class: 'btn btn-primary', text: o.submitLabel || 'Veranstaltung anbieten' });
   var extra = o.extraButtons || [];
   var box = h('div', { class: 'notice bad', role: 'alert', hidden: true });
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic])]));
-  if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }
+  /* Reihenfolge: Worum geht es? › Was wird angeboten? › Wann? › IDD (braucht die Dauer) › Teilnahme und Teams-Link */
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic]), h('div', { class: 'grid2' }, [f.type, h('div')])]));
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), f.description, f.image]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), h('div', { class: 'grid2' }, [f.type, f.capacity]), f.description, f.image]));
-  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Teams-Link' }), f.teamsLink]));
+  if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }
+  form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Teilnahme und Teams-Link' }), h('div', { class: 'grid2' }, [f.capacity, h('div')]), f.teamsLink]));
   form.appendChild(box);
   form.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [submit].concat(extra)));
   form.addEventListener('submit', function (e) {
     e.preventDefault(); box.hidden = true;
     if (!validate()) return;
     submit.disabled = true; var old = submit.textContent; submit.textContent = 'Wird gespeichert …';
-    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder, idd: !!v.idd, iddTitle: String(v.iddTitle || '').replace(/\s+/g, ' ').trim(), iddMinutes: v.idd ? v.iddMinutes : 0, agenda: v.idd ? v.agenda.map(function (b) { return { content: String(b.content).trim(), minutes: b.minutes, iddMinutes: b.iddMinutes }; }) : [] };
+    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder, idd: !!v.idd, iddTitle: String(v.iddTitle || '').replace(/\s+/g, ' ').trim(), iddContent: v.idd ? v.iddContent : '', iddMinutes: v.idd ? v.iddMinutes : 0, agenda: v.idd ? v.agenda.map(function (b) { return { content: String(b.content).trim(), minutes: b.minutes, iddMinutes: b.iddMinutes }; }) : [] };
     Promise.resolve(o.onSubmit(payload)).catch(function (err) { box.hidden = false; box.textContent = err.message || 'Das Speichern ist fehlgeschlagen.'; box.scrollIntoView({ block: 'center', behavior: 'smooth' }); }).then(function () { submit.disabled = false; submit.textContent = old; });
   });
   return form;
@@ -1993,7 +2002,7 @@ function openBooking(e, onChange) {
     var f = freeOf(e);
     body.appendChild(h('div', null, [h('h2', { text: e.title }), h('div', { class: 'chips-inline', style: 'margin-top:8px' }, chipEl('topic', capFirst(e.topic)))]));
     /* IDD: Titel fuer die Dokumentation und Agenda im scrollbaren Bereich, damit die Aktionszeile unten bleibt */
-    var iddInfo = e.idd ? h('div', { class: 'idd-box' }, [h('h3', { text: 'IDD-anrechenbar: ' + e.iddMinutes + ' Minuten', style: 'margin:0' }), h('div', { class: 'hint', text: 'IDD-Titel: ' + e.iddTitle }), agendaNode(e),
+    var iddInfo = e.idd ? h('div', { class: 'idd-box' }, [h('h3', { text: 'IDD-anrechenbar: ' + e.iddMinutes + ' Minuten', style: 'margin:0' }), h('div', { class: 'hint', text: 'IDD-Titel: ' + e.iddTitle }), e.iddContent ? h('div', { class: 'hint', text: 'Lerninhalt: ' + e.iddContent }) : null, agendaNode(e),
       state.me && state.me.iddDuty && !state.me.gbId ? h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'gutBeraten-ID fehlt' }), h('div', null, ['Damit die Zeit gemeldet werden kann, hinterlege Deine ID unter ', h('a', { href: '#/profil?tab=konto', text: 'Profil › Konto' }), '.'])])) : null]) : null;
     body.appendChild(h('div', { class: 'bk-desc', tabindex: '0' }, [h('div', { class: 'rich', html: sanitizeHtml(e.description) }), iddInfo]));
     var foot = h('div', { class: 'bk-foot' }); body.appendChild(foot);
@@ -2356,7 +2365,7 @@ function iddCockpit(c) {
     host.appendChild(h('div', { class: 'idd-prog', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct), 'aria-label': pct + ' Prozent der Weiterbildungspflicht' }, h('i', { style: 'width:' + pct + '%' })));
     host.appendChild(h('p', { class: 'hint', text: 'Bestätigungen für ' + cur + ' sind bis zum 31.01.' + (cur + 1) + ' möglich. Danach ist das Jahr abgeschlossen.' }));
     function tbl(cols, rows) { return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl', style: 'min-width:0' }, [h('thead', null, h('tr', null, cols.map(function (t) { return h('th', { text: t }); }))), h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (x) { return h('td', null, x); })); }))])); }
-    function row(x, last) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), h('span', null, [h('b', { text: x.iddTitle }), h('div', { class: 'hint', text: x.title })]), x.start + '–' + x.end + ' Uhr', x.minutes + ' Min.', last]; }
+    function row(x, last) { return [h('span', { class: 'nowrap', text: dateFull(x.date) }), h('span', null, [h('b', { text: x.iddTitle }), h('div', { class: 'hint', text: x.title + (x.iddContent ? ' · ' + x.iddContent : '') })]), x.start + '–' + x.end + ' Uhr', x.minutes + ' Min.', last]; }
     host.appendChild(h('h3', { text: 'Angerechnet' }));
     host.appendChild(ok.length ? tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Bestätigt am'], ok.sort(function (a, b) { return a.date < b.date ? -1 : 1; }).map(function (x) { return row(x, x.confirmedAt ? dateFull(x.confirmedAt.slice(0, 10)) : '–'); })) : h('p', { class: 'hint', text: 'In ' + cur + ' noch keine bestätigte Teilnahme.' }));
     if (pend.length) { host.appendChild(h('h3', { text: 'Wartet auf Bestätigung' })); host.appendChild(tbl(['Datum', 'IDD-Titel', 'Uhrzeit', 'IDD-Zeit', 'Status'], pend.map(function (x) { return row(x, 'noch offen'); }))); }
@@ -2403,10 +2412,11 @@ function iddPdf(c, year) {
   head();
   if (!its.length) { text(ML + 4, y + 14, 'Keine bestätigten Teilnahmen in diesem Kalenderjahr.', 9, false, GREY); y += 22; }
   its.forEach(function (x) {
-    var tl = pdfWrap(x.iddTitle, X[3] - X[2] - 10, 9, false), hh = Math.max(1, tl.length) * 11.5 + 8;
+    var tl = pdfWrap(x.iddTitle, X[3] - X[2] - 10, 9, false), cl = x.iddContent ? pdfWrap('Lerninhalt: ' + x.iddContent, X[3] - X[2] - 10, 7.5, false) : [], hh = Math.max(1, tl.length) * 11.5 + cl.length * 10 + 8;
     if (y + hh > PH - 90) { newPage(); head(); }
     text(X[0] + 4, y + 13, x.date.split('-').reverse().join('.'), 9, false, INK); text(X[1] + 4, y + 13, x.start + '–' + x.end, 9, false, INK);
     tl.forEach(function (l, i) { text(X[2] + 4, y + 13 + i * 11.5, l, 9, false, INK); });
+    cl.forEach(function (l, i) { text(X[2] + 4, y + 13 + tl.length * 11.5 + i * 10, l, 7.5, false, GREY); });
     text(X[4] - 6, y + 13, String(x.minutes), 9, true, INK, 'r'); text(X[4] + 4, y + 13, x.confirmedAt ? x.confirmedAt.slice(0, 10).split('-').reverse().join('.') : '–', 9, false, INK);
     line(ML, y + hh, ML + CW, y + hh, LINE, .4); y += hh;
   });
@@ -2973,7 +2983,7 @@ function viewAdmin() {
           var acts = h('div', { class: 'acts' }, Object.keys(yrs).map(Number).sort(function (x, y) { return y - x; }).map(function (y) {
             return h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Nachweis ' + y, onclick: function () {
               var c = { firstName: a.firstName, lastName: a.lastName, xv: a.xv, gbId: a.gbId, hours: a.iddHours || 15, provider: (a.items[0] && a.items[0].provider) || IDD.provider, archivedNote: 'Das Konto wurde am ' + dateFull(a.deletedAt.slice(0, 10)) + ' gelöscht. Nachweis aus dem Archiv der Administration.',
-                items: a.items.map(function (it) { return { year: Number(it.date.slice(0, 4)), status: 'yes', date: it.date, start: it.start, end: it.end, minutes: it.minutes, iddTitle: it.iddTitle, title: it.title, confirmedAt: it.confirmedAt }; }) };
+                items: a.items.map(function (it) { return { year: Number(it.date.slice(0, 4)), status: 'yes', date: it.date, start: it.start, end: it.end, minutes: it.minutes, iddTitle: it.iddTitle, iddContent: it.iddContent || '', title: it.title, confirmedAt: it.confirmedAt }; }) };
               saveBlob(iddPdf(c, y), 'IDD-Nachweis-' + y + '-' + (a.lastName || 'Archiv').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf');
             } });
           }));
@@ -3056,7 +3066,7 @@ function viewAdmin() {
           var fr = e.cancelled ? 'abgesagt' : !e.ended ? 'anstehend' : e.locked ? 'gesperrt' : e.hostOpen ? 'Anbietende bis ' + dateFull(e.hostUntil.slice(0, 10)) : 'nur Administration';
           var acts = h('div', { class: 'acts' }, [h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Teilnahmen', onclick: function () { people(e); } })]);
           if (e.ended && !e.locked && !e.cancelled && !e.hostOpen) acts.appendChild(twoStep(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Für Anbietende freischalten' }), 'Für Anbietende freischalten', 'Wirklich?', function (reset) { Api.adminIddReopen(e.id).then(function () { toast('Für 14 Tage freigeschaltet.'); return reload(); }, function (er) { reset(); toast(er.message, true); }); }));
-          tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [h('td', { class: 'nowrap', text: dateFull(e.date) }), h('td', null, [h('b', { text: e.iddTitle }), h('div', { class: 'hint', text: e.title })]), h('td', null, [h('span', { text: e.owner ? e.owner.username : 'Anonymisiert' }), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName }) : null]),
+          tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [h('td', { class: 'nowrap', text: dateFull(e.date) }), h('td', null, [h('b', { text: e.iddTitle }), h('div', { class: 'hint', text: e.title + (e.iddContent ? ' · ' + e.iddContent : '') })]), h('td', null, [h('span', { text: e.owner ? e.owner.username : 'Anonymisiert' }), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName }) : null]),
             h('td', { text: e.iddMinutes + ' Min.' }), h('td', { text: y_ + ' / ' + n_ + ' / ' + o_ }), h('td', { text: fr }), h('td', { class: 'c-act' }, acts)]));
         });
         host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'Anbietende', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
