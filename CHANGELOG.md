@@ -1,5 +1,8 @@
 # Änderungen
 
+## Präsentation (03.10.2026)
+- IDD-Anrechnung als geplant und im Ausbau dargestellt: für anrechnungsfähige Veranstaltungen aus dem beruflichen Bereich, Freischaltung folgt.
+
 ## 0.31.2 (03.10.2026)
 - **Formular „Veranstaltung anbieten“:** Themenbereich, Thema und Art der Veranstaltung stehen links untereinander.
 - Screenshots und Präsentation angepasst.
