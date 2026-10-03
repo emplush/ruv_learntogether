@@ -209,7 +209,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.26.0";
+        const string Version = "0.27.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -269,6 +269,7 @@ namespace LearnTogether
                     case "createEvent": CreateEvent(); break;
                     case "myEvents": MyEvents(); break;
                     case "cancelEvent": CancelEvent(); break;
+                    case "updateEvent": UpdateEvent(); break;
                     case "book": Book(); break;
                     case "cancelBooking": CancelBooking(); break;
                     case "myBookings": MyBookings(); break;
@@ -1251,6 +1252,48 @@ namespace LearnTogether
             }
         }
 
+        // Eigene, noch nicht begonnene Veranstaltung bearbeiten (Anbietende). Angemeldete erhalten bei Termin- oder Link-Aenderung eine Mitteilung.
+        void UpdateEvent()
+        {
+            Dictionary<string, object> b = Body();
+            Dictionary<string, object> e = D(b, "event");
+            if (e == null) throw new ApiException("invalid", "Ung\u00fcltige Anfrage.");
+            lock (Gate)
+            {
+                DataFile d = LoadData(); UserRec me = Auth(d, true);
+                EventRec ev = FindEvent(d, S(e, "id"));
+                if (ev == null || ev.ownerId != me.id) throw new ApiException("notfound", "Diese Veranstaltung gibt es nicht oder sie geh\u00f6rt Dir nicht.");
+                if (ev.cancelled) throw new ApiException("invalid", "Eine abgesagte Veranstaltung l\u00e4sst sich nicht mehr bearbeiten.");
+                if (StartOfSafe(ev.date, ev.start) <= NowBerlin()) throw new ApiException("past", "Die Veranstaltung hat bereits begonnen. Sie l\u00e4sst sich nicht mehr bearbeiten.");
+                string od = ev.date, os = ev.start, ol = ev.teamsLink; int odu = ev.duration;
+                int booked = CountBookings(d, ev.id);
+                if (I(e, "capacity") < booked) throw new ApiException("invalid", "Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (" + booked + ") liegen.");
+                ReadEvent(e, ev, false);
+                string img = S(e, "imageData");
+                if (img.Length > 0) StoreImage(ev, img);
+                else if (B(e, "removeImage")) { DeleteImageFiles(ev.id); ev.hasImage = false; }
+                int n = NotifyChanges(d, ev, od, os, odu, ol);
+                SaveData(d);
+                Send(new { ok = true, id = ev.id, notified = n });
+            }
+        }
+
+        // Mitteilung an alle Angemeldeten, wenn sich Termin oder Teams-Link geaendert haben
+        static int NotifyChanges(DataFile d, EventRec ev, string oldDate, string oldStart, int oldDur, string oldLink)
+        {
+            List<string> parts = new List<string>();
+            if (ev.date != oldDate || ev.start != oldStart || ev.duration != oldDur)
+            {
+                DateTime t = StartOfSafe(ev.date, ev.start);
+                parts.Add("Neuer Termin: " + t.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture) + ", " + ev.start + " bis " + t.AddMinutes(ev.duration).ToString("HH:mm", CultureInfo.InvariantCulture) + " Uhr. Bitte passe Deinen Kalender an.");
+            }
+            if (ev.teamsLink != oldLink) parts.Add("Der Teams-Link hat sich ge\u00e4ndert. Den neuen Link findest Du unter Meine Anmeldungen.");
+            if (parts.Count == 0) return 0;
+            int n = 0;
+            foreach (BookingRec bk in d.bookings) if (bk.eventId == ev.id && !string.IsNullOrEmpty(bk.userId)) { AddNote(d, bk.userId, "changed", ev, string.Join(" ", parts.ToArray())); n++; }
+            return n;
+        }
+
         static void AddNote(DataFile d, string userId, string type, EventRec ev, string reason)
         {
             NoteRec n = new NoteRec(); n.id = NewId(); n.userId = userId; n.type = type; n.eventId = ev.id; n.title = ev.title; n.date = ev.date; n.start = ev.start; n.reason = reason ?? "";
@@ -1637,32 +1680,54 @@ namespace LearnTogether
         }
 
         // ---------------------------------------------------------------- Admin
+        // Veranstaltungen fuer die Administration.
+        // Bewertungen: je Veranstaltung nur die Anzahl; die Sterne gibt es nur zusammengefasst (ratingBuckets), ohne Bezug zu Anbietenden.
+        // Private Veranstaltungen: keine Namen der Teilnehmenden (Freizeit), nur Anzahl. Fuer Zaehlungen dient ein zufaelliges Kennzeichen je Antwort.
         void AdminEvents(DataFile d)
         {
             DateTime now = NowBerlin();
             Badges bd = BuildBadges(d, LoadSettings(), now);
             List<object> l = new List<object>();
+            Dictionary<string, string> tok = new Dictionary<string, string>();
+            Func<string, string> T = delegate (string id) { if (string.IsNullOrEmpty(id)) return ""; string t; if (!tok.TryGetValue(id, out t)) { t = "p" + tok.Count.ToString(CultureInfo.InvariantCulture); tok[id] = t; } return t; };
+            Dictionary<string, object[]> buckets = new Dictionary<string, object[]>();
             foreach (EventRec e in d.events)
             {
                 Dictionary<string, object> x = EventBase(d, bd, e);
                 UserRec ow = FindUser(d, e.ownerId);
+                bool priv = e.category == "privat";
                 x["ownerId"] = e.ownerId ?? "";
                 x["owner"] = ow == null ? null : new { username = ow.username, firstName = ow.firstName, lastName = ow.lastName, xv = ow.xv, email = ow.email };
                 x["teamsLink"] = e.teamsLink; x["anonymized"] = e.anonymized; x["anonymizedAt"] = e.anonymizedAt ?? "";
                 List<object> bl = new List<object>();
+                int cnt = 0; int[] dist = new int[5];
                 foreach (BookingRec bk in d.bookings)
                 {
                     if (bk.eventId != e.id) continue;
+                    if (bk.rating > 0) { cnt++; dist[bk.rating - 1]++; }
                     UserRec bu = FindUser(d, bk.userId);
-                    if (bu != null) bl.Add(new { id = bk.id, username = bu.username, firstName = bu.firstName, lastName = bu.lastName, xv = bu.xv, email = bu.email, created = bk.created });
-                    else bl.Add(new { id = bk.id, username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", email = bk.email ?? "", created = bk.created });
+                    if (priv) bl.Add(new { id = bk.id, p = T(bk.userId), hidden = true, created = bk.created });
+                    else if (bu != null) bl.Add(new { id = bk.id, p = T(bk.userId), username = bu.username, firstName = bu.firstName, lastName = bu.lastName, xv = bu.xv, email = bu.email, created = bk.created });
+                    else bl.Add(new { id = bk.id, p = "", username = bk.name ?? "Anonymisiert", firstName = "", lastName = "", xv = "", email = bk.email ?? "", created = bk.created });
                 }
-                double avg; int cnt; RatingOf(d, e.id, out avg, out cnt);
-                // Bewertungen nur zusammengefasst und erst ab MinRatings: wer wie bewertet hat, sieht auch die Administration nicht
-                x["bookings"] = bl; x["booked"] = bl.Count; x["ratingAvg"] = avg; x["ratingCount"] = cnt; x["ratingDist"] = RatingDist(d, e.id);
+                if (cnt > 0 && !e.cancelled)
+                {
+                    string key = e.date.Substring(0, 7) + "|" + e.category + "|" + e.topic + "|" + (e.isTest ? "1" : "0");
+                    object[] bu2;
+                    if (!buckets.TryGetValue(key, out bu2)) { bu2 = new object[] { new int[5], new HashSet<string>() }; buckets[key] = bu2; }
+                    int[] bd2 = (int[])bu2[0]; for (int i = 0; i < 5; i++) bd2[i] += dist[i];
+                    ((HashSet<string>)bu2[1]).Add("h" + T("o:" + (e.ownerId ?? e.id)));
+                }
+                x["bookings"] = bl; x["booked"] = bl.Count; x["ratingCount"] = cnt; x["participantsHidden"] = priv;
                 l.Add(x);
             }
-            Send(new { ok = true, events = l });
+            List<object> rb = new List<object>();
+            foreach (KeyValuePair<string, object[]> kv in buckets)
+            {
+                string[] k = kv.Key.Split('|');
+                rb.Add(new { m = k[0], c = k[1], t = k[2], test = k[3] == "1", d = (int[])kv.Value[0], h = new List<string>((HashSet<string>)kv.Value[1]) });
+            }
+            Send(new { ok = true, events = l, ratingBuckets = rb });
         }
 
         // Nutzerliste fuer die Administration: keine Anmeldezeiten und keine Teilnahmen je Person (keine Verhaltens- oder Leistungskontrolle).
@@ -1792,6 +1857,7 @@ namespace LearnTogether
             EventRec ev = FindEvent(d, id);
             bool isNew = ev == null;
             if (isNew) { ev = new EventRec(); ev.id = NewId(); ev.created = NowIso(); ev.ownerId = me.id; ev.host = me.username; }
+            string od = ev.date, os = ev.start, ol = ev.teamsLink; int odu = ev.duration;
             ReadEvent(e, ev, true);
             int booked = CountBookings(d, ev.id);
             if (ev.capacity < booked) throw new ApiException("invalid", "Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (" + booked + ") liegen.");
@@ -1799,6 +1865,7 @@ namespace LearnTogether
             if (img.Length > 0) StoreImage(ev, img);
             else if (B(e, "removeImage")) { DeleteImageFiles(ev.id); ev.hasImage = false; }
             if (isNew) d.events.Add(ev);
+            else if (!ev.cancelled && StartOfSafe(ev.date, ev.start) > NowBerlin()) NotifyChanges(d, ev, od, os, odu, ol);
             SaveData(d);
             Send(new { ok = true, id = ev.id });
         }

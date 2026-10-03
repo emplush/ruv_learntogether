@@ -41,7 +41,7 @@
 <h3>Suchen und filtern</h3>
 <p>Die Filter wirken sofort beim Tippen: Suche (Titel, Benutzername, Name, XV-Nummer, E-Mail, Thema), Bereich, Art, Thema sowie ein Zeitraum von/bis. <b>Filter zurücksetzen</b> zeigt wieder alles. Oben steht, wie viele Veranstaltungen und Anmeldungen die Auswahl enthält.</p>
 <h3>Teilnehmende ansehen</h3>
-<p>Mit <b>Teilnehmende (n)</b> öffnest Du ein Fenster mit Belegungsbalken und einer Tabelle aus Benutzername, echtem Namen, XV-Nummer und E-Mail-Adresse. Wie eine Person bewertet hat, zeigt die Anwendung nicht. Bewertungen sind anonym.</p>
+<p>Mit <b>Teilnehmende (n)</b> öffnest Du ein Fenster mit Belegungsbalken und einer Tabelle aus Benutzername, echtem Namen, XV-Nummer und E-Mail-Adresse. Wie eine Person bewertet hat, zeigt die Anwendung nicht. Bewertungen sind anonym. Bei privaten Veranstaltungen siehst Du nur die Zahl der Anmeldungen.</p>
 {{FIGURE:adm-teilnehmende|Das Fenster mit den Teilnehmenden einer Veranstaltung.}}
 <ul>
 <li><b>E-Mail-Adressen kopieren</b> legt alle Adressen getrennt durch Semikolon in die Zwischenablage, praktisch für eine Nachricht an alle.</li>
@@ -50,10 +50,10 @@
 </ul>
 <h3>Bearbeiten und löschen</h3>
 <ul>
-<li><b>Bearbeiten</b> öffnet das Formular der Veranstaltung. Du kannst alle Angaben ändern, auch Datum und Platzzahl. Es gelten dieselben Regeln wie beim Anlegen (Zeitfenster, Montag bis Freitag).</li>
+<li><b>Bearbeiten</b> öffnet das Formular der Veranstaltung. Du kannst alle Angaben ändern, auch Datum und Platzzahl. Es gelten dieselben Regeln wie beim Anlegen (Zeitfenster, Montag bis Freitag). Ändern sich Termin, Dauer oder Teams-Link, erhalten Angemeldete eine Mitteilung. Anbietende können ihre Veranstaltungen bis zum Beginn auch selbst bearbeiten.</li>
 <li><b>Löschen</b> entfernt die Veranstaltung samt Anmeldungen und Bild. Auch hier fragt ein zweiter Klick („Wirklich löschen?“) nach. Das lässt sich nicht rückgängig machen.</li>
 </ul>
-<div class="tip">Informiere angemeldete Personen vor dem Löschen, zum Beispiel über die kopierten E-Mail-Adressen. Die Anwendung verschickt selbst keine E-Mails.</div>
+<div class="tip">Beim Löschen einer anstehenden Veranstaltung erhalten Angemeldete eine Mitteilung in der Anwendung. E-Mails verschickt sie nicht.</div>
 
 <h2>Archiv</h2>
 <p>Unter <b>Übersicht › Archiv</b> stehen alle Veranstaltungen, die stattgefunden haben. Auch abgesagte Veranstaltungen kommen nach ihrem geplanten Ende hierher, mit dem Hinweis „abgesagt“. Das Archiv trennt zwischen <b>Dienstlich</b> und <b>Privat</b>. Oben wechselst Du mit dem Schalter, in Klammern steht die Zahl der Einträge.</p>
@@ -62,8 +62,8 @@
 <li><b>Suche:</b> Titel, Benutzername, Name, Thema und Art, sofort beim Tippen.</li>
 <li><b>Filter:</b> Art, Thema und ein Zeitraum mit Start- und Enddatum. <b>Filter zurücksetzen</b> zeigt wieder alles.</li>
 <li><b>Spalte „Personenbezogene Daten“:</b> zeigt „Personenbezogen“ mit dem Datum der geplanten Anonymisierung oder „Anonymisiert“ mit dem Datum der Anonymisierung.</li>
-<li><b>Spalte „Ø Bewertung“:</b> zeigt den Durchschnitt der Sterne, die Teilnehmende vergeben haben, bei mehreren Bewertungen mit deren Zahl.</li>
-<li><b>Teilnehmende:</b> öffnet die Liste mit Benutzername, Name, XV-Nummer, E-Mail und Bewertung. Bei anonymisierten Veranstaltungen steht dort „Anonymisiert“.</li>
+<li><b>Spalte „Bewertungen“:</b> zeigt, wie viele Teilnehmende bewertet haben. Sterne je Veranstaltung zeigt die Administration nicht. Bewertungen der Anbietenden sind kein Thema der Administration (siehe Statistik).</li>
+<li><b>Teilnehmende:</b> öffnet die Liste mit Benutzername, Name, XV-Nummer und E-Mail. Bei anonymisierten Veranstaltungen steht dort „Anonymisiert“. Bei <b>privaten</b> Veranstaltungen zeigt die Anwendung nur die Zahl der Anmeldungen, keine Namen. Die Teilnahme gehört zur Freizeit.</li>
 <li><b>Löschen:</b> entfernt eine archivierte Veranstaltung samt Anmeldungen endgültig, zum Beispiel auf Wunsch einer betroffenen Person.</li>
 </ul>
 <h3>Aufbewahrung und Anonymisierung</h3>
@@ -82,15 +82,16 @@
 {{FIGURE:adm-statistik|Die Statistik in Bereichen mit Kennzahlen und Auswertungen.}}
 <table>
 <tr><th>Bereich</th><th>Kennzahlen</th><th>Auswertungen</th></tr>
-<tr><td>Überblick</td><td>Veranstaltungen, Anmeldungen, Ø Auslastung, registrierte Konten, Ø Bewertung, Anbietende</td><td>Veranstaltungen und Teilnehmende pro Monat</td></tr>
-<tr><td>Veranstaltungen</td><td>Ø Anmeldungen, ohne Anmeldung, ausgebucht, abgesagt, Absagequote, Ø Vorlauf der Anmeldung</td><td>Auslastung pro Monat, Monatsübersicht, Wochentag, Tageszeit, Auslastung, Bilder der Veranstaltungen, gefragteste Veranstaltungen, Veranstaltungen ohne Anmeldung</td></tr>
+<tr><td>Überblick</td><td>Veranstaltungen, Anmeldungen, Ø Auslastung, Lernstunden, erreichte Personen, registrierte Konten, Ø Bewertung, Anbietende</td><td>Veranstaltungen, Lernstunden und Teilnehmende pro Monat</td></tr>
+<tr><td>Veranstaltungen</td><td>Durchgeführt, dienstliche Lernstunden, Ø Anmeldungen, ohne Anmeldung, ausgebucht, abgesagt, Absagequote, Ø Vorlauf der Anmeldung</td><td>Auslastung pro Monat, Monatsübersicht, Wochentag, Tageszeit, Auslastung, Bilder der Veranstaltungen, gefragteste Veranstaltungen, Veranstaltungen ohne Anmeldung</td></tr>
 <tr><td>Themen und Formate</td><td>–</td><td>Teilnehmende nach Thema, Art und Dauer, Angebot nach Thema</td></tr>
 <tr><td>Nutzende</td><td>Neue Konten im Zeitraum, aktiv in den letzten 30 Tagen, öffentliche Profile, mit Profilbild, mit Expertenstatus</td><td>Registrierungen pro Monat, letzte Anmeldung (nur gesamt), Konten nach Abzeichen, Profile und Profilbilder</td></tr>
 <tr><td>Bewertungen</td><td>Ø Bewertung, abgegebene Bewertungen, Bewertungsquote, bewertete Veranstaltungen</td><td>Verteilung der Bewertungen, Bewertung nach Thema</td></tr>
 <tr><td>Datenschutz</td><td>Personenbezogen gespeichert, anonymisiert</td><td>Personenbezogene Daten, nächste Anonymisierungen</td></tr>
 </table>
 <p>Abgesagte Veranstaltungen zählen nicht in die Auswertungen, nur in „Abgesagt“ und die Absagequote. Die Bewertungsquote setzt abgegebene Bewertungen ins Verhältnis zu den Anmeldungen bei beendeten Veranstaltungen. Eine Anmeldung zählt in dem Monat, in dem die Veranstaltung stattfindet. Die Statistik umfasst auch archivierte Veranstaltungen.</p>
-<div class="tip"><b>Keine Leistungs- oder Verhaltenskontrolle:</b> Die Statistik zeigt nur zusammengefasste Werte. Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Sterne fließen nur aus Veranstaltungen mit mindestens drei Bewertungen ein, damit keine einzelne Bewertung erkennbar ist. Die Bewertungsquote zählt alle Bewertungen.</div>
+<p><b>Lernstunden</b> sind Teilnahmen mal Dauer bei durchgeführten Veranstaltungen. <b>Erreichte Personen</b> zählt jede Person einmal, die an mindestens einer durchgeführten Veranstaltung teilgenommen hat. Beide Werte eignen sich für den Bericht an das Management.</p>
+<div class="tip"><b>Keine Leistungs- oder Verhaltenskontrolle:</b> Die Statistik zeigt nur zusammengefasste Werte. Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Sterne erhält die Statistik nur zusammengefasst nach Monat, Bereich und Thema, ohne Bezug zu Anbietenden. Ein Wert erscheint erst ab drei Bewertungen und drei verschiedenen Anbietenden. Die Bewertungsquote zählt alle Bewertungen.</div>
 <h3>Als PDF speichern</h3>
 <p>Jede Auswertung hat oben rechts einen Button <b>PDF</b>. <b>Bereich als PDF</b> speichert den gewählten Bereich. Der <b>Gesamtbericht als PDF</b> enthält alle Kennzahlen und Auswertungen der aktuellen Auswahl, mit Filterangaben, Datum und Seitenzahlen. Das PDF entsteht im Browser, die Daten verlassen den Rechner nicht.</p>
 
@@ -231,6 +232,7 @@
 <li>Der Teams-Link wird nur angemeldeten Personen angezeigt und steht nicht im Katalog.</li>
 <li>Anbietende sehen Teilnehmende nur mit Benutzernamen. Bewertungen sehen sie als Durchschnitt je Session, erst ab drei Bewertungen. Einzelne Bewertungen sieht niemand, auch nicht die Administration.</li>
 <li>Abzeichen und Rakete können Nutzende ausblenden. Profil und Profilbild sind freiwillig.</li>
+<li>Wer an privaten Veranstaltungen teilnimmt, zeigt die Anwendung der Administration nicht. Sterne gibt es für die Administration nur zusammengefasst nach Monat, Bereich und Thema.</li>
 <li>Nutzende können ihre Daten herunterladen (Auskunft) und ihr Konto selbst löschen. Konten ohne Anmeldung seit 24 Monaten löscht die Anwendung automatisch.</li>
 <li>Es gibt keine Ranglisten von Personen und keine Anmeldezeiten je Person. Die Anwendung dient nicht der Leistungs- oder Verhaltenskontrolle.</li>
 <li>Alle Veranstaltungen werden fünf Jahre nach ihrem Ende anonymisiert (siehe Kapitel Archiv). Zugriff auf personenbezogene Daten haben nur die Administratoren aus VH-VP-TV.</li>

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.27.0 (03.10.2026)
+Zweite Prüfung auf Datenschutz, Mitbestimmung, Nutzen und Vollständigkeit.
+- **Veranstaltungen bearbeiten:** Anbietende ändern ihre Veranstaltung bis zum Beginn selbst (Termin, Teams-Link, Beschreibung, Bild, Platzzahl). Bei neuem Termin oder Link erhalten Angemeldete die Mitteilung „Geändert“. Gilt auch für Änderungen durch die Administration.
+- **Private Teilnahme bleibt privat:** Bei privaten Veranstaltungen sieht die Administration nur die Zahl der Anmeldungen, keine Namen.
+- **Bewertungen für die Administration nur zusammengefasst:** keine Sterne je Veranstaltung, nur Werte nach Monat, Bereich und Thema, ohne Bezug zu Anbietenden und erst ab drei verschiedenen Anbietenden.
+- **Statistik für das Management:** neue Kennzahlen Lernstunden, erreichte Personen, durchgeführte Sessions und dienstliche Lernstunden sowie die Auswertung „Lernstunden pro Monat“.
+- **Handbücher:** Bearbeiten, Mitteilung „Geändert“, Datenschutz in Archiv und Teilnehmendenliste, neue Kennzahlen. Veraltete Aussagen zu Bewertungen in der Teilnehmendenliste korrigiert.
+- **Papier IT-Sicherheit und Datenschutz:** aktualisiert, neuer Abschnitt „Offene Entscheidungen“.
+- **Präsentation:** neue Folie „Woran wir den Pilot messen“ mit Zielwerten und Aufwand, Bearbeiten und Lernstunden ergänzt.
+
 ## 0.26.0 (02.10.2026)
 Prüfung auf IT-Sicherheit, Datenschutz und Mitbestimmung.
 - **Startpasswort:** Auf dem IIS zufällig, nur auf dem Server in `AppData\Data\admin-startpasswort.txt` lesbar und nach der ersten Änderung gelöscht. Ein noch unverändertes altes Standardpasswort wird beim Update ersetzt.

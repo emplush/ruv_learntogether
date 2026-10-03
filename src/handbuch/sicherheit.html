@@ -27,9 +27,9 @@
 <tr><td>Benutzername</td><td>Anzeige auf Kacheln und Listen</td><td>alle</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Vor- und Nachname, XV-Nummer, E-Mail-Adresse</td><td>Zuordnung, Nachweis, Kontakt durch die Administration</td><td>die Person selbst, Administration; E-Mail nur nach Freigabe auch andere</td><td>bis zur Löschung des Kontos</td></tr>
 <tr><td>Passwort</td><td>Anmeldung</td><td>niemand (nur als Hash gespeichert)</td><td>bis zur Löschung des Kontos</td></tr>
-<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst, Administration; Anbietende sehen nur Benutzernamen</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
+<tr><td>Anmeldungen zu Veranstaltungen</td><td>Platzvergabe, Teams-Link, Nachweis</td><td>die Person selbst; Administration nur bei dienstlichen Veranstaltungen, bei privaten nur die Anzahl; Anbietende sehen nur Benutzernamen</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
 <tr><td>Eigene Veranstaltungen</td><td>Katalog, Organisation</td><td>alle (ohne Teams-Link)</td><td>5 Jahre nach der Veranstaltung, dann anonymisiert</td></tr>
-<tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Qualität und Motivation</td><td>niemand einzeln; Durchschnitt ab 3 Bewertungen</td><td>mit der Anmeldung, danach anonym</td></tr>
+<tr><td>Bewertungen (1 bis 5 Sterne)</td><td>Rückmeldung an Anbietende</td><td>niemand einzeln; Anbietende sehen ihren Durchschnitt ab 3 Bewertungen; Administration nur zusammengefasst nach Monat, Bereich und Thema</td><td>mit der Anmeldung, danach anonym</td></tr>
 <tr><td>Profil, Beschreibung, Profilbild</td><td>freiwillige Vorstellung</td><td>nur nach Freigabe</td><td>bis zur Änderung oder Löschung</td></tr>
 <tr><td>Letzte Anmeldung</td><td>automatische Löschung inaktiver Konten</td><td>niemand einzeln; Administration nur als Gesamtzahl</td><td>bis zur nächsten Anmeldung</td></tr>
 <tr><td>Admin-Protokoll</td><td>Nachvollziehbarkeit von Änderungen durch die Administration</td><td>Betrieb auf dem Server</td><td>12 Monate</td></tr>
@@ -40,8 +40,8 @@
 <table>
 <tr><th>Rolle</th><th>Darf</th><th>Sieht</th></tr>
 <tr><td>Ohne Anmeldung</td><td>Katalog ansehen</td><td>Veranstaltungen und Benutzernamen, keine Teams-Links</td></tr>
-<tr><td>Nutzende</td><td>Anmelden, abmelden, bewerten, Veranstaltungen anbieten und absagen, Profil pflegen, Daten herunterladen, Konto löschen</td><td>Eigene Daten; bei eigenen Veranstaltungen die Benutzernamen der Teilnehmenden und den Durchschnitt ab 3 Bewertungen</td></tr>
-<tr><td>Administration</td><td>Veranstaltungen und Anmeldungen verwalten, Passwörter zurücksetzen, Konten sperren und löschen, Texte, Themen und Einstellungen pflegen</td><td>Kontodaten aller Personen und Teilnehmendenlisten; keine Einzelbewertungen, keine Anmeldezeiten je Person</td></tr>
+<tr><td>Nutzende</td><td>Anmelden, abmelden, bewerten, Veranstaltungen anbieten, bearbeiten und absagen, Profil pflegen, Daten herunterladen, Konto löschen</td><td>Eigene Daten; bei eigenen Veranstaltungen die Benutzernamen der Teilnehmenden und den Durchschnitt ab 3 Bewertungen</td></tr>
+<tr><td>Administration</td><td>Veranstaltungen und Anmeldungen verwalten, Passwörter zurücksetzen, Konten sperren und löschen, Texte, Themen und Einstellungen pflegen</td><td>Kontodaten aller Personen, Teilnehmendenlisten dienstlicher Veranstaltungen, bei privaten nur die Anzahl; Sterne nur zusammengefasst ohne Bezug zu Anbietenden; keine Anmeldezeiten je Person</td></tr>
 <tr><td>Hauptadministration</td><td>Zusätzlich Admin-Rechte vergeben und entziehen, Admin-Konten löschen</td><td>wie Administration</td></tr>
 <tr><td>Betrieb (Server)</td><td>Installation, Datensicherung</td><td>Dateien in <code>AppData\Data</code></td></tr>
 </table>
@@ -83,11 +83,11 @@
 <p>Die Anwendung verarbeitet Daten von Beschäftigten. Sie unterliegt deshalb der Mitbestimmung nach § 87 Abs. 1 Nr. 6 BetrVG. Eine Leistungs- oder Verhaltenskontrolle ist technisch ausgeschlossen, soweit die Funktionen es zulassen:</p>
 <table>
 <tr><th>Thema</th><th>Technische Ausgestaltung</th></tr>
-<tr><td>Bewertungen</td><td>Anonym. Niemand sieht, wer wie bewertet hat, auch nicht die Administration. Durchschnittswerte erscheinen erst ab drei Bewertungen. Eine abgegebene Bewertung ist endgültig.</td></tr>
+<tr><td>Bewertungen</td><td>Anonym. Niemand sieht, wer wie bewertet hat. Die anbietende Person sieht ihren Durchschnitt ab drei Bewertungen. Die Administration sieht keine Sterne je Veranstaltung oder Person, nur Werte je Monat, Bereich und Thema, und erst ab drei verschiedenen Anbietenden.</td></tr>
 <tr><td>Ranglisten</td><td>Gibt es nicht. Die Statistik zeigt nur zusammengefasste Werte, zum Beispiel je Monat, Thema oder Format.</td></tr>
 <tr><td>Aktivität</td><td>Die Administration sieht keine Anmeldezeiten und keine Teilnahmen je Person. Die Statistik zeigt nur, wie viele Konten in einem Zeitraum aktiv waren.</td></tr>
 <tr><td>Abzeichen und Expertenstatus</td><td>Richten sich nach der Zahl angebotener Veranstaltungen. Sie dienen der Anerkennung und lassen sich ausblenden.</td></tr>
-<tr><td>Teilnehmendenlisten</td><td>Anbietende sehen nur Benutzernamen. Echte Namen sieht die Administration, für Organisation und späteren Nachweis.</td></tr>
+<tr><td>Teilnehmendenlisten</td><td>Anbietende sehen nur Benutzernamen. Echte Namen sieht die Administration nur bei dienstlichen Veranstaltungen, für Organisation und späteren Nachweis. Wer an privaten Veranstaltungen teilnimmt, sieht die Administration nicht.</td></tr>
 <tr><td>Schnittstellen</td><td>Keine. Keine Übergabe an Personal-, Zeit- oder Vertriebssysteme.</td></tr>
 <tr><td>Arbeitszeit</td><td>Wird nicht erfasst. Teilnehmende an dienstlichen Sessions stempeln sich selbst ein und aus.</td></tr>
 </table>
@@ -129,12 +129,22 @@
 <tr><th>Restrisiko</th><th>Einschätzung</th><th>Empfehlung</th></tr>
 <tr><td>Unverschlüsselte Übertragung ohne HTTPS</td><td>mittel, im internen Netz gering</td><td>HTTPS einrichten, bis dahin Zugriff begrenzen</td></tr>
 <tr><td>Offene Registrierung für alle, die die Seite erreichen</td><td>gering im internen Netz</td><td>Zugriff begrenzen; später Anmeldung über das Unternehmensverzeichnis prüfen</td></tr>
+<tr><td>Keine Prüfung der Identität bei der Registrierung: jemand könnte eine fremde XV-Nummer angeben</td><td>gering, fällt spätestens der betroffenen Person auf</td><td>Administration löscht solche Konten; optional Freischaltung neuer Konten durch die Administration oder Anmeldung über das Unternehmensverzeichnis</td></tr>
 <tr><td>Keine Zwei-Faktor-Anmeldung</td><td>gering, da wenig schutzbedürftige Daten</td><td>Admin-Konten mit starken Passwörtern und wenigen Personen</td></tr>
 <tr><td>Daten unverschlüsselt im Dateisystem</td><td>gering bei korrekten Rechten</td><td>Rechte auf <code>AppData\Data</code> nur für Anwendungspool und Betrieb, Laufwerksverschlüsselung des Servers</td></tr>
 <tr><td>Sperren nach Fehlversuchen liegen im Arbeitsspeicher</td><td>gering</td><td>Ein Neustart des Anwendungspools hebt sie auf. Dazu keine automatischen Neustarts in kurzen Abständen</td></tr>
-<tr><td>Administration sieht echte Namen der Teilnehmenden</td><td>gewollt, für Organisation und Nachweis</td><td>Wenige benannte Personen, Zweckbindung in der Vereinbarung</td></tr>
+<tr><td>Administration sieht echte Namen der Teilnehmenden dienstlicher Veranstaltungen</td><td>gewollt, für Organisation und Nachweis</td><td>Wenige benannte Personen, Zweckbindung in der Vereinbarung</td></tr>
 <tr><td>Rückschluss auf einzelne Bewertungen über die Änderung des Durchschnitts</td><td>sehr gering</td><td>Durchschnitt erst ab drei Bewertungen; Anbietende wissen nicht, wer wann bewertet</td></tr>
 <tr><td>Demo-Version im Browser</td><td>nur für Tests</td><td>Keine echten Daten in die Demo eingeben</td></tr>
+</table>
+
+<h2>Offene Entscheidungen</h2>
+<p>Drei Punkte sind keine Frage der Technik, sondern der Abstimmung mit Datenschutz und Betriebsrat. Die Anwendung lässt sich jeweils schnell anpassen.</p>
+<table>
+<tr><th>Frage</th><th>Heute</th><th>Empfehlung</th></tr>
+<tr><td>Wie lange bleiben Daten privater Veranstaltungen gespeichert?</td><td>5 Jahre wie bei dienstlichen</td><td>Kürzer, zum Beispiel 12 Monate. Die 5 Jahre begründet die IDD, die nur dienstliche Sessions betrifft.</td></tr>
+<tr><td>Sind Abzeichen ohne eigene Entscheidung sichtbar?</td><td>Ja, abschaltbar im Profil</td><td>Beibehalten als Anerkennung oder auf „erst nach Zustimmung“ umstellen</td></tr>
+<tr><td>Werden neue Konten geprüft?</td><td>Nein, Selbstregistrierung</td><td>Für den Pilot ausreichend; bei breitem Einsatz Freischaltung oder Unternehmensverzeichnis</td></tr>
 </table>
 
 <h2>Checkliste für den Start</h2>
@@ -159,7 +169,9 @@
 <li>Schreibende Aufrufe per GET werden abgelehnt.</li>
 <li>Ein Skript, getarnt als Bild, wird beim Hochladen abgelehnt.</li>
 <li>Antworten tragen <code>no-store</code>.</li>
-<li>Die Administration erhält keine Einzelbewertungen, keine Anmeldezeiten und keine Teilnahmen je Person.</li>
+<li>Die Administration erhält keine Einzelbewertungen, keine Sterne je Veranstaltung, keine Anmeldezeiten und keine Teilnahmen je Person.</li>
+<li>Bei privaten Veranstaltungen erhält die Administration keine Namen der Teilnehmenden.</li>
+<li>Ändert die anbietende Person Termin oder Teams-Link, erhalten Angemeldete eine Mitteilung.</li>
 <li>Durchschnittswerte erscheinen erst ab drei Bewertungen.</li>
 <li>Ausgeblendete Abzeichen erscheinen nirgends.</li>
 <li>Gelöschte Konten können sich nicht mehr anmelden.</li>

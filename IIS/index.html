@@ -723,7 +723,7 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.26.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.27.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -1100,7 +1100,8 @@ var Server = {
   adminSavePhoto: function (p) { return this.call('adminSavePhoto', p); },
   adminDeletePhoto: function (id) { return this.call('adminDeletePhoto', { id: id }); },
   publicProfile: function (username) { return this.call('publicProfile&username=' + encodeURIComponent(username)).then(function (j) { return j; }); },
-  adminEvents: function () { return this.call('adminEvents').then(function (j) { return j.events; }); },
+  adminEvents: function () { return this.call('adminEvents').then(function (j) { var l = j.events; l.ratingBuckets = j.ratingBuckets || []; return l; }); },
+  updateEvent: function (ev) { return this.call('updateEvent', { event: ev }); },
   adminUsers: function () { return this.call('adminUsers').then(function (j) { return { users: j.users, activity: j.activity, inactiveMonths: j.inactiveMonths }; }); },
   adminDeleteUser: function (id) { return this.call('adminDeleteUser', { id: id }); },
   deleteAccount: function (pw) { return this.call('deleteAccount', { password: pw }); },
@@ -1300,6 +1301,14 @@ var Local = (function () {
     return old.length > 0;
   }
   function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (purgeInactive()) ch = true; if (ch) save(); }
+  /* Mitteilung an Angemeldete, wenn sich Termin oder Teams-Link geaendert haben */
+  function notifyChanges(e, old) {
+    var parts = [];
+    if (e.date !== old.date || e.start !== old.start || e.duration !== old.duration) parts.push('Neuer Termin: ' + e.date.split('-').reverse().join('.') + ', ' + e.start + ' bis ' + endHm(e) + ' Uhr. Bitte passe Deinen Kalender an.');
+    if (e.teamsLink !== old.teamsLink) parts.push('Der Teams-Link hat sich geändert. Den neuen Link findest Du unter Meine Anmeldungen.');
+    if (!parts.length) return 0;
+    var n = 0; data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId) { addNote(b.userId, 'changed', e, parts.join(' ')); n++; } }); return n;
+  }
   function addNote(userId, type, e, reason) { data.notes.push({ id: rid(8), userId: userId, type: type, eventId: e.id, title: e.title, date: e.date, start: e.start, reason: reason || '', created: nowIso(), read: false }); }
   var authFails = {};
   function throttle(key, check) { var f = authFails[key]; if (check) { if (f && f.n >= 5 && Date.now() - f.t < 300000) throw ApiErr('locked', 'Zu viele Fehlversuche. Bitte warte fünf Minuten und versuche es dann erneut.'); return; } if (!f || Date.now() - f.t > 600000) f = authFails[key] = { n: 0, t: 0 }; f.n++; f.t = Date.now(); }
@@ -1414,6 +1423,17 @@ var Local = (function () {
         return data.events.filter(function (e) { return startDate(e) > now && !e.cancelled; }).map(function (e) {
           var o = eventBase(B, e); o.booked = booked(e.id); o.own = !!me && e.ownerId === me.id; o.mine = !!me && data.bookings.some(function (b) { return b.eventId === e.id && b.userId === me.id; }); return o;
         });
+      });
+    },
+    updateEvent: function (v) {
+      return wrap(function () {
+        var me = curUser(true), e = data.events.filter(function (x) { return x.id === v.id; })[0];
+        if (!e || e.ownerId !== me.id) throw ApiErr('notfound', 'Diese Veranstaltung gibt es nicht oder sie gehört Dir nicht.');
+        if (e.cancelled) throw ApiErr('invalid', 'Eine abgesagte Veranstaltung lässt sich nicht mehr bearbeiten.');
+        if (startDate(e) <= new Date()) throw ApiErr('past', 'Die Veranstaltung hat bereits begonnen. Sie lässt sich nicht mehr bearbeiten.');
+        if (Number(v.capacity) < booked(e.id)) throw ApiErr('invalid', 'Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (' + booked(e.id) + ') liegen.');
+        var old = { date: e.date, start: e.start, duration: e.duration, teamsLink: e.teamsLink };
+        readEvent(v, e, false); var n = notifyChanges(e, old); save(); return { id: e.id, notified: n };
       });
     },
     createEvent: function (v) { return wrap(function () { var me = curUser(true); var e = readEvent(v, { id: rid(8), ownerId: me.id, host: me.username, created: nowIso(), isTest: false }, false); data.events.push(e); save(); return { id: e.id }; }); },
@@ -1566,13 +1586,23 @@ var Local = (function () {
     /* ---- Admin ---- */
     adminEvents: function () {
       return wrap(function () {
-        needAdmin(); var B = badges();
-        return data.events.map(function (e) {
-          var o = eventBase(B, e), ow = userById(e.ownerId), r = ratingOf(e.id);
+        needAdmin(); var B = badges(), tok = {}, nTok = 0, buckets = {};
+        function T(id) { if (!id) return ''; if (!tok[id]) tok[id] = 'p' + (nTok++); return tok[id]; }
+        /* wie auf dem Server: je Veranstaltung nur die Zahl der Bewertungen, Sterne nur zusammengefasst; private Veranstaltungen ohne Namen der Teilnehmenden */
+        var list = data.events.map(function (e) {
+          var o = eventBase(B, e), ow = userById(e.ownerId), priv = e.category === 'privat', cnt = 0, dist = [0, 0, 0, 0, 0];
           o.ownerId = e.ownerId || ''; o.owner = ow ? { username: ow.username, firstName: ow.firstName, lastName: ow.lastName, xv: ow.xv, email: ow.email } : null; o.teamsLink = e.teamsLink; o.anonymized = !!e.anonymized; o.anonymizedAt = e.anonymizedAt || '';
-          o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) { var bu = userById(b.userId); return bu ? { id: b.id, username: bu.username, firstName: bu.firstName, lastName: bu.lastName, xv: bu.xv, email: bu.email, created: b.created } : { id: b.id, username: b.name || 'Anonymisiert', firstName: '', lastName: '', xv: '', email: b.email || '', created: b.created }; });
-          o.booked = o.bookings.length; o.ratingAvg = r.avg; o.ratingCount = r.count; o.ratingDist = r.dist; return o;
+          o.bookings = data.bookings.filter(function (b) { return b.eventId === e.id; }).map(function (b) {
+            if (b.rating > 0) { cnt++; dist[b.rating - 1]++; }
+            var bu = userById(b.userId);
+            if (priv) return { id: b.id, p: T(b.userId), hidden: true, created: b.created };
+            return bu ? { id: b.id, p: T(b.userId), username: bu.username, firstName: bu.firstName, lastName: bu.lastName, xv: bu.xv, email: bu.email, created: b.created } : { id: b.id, p: '', username: b.name || 'Anonymisiert', firstName: '', lastName: '', xv: '', email: b.email || '', created: b.created };
+          });
+          if (cnt && !e.cancelled) { var k = e.date.slice(0, 7) + '|' + e.category + '|' + e.topic + '|' + (e.isTest ? 1 : 0); var bk = buckets[k] || (buckets[k] = { m: e.date.slice(0, 7), c: e.category, t: e.topic, test: !!e.isTest, d: [0, 0, 0, 0, 0], h: {} }); dist.forEach(function (n, i) { bk.d[i] += n; }); bk.h['h' + T('o:' + (e.ownerId || e.id))] = 1; }
+          o.booked = o.bookings.length; o.ratingCount = cnt; o.participantsHidden = priv; return o;
         });
+        list.ratingBuckets = Object.keys(buckets).map(function (k) { var b = buckets[k]; return { m: b.m, c: b.c, t: b.t, test: b.test, d: b.d, h: Object.keys(b.h) }; });
+        return list;
       });
     },
     adminUsers: function () {
@@ -1637,7 +1667,8 @@ var Local = (function () {
     adminSaveEvent: function (v) {
       return wrap(function () {
         var me = needAdmin(), e = data.events.filter(function (x) { return x.id === v.id; })[0], isNew = !e; if (isNew) e = { id: rid(8), ownerId: me.id, host: me.username, created: nowIso(), isTest: false };
-        readEvent(v, e, true);
+        var old = { date: e.date, start: e.start, duration: e.duration, teamsLink: e.teamsLink };
+        readEvent(v, e, true); if (!isNew && !e.cancelled && startDate(e) > new Date()) notifyChanges(e, old);
         if (e.capacity < booked(e.id)) throw ApiErr('invalid', 'Die maximale Teilnehmendenzahl kann nicht unter der Zahl der bereits angemeldeten Personen (' + booked(e.id) + ') liegen.');
         if (isNew) data.events.push(e); save(); return { id: e.id };
       });
@@ -2600,7 +2631,8 @@ function twoStep(btn, label, confirmLabel, run) {
 var NOTE_TEXT = {
   cancelled: function (n) { return { t: 'Abgesagt: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. ' + (n.reason ? 'Grund: ' + n.reason : 'Der Termin findet nicht statt.') }; },
   deleted: function (n) { return { t: 'Entfernt: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. Die Administration hat die Veranstaltung gelöscht.' }; },
-  removed: function (n) { return { t: 'Abgemeldet: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. Die Administration hat Deine Anmeldung entfernt.' }; }
+  removed: function (n) { return { t: 'Abgemeldet: ' + n.title, x: dateFull(n.date) + ', ' + n.start + ' Uhr. Die Administration hat Deine Anmeldung entfernt.' }; },
+  changed: function (n) { return { t: 'Geändert: ' + n.title, x: n.reason || 'Die Veranstaltung wurde geändert.' }; }
 };
 
 /* ---- Meine Anmeldungen ---- */
@@ -2660,7 +2692,7 @@ function viewMyBookings() {
 
 /* ---- Meine Veranstaltungen ---- */
 function viewMyEvents() {
-  var ps = pageShell('Für Anbietende', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, kannst Veranstaltungen absagen und die Bewertungen Deiner Sessions einsehen. Änderungen übernimmt die Administration.', true);
+  var ps = pageShell('Für Anbietende', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, bearbeitest oder sagst Veranstaltungen ab und siehst die Bewertungen Deiner Sessions.', true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function load() { Api.myEvents().then(function (r) { clear(box); render(r.events); }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
@@ -2683,10 +2715,19 @@ function viewMyEvents() {
     var go = h('button', { class: 'btn btn-danger', type: 'button', text: 'Absage bestätigen' }), back = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Abbrechen' });
     var form = h('div', { class: 'cancel-box', hidden: true }, [h('p', { class: 'hint', text: ev.booked ? 'Es gibt bereits ' + ev.booked + ' Anmeldung(en). Sie sehen die Absage unter „Meine Anmeldungen“. Es werden keine E-Mails verschickt.' : 'Noch niemand hat sich angemeldet. Die Veranstaltung verschwindet aus dem Katalog.' }),
       field('Grund (freiwillig, sichtbar für angemeldete Personen)', reason, { id: 'v-reason-' + ev.id }), msg, h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [go, back])]);
-    var open = h('button', { class: 'btn btn-danger cancel-open', type: 'button', text: 'Veranstaltung absagen', onclick: function () { form.hidden = false; open.hidden = true; reason.focus(); } });
-    back.addEventListener('click', function () { form.hidden = true; open.hidden = false; msg.hidden = true; });
+    var open = h('button', { class: 'btn btn-danger cancel-open', type: 'button', text: 'Veranstaltung absagen', onclick: function () { form.hidden = false; open.hidden = true; edit.hidden = true; reason.focus(); } });
+    var edit = h('button', { class: 'btn btn-secondary', type: 'button', text: 'Bearbeiten', onclick: function () { editOwn(ev); } });
+    back.addEventListener('click', function () { form.hidden = true; open.hidden = false; edit.hidden = false; msg.hidden = true; });
     go.addEventListener('click', function () { go.disabled = true; Api.cancelEvent(ev.id, reason.value).then(function () { toast('Die Veranstaltung wurde abgesagt.'); load(); }, function (er) { go.disabled = false; if (authFail(er)) return; msg.hidden = false; msg.textContent = er.message; }); });
-    return h('div', { class: 'cancel-wrap' }, [h('div', null, open), form]);
+    return h('div', { class: 'cancel-wrap' }, [h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [edit, open]), form]);
+  }
+  /* Eigene Veranstaltung bearbeiten; bei neuem Termin oder Teams-Link erhalten Angemeldete eine Mitteilung */
+  function editOwn(ev) {
+    var c = h('div', { class: 'modal-body' }), m;
+    c.appendChild(h('h2', { text: 'Veranstaltung bearbeiten', style: 'padding-right:40px' }));
+    if (ev.booked) c.appendChild(h('p', { class: 'hint', text: 'Ändern sich Termin oder Teams-Link, erhalten die ' + ev.booked + ' angemeldeten Personen eine Mitteilung unter „Meine Anmeldungen“.' }));
+    c.appendChild(buildEventForm({ event: ev, submitLabel: 'Änderungen speichern', extraButtons: [h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: function () { m.close(); } })], onSubmit: function (p) { return Api.updateEvent(p).then(function (r) { m.close(); toast(r.notified ? 'Gespeichert. ' + r.notified + (r.notified === 1 ? ' Person erhält' : ' Personen erhalten') + ' eine Mitteilung.' : 'Änderungen gespeichert.'); load(); }, function (er) { if (authFail(er)) return; throw er; }); } }));
+    m = openModal(c, { wide: true, label: 'Veranstaltung bearbeiten' });
   }
   function render(list) {
     /* Abgesagte Termine stehen je nach Datum unter Anstehend oder Vergangen */
@@ -2934,7 +2975,7 @@ function viewAdmin() {
       if (e.cancelled) { cancelledN++; return false; }
       return true;
     }).map(function (e) { return { e: e, c: e.category === 'privat' ? 1 : 0, n: e.bookings ? e.bookings.length : e.booked, cap: e.capacity }; });
-    var tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, all: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]], ended: 0, ratedEv: 0 };
+    var reach = {}, tot = { ev: evs.length, pt: 0, cap: 0, zero: 0, full: 0, hours: 0, hoursBiz: 0, held: 0 }, hosts = {}, lead = [], rt = { sum: 0, n: 0, all: 0, d: [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]], ended: 0, ratedEv: 0 };
     var act = (users && users.activity) || [0, 0, 0, 0, 0];
     users = users && users.users ? users.users : (users || []);
     var acc = (users || []).filter(function (u) { return !(F.noTest && u.isTest); });
@@ -2942,12 +2983,18 @@ function viewAdmin() {
     evs.forEach(function (x) {
       tot.pt += x.n; tot.cap += x.cap; if (!x.n) tot.zero++; if (x.n >= x.cap) tot.full++;
       if (!x.e.anonymized) hosts[x.e.host.toLowerCase()] = 1;
-      /* Sterne nur zusammengefasst je Veranstaltung und erst ab drei Bewertungen (ratingDist); einzelne Bewertungen kennt die Statistik nicht */
       var r = x.e.ratingCount || 0; rt.all += r;
-      if (x.e.ratingDist) x.e.ratingDist.forEach(function (n, i) { rt.sum += n * (i + 1); rt.n += n; rt.d[i][x.c] += n; });
-      if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; }
+      if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; tot.hours += x.n * x.e.duration / 60; if (!x.c) tot.hoursBiz += x.n * x.e.duration / 60; tot.held++; (x.e.bookings || []).forEach(function (b) { if (b.p) reach[b.p] = 1; }); }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
+    /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu Anbietenden. Gezeigt wird ein Wert erst,
+       wenn er auf mindestens drei Bewertungen und drei verschiedenen Anbietenden beruht. */
+    var fm = F.from ? F.from.slice(0, 7) : '', tm = F.to ? F.to.slice(0, 7) : '';
+    var RB = (all.ratingBuckets || []).filter(function (b) { return (!fm || b.m >= fm) && (!tm || b.m <= tm) && (!F.cat || b.c === F.cat) && !(F.noTest && b.test); });
+    var hostsBy = [{}, {}], hostsAll = {};
+    RB.forEach(function (b) { var c = b.c === 'privat' ? 1 : 0; b.h.forEach(function (x) { hostsBy[c][x] = 1; hostsAll[x] = 1; }); });
+    var okCat = [Object.keys(hostsBy[0]).length >= MIN_RATINGS, Object.keys(hostsBy[1]).length >= MIN_RATINGS];
+    if (Object.keys(hostsAll).length >= MIN_RATINGS) RB.forEach(function (b) { var c = b.c === 'privat' ? 1 : 0; b.d.forEach(function (n, i) { rt.sum += n * (i + 1); rt.n += n; if (okCat[c]) rt.d[i][c] += n; }); });
     var now = Date.now(), active30 = act[0] + act[1];
     var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
     /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
@@ -2956,7 +3003,9 @@ function viewAdmin() {
     function kpi(group, label, value) { return { group: group, label: label, value: value }; }
     var kpis = [
       kpi('ueberblick', 'Veranstaltungen', stNum(tot.ev)), kpi('ueberblick', 'Anmeldungen', stNum(tot.pt)), kpi('ueberblick', 'Ø Auslastung', tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–'),
+      kpi('ueberblick', 'Lernstunden', stNum(Math.round(tot.hours))), kpi('ueberblick', 'Erreichte Personen', stNum(Object.keys(reach).length)),
       kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'Anbietende', stNum(Object.keys(hosts).length)),
+      kpi('veranstaltungen', 'Durchgeführt', stNum(tot.held)), kpi('veranstaltungen', 'Dienstliche Lernstunden', stNum(Math.round(tot.hoursBiz))),
       kpi('veranstaltungen', 'Ø Anmeldungen je Veranstaltung', tot.ev ? stDec(tot.pt / tot.ev) : '–'), kpi('veranstaltungen', 'Ohne Anmeldung', stNum(tot.zero)), kpi('veranstaltungen', 'Ausgebucht', stNum(tot.full)),
       kpi('veranstaltungen', 'Abgesagt', stNum(cancelledN)), kpi('veranstaltungen', 'Absagequote', kept ? stPct(cancelledN, kept) + ' %' : '–'), kpi('veranstaltungen', 'Ø Vorlauf der Anmeldung', lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–'),
       kpi('nutzende', 'Neue Konten im Zeitraum', stNum(inRange.length)), kpi('nutzende', 'Aktiv in den letzten 30 Tagen', stNum(active30)), kpi('nutzende', 'Öffentliche Profile', acc.length ? stPct(pubN, acc.length) + ' %' : '–'),
@@ -2972,11 +3021,12 @@ function viewAdmin() {
       for (var guard = 0; guard < 120; guard++) { var k = y + '-' + pad(m); months.push(k); if (k >= last) break; m++; if (m > 12) { m = 1; y++; } }
       if (months.length > 24) months = months.slice(months.length - 24);
     }
-    var M = {}; months.forEach(function (k) { M[k] = { ev: [0, 0], pt: [0, 0], cap: 0 }; });
-    evs.forEach(function (x) { var r = M[stMonthKey(x.e.date)]; if (!r) return; r.ev[x.c]++; r.pt[x.c] += x.n; r.cap += x.cap; });
+    var M = {}; months.forEach(function (k) { M[k] = { ev: [0, 0], pt: [0, 0], cap: 0, hr: [0, 0] }; });
+    evs.forEach(function (x) { var r = M[stMonthKey(x.e.date)]; if (!r) return; r.ev[x.c]++; r.pt[x.c] += x.n; r.cap += x.cap; if (eventEnded(x.e)) r.hr[x.c] += x.n * x.e.duration / 60; });
     function ser(f) { return names.map(function (nm, i) { return { name: nm, values: months.map(function (k) { return f(M[k], i); }) }; }); }
     var mLabels = months.map(stMonthShort);
     add('ueberblick', { id: 'monat-veranstaltungen', title: 'Veranstaltungen pro Monat', hint: 'Anzahl der Termine nach Monat, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.ev[i]; }) });
+    add('ueberblick', { id: 'monat-lernstunden', title: 'Lernstunden pro Monat', hint: 'Teilnahmen mal Dauer bei durchgeführten Veranstaltungen, in Stunden, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return Math.round(r.hr[i]); }) });
     add('ueberblick', { id: 'monat-teilnehmende', title: 'Teilnehmende pro Monat', hint: 'Anmeldungen an allen Veranstaltungen eines Monats, aufgeteilt nach Bereich.', type: 'columns', labels: mLabels, series: ser(function (r, i) { return r.pt[i]; }) });
     add('veranstaltungen', { id: 'monat-auslastung', title: 'Auslastung pro Monat', hint: 'Anmeldungen im Verhältnis zu den angebotenen Plätzen.', type: 'columns', unit: ' %', labels: mLabels, series: [{ name: 'Auslastung', values: months.map(function (k) { return stPct(M[k].pt[0] + M[k].pt[1], M[k].cap); }) }] });
     add('veranstaltungen', { id: 'monatsuebersicht', title: 'Monatsübersicht', hint: 'Alle Monatszahlen im Überblick.', type: 'table', wide: true,
@@ -3020,9 +3070,10 @@ function viewAdmin() {
     add('nutzende', { id: 'abzeichen', title: 'Konten nach Abzeichen', hint: 'Verteilung der Abzeichenstufen. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['Ohne Abzeichen'].concat(BADGE_NAMES).map(function (k, i) { return { label: k, sub: i ? 'Stufe ' + i + ', ab ' + BADGES.levels[i - 1] + ' Sessions' : '', v: [LV[i], 0] }; }) });
     add('nutzende', { id: 'profile', title: 'Profile und Profilbilder', hint: 'Freiwillige Angaben der Nutzenden. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: [['Profil öffentlich', pubN], ['Profil nicht öffentlich', acc.length - pubN], ['Mit Profilbild', avN], ['Ohne Profilbild', acc.length - avN]].map(function (r) { return { label: r[0], sub: '', v: [r[1], 0] }; }) });
     /* Bewertungen */
-    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Enthalten sind nur Veranstaltungen ab drei Bewertungen, damit keine einzelne Bewertung erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
-    var RT = {}; evs.forEach(function (x) { if (!x.e.ratingDist) return; var k = CAT_LABEL[x.e.category] + '|' + capFirst(x.e.topic); if (!RT[k]) RT[k] = { s: 0, n: 0 }; x.e.ratingDist.forEach(function (n, i) { RT[k].s += n * (i + 1); RT[k].n += n; }); });
-    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema, aus Veranstaltungen ab drei Bewertungen.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
+    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Ein Bereich erscheint erst ab drei verschiedenen Anbietenden, damit niemand einzeln erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
+    var RT = {}; RB.forEach(function (b) { var k = CAT_LABEL[b.c] + '|' + capFirst(b.t); if (!RT[k]) RT[k] = { s: 0, n: 0, h: {} }; b.d.forEach(function (n, i) { RT[k].s += n * (i + 1); RT[k].n += n; }); b.h.forEach(function (x) { RT[k].h[x] = 1; }); });
+    Object.keys(RT).forEach(function (k) { if (RT[k].n < MIN_RATINGS || Object.keys(RT[k].h).length < MIN_RATINGS) delete RT[k]; });
+    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema. Ein Thema erscheint erst ab drei Bewertungen und drei verschiedenen Anbietenden.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
       rows: Object.keys(RT).sort(function (a, b) { return RT[b].s / RT[b].n - RT[a].s / RT[a].n; }).map(function (k) { var p = k.split('|'); return [p[0], p[1], RT[k].n, stDec(RT[k].s / RT[k].n)]; }) });
     /* Datenschutz */
     var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
@@ -3293,10 +3344,11 @@ function viewAdmin() {
       }
       function people(e) {
         var body = h('div', { class: 'modal-body people' });
-        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host + (e.ratingCount >= MIN_RATINGS ? ' \u00b7 \u00d8 ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende (Archiv)' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '\u2013' + endHm(e) + ' Uhr \u00b7 ' + e.host + (e.ratingCount ? ' \u00b7 ' + e.ratingCount + (e.ratingCount === 1 ? ' Bewertung' : ' Bewertungen') : '') })]));
         if (e.cancelled) body.appendChild(h('div', { class: 'notice warn' }, h('div', { class: 'n-body' }, [h('b', { text: 'Abgesagt' }), h('div', { text: e.cancelReason || 'Die Veranstaltung hat nicht stattgefunden.' })])));
         if (e.anonymized) body.appendChild(h('div', { class: 'notice' }, 'Die personenbezogenen Daten dieser Veranstaltung wurden anonymisiert. Es bleibt die Zahl der Anmeldungen.'));
         if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Es gab keine Anmeldungen.' })));
+        else if (e.participantsHidden) body.appendChild(h('div', { class: 'notice', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: e.booked + (e.booked === 1 ? ' Anmeldung' : ' Anmeldungen') }), h('div', { text: 'Bei privaten Veranstaltungen zeigt die Anwendung keine Namen der Teilnehmenden. Die Teilnahme gehört zur Freizeit und geht die Administration nichts an.' })])));
         else {
           var tb = h('tbody');
           e.bookings.forEach(function (b, i) { tb.appendChild(h('tr', null, [h('td', { text: String(i + 1) }), h('td', null, h('b', { text: b.username })), h('td', { text: ((b.firstName || '') + ' ' + (b.lastName || '')).trim() || '\u2013' }), h('td', { text: b.xv || '\u2013' }), h('td', { text: b.email || '\u2013', style: 'overflow-wrap:anywhere' })])); });
@@ -3323,11 +3375,11 @@ function viewAdmin() {
             h('td', { class: 'c-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '\u2013' + endHm(e) + ' Uhr' })]),
             h('td', { class: 'c-host' }, [userTag(e.host, e.hostLevel, e.hostExpert), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName + ' \u00b7 ' + e.owner.xv }) : null]),
             h('td', { class: 'c-occ' }, [h('b', { text: e.bookings.length + ' / ' + e.capacity })]),
-            h('td', { class: 'c-rate' }, e.cancelled ? '\u2013' : ratingNode(e.ratingAvg, e.ratingCount)),
+            h('td', { class: 'c-rate' }, e.cancelled ? '\u2013' : String(e.ratingCount || 0)),
             h('td', { class: 'c-data' }, dataState(e)),
             h('td', { class: 'c-act' }, h('div', { class: 'acts' }, [h('button', { class: 'btn btn-primary btn-sm', type: 'button', text: 'Teilnehmende (' + e.bookings.length + ')', onclick: function () { openModal(people(e), { wide: true, label: 'Teilnehmende' }); } }), del]))]));
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Angeboten von', 'Teilnehmende', 'Ø Bewertung', 'Personenbezogene Daten', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl tbl-events' }, [h('thead', null, h('tr', null, ['Veranstaltung', 'Termin', 'Angeboten von', 'Teilnehmende', 'Bewertungen', 'Personenbezogene Daten', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       function fld(label, ctl, cls) { return h('div', { class: 'afld' + (cls ? ' ' + cls : '') }, [h('label', { text: label }), ctl]); }
       drawSeg(); fillSelects(); render();
@@ -3395,7 +3447,7 @@ function viewAdmin() {
           tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [
             h('td', { class: 'c-title' }, [h('b', { text: e.title }), h('div', { class: 'meta' }, [h('span', { class: 'tag cat-' + e.category, text: CAT_LABEL[e.category] }), h('span', { text: e.type + ' · ' + capFirst(e.topic) }), e.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, e.cancelled ? h('span', { class: 'tag past', text: 'abgesagt' }) : null]), ]),
             h('td', { class: 'c-when' }, [h('b', { text: dateFull(e.date) }), h('div', { class: 'hint', text: e.start + '–' + endHm(e) + ' Uhr' })]),
-            h('td', { class: 'c-host' }, [userTag(e.host, e.hostLevel, e.hostExpert), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName + ' · ' + e.owner.xv }) : null, e.owner ? h('div', { class: 'hint', text: e.owner.email }) : null, e.ratingCount ? h('div', null, ratingNode(e.ratingAvg, e.ratingCount)) : null]),
+            h('td', { class: 'c-host' }, [userTag(e.host, e.hostLevel, e.hostExpert), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName + ' · ' + e.owner.xv }) : null, e.owner ? h('div', { class: 'hint', text: e.owner.email }) : null]),
             h('td', { class: 'c-occ' }, [h('b', { text: e.booked + ' / ' + e.capacity }), h('div', { class: 'bar' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]),
             h('td', { class: 'c-act' }, h('div', { class: 'acts' }, [
               h('button', { class: 'btn btn-primary btn-sm', type: 'button', text: 'Teilnehmende (' + e.booked + ')', onclick: function () { showPeople(e.id); } }),
@@ -3407,9 +3459,10 @@ function viewAdmin() {
       function peopleBody(e) {
         var f = freeOf(e), pct = Math.min(100, Math.round(e.booked / e.capacity * 100));
         var body = h('div', { class: 'modal-body people' });
-        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '–' + endHm(e) + ' Uhr · ' + e.host + (e.ratingCount >= MIN_RATINGS ? ' · Ø ' + fmtAvg(e.ratingAvg) + ' Sterne' : '') })]));
+        body.appendChild(h('div', null, [h('div', { class: 'hint', text: 'Teilnehmende' }), h('h2', { text: e.title, style: 'margin:2px 0 0;overflow-wrap:anywhere' }), h('div', { class: 'hint', text: dateFull(e.date) + ', ' + e.start + '–' + endHm(e) + ' Uhr · ' + e.host })]));
         body.appendChild(h('div', { class: 'people-occ' }, [h('b', { text: e.booked + ' von ' + e.capacity + ' Plätzen belegt' }), h('div', { class: 'bar wide' + (f <= 0 ? ' full' : f <= 5 ? ' warn' : '') }, h('i', { style: 'width:' + pct + '%' }))]));
         if (!e.bookings.length) body.appendChild(h('div', { class: 'empty', style: 'padding:24px' }, h('p', { text: 'Noch keine Anmeldungen.' })));
+        else if (e.participantsHidden) body.appendChild(h('div', { class: 'notice', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: e.booked + (e.booked === 1 ? ' Anmeldung' : ' Anmeldungen') }), h('div', { text: 'Bei privaten Veranstaltungen zeigt die Anwendung keine Namen der Teilnehmenden. Die Teilnahme gehört zur Freizeit und geht die Administration nichts an.' })])));
         else {
           var tb = h('tbody');
           e.bookings.forEach(function (b, i) {
@@ -3423,7 +3476,7 @@ function viewAdmin() {
           body.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl people-tbl' }, [h('thead', null, h('tr', null, ['Nr.', 'Benutzername', 'Name', 'XV-Nr.', 'E-Mail', ''].map(function (t) { return h('th', { text: t }); }))), tb])));
         }
         body.appendChild(h('div', { class: 'people-foot' }, [
-          e.bookings.length ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).filter(Boolean).join('; ')); } }) : null,
+          e.bookings.length && !e.participantsHidden ? h('button', { class: 'btn btn-secondary btn-sm', type: 'button', text: 'E-Mail-Adressen kopieren', onclick: function () { copy(e.bookings.map(function (b) { return b.email; }).filter(Boolean).join('; ')); } }) : null,
           h('a', { class: 'btn btn-secondary btn-sm', target: '_blank', rel: 'noopener', href: e.teamsLink, text: 'Teams-Link öffnen' })]));
         return body;
       }
