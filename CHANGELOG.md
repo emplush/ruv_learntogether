@@ -1,5 +1,8 @@
 # Änderungen
 
+## 0.29.2 (03.10.2026)
+- **Demo-Version:** Fünf schnelle Klicks auf das R+V-Logo im Footer setzen das Passwort von „admin“ auf RuVTest1234 zurück und bestätigen das mit einer Meldung. Die Daten bleiben erhalten. Auf dem Server (IIS) ohne Funktion.
+
 ## 0.29.1 (03.10.2026)
 - **IDD-Nachweise gelöschter Konten:** Bei jeder Kontolöschung (selbst, durch die Administration oder wegen Inaktivität) bleiben bestätigte IDD-Teilnahmen erhalten, nur mit Name, XV-Nummer, gutBeraten-ID und den Nachweisdaten je Teilnahme. Liste und PDF-Nachweis je Kalenderjahr unter Übersicht › IDD. In Teilnahmelisten mit dem Hinweis „Konto gelöscht“. Automatische Löschung am Ende des fünften Jahres nach dem Kalenderjahr der Teilnahme.
 - Hinweis beim Löschen des eigenen Kontos angepasst. Handbücher und Papier IT-Sicherheit und Datenschutz aktualisiert.
