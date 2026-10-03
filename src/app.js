@@ -776,8 +776,8 @@ var Local = (function () {
         var un = String(p.username || '').trim(), fn = String(p.firstName || '').trim(), ln = String(p.lastName || '').trim(), xv = normXv(p.xv), em = String(p.email || '').trim().toLowerCase(), pw = String(p.password || '');
         if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,23}$/.test(un)) throw ApiErr('invalid', 'Der Benutzername muss 3 bis 24 Zeichen lang sein und darf nur Buchstaben, Ziffern, Punkt, Unterstrich und Bindestrich enthalten.');
         if (RESERVED.indexOf(un.toLowerCase()) >= 0) throw ApiErr('invalid', 'Dieser Benutzername ist reserviert. Bitte wähle einen anderen.');
-        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(fn)) throw ApiErr('invalid', 'Bitte gib deinen Vornamen an.');
-        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(ln)) throw ApiErr('invalid', 'Bitte gib deinen Nachnamen an.');
+        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(fn)) throw ApiErr('invalid', 'Bitte gib Deinen Vornamen an.');
+        if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'\-]{0,59}$/.test(ln)) throw ApiErr('invalid', 'Bitte gib Deinen Nachnamen an.');
         if (!/^XVG?[0-9]{2,8}$/.test(xv)) throw ApiErr('invalid', 'Bitte gib eine gültige XV-Nummer an (z. B. XV12345 oder XVG12345).');
         if (!validEmail(em)) throw ApiErr('invalid', 'Bitte gib eine gültige E-Mail-Adresse an.');
         var pr = pwProblem(pw, un, em); if (pr) throw ApiErr('invalid', pr);
