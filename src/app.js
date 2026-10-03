@@ -226,7 +226,12 @@ function validateEvent(v, admin) {
   if (v.idd) {
     if (v.category !== 'dienstlich') e.idd = 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.';
     var it = String(v.iddTitle || '').replace(/\s+/g, ' ').trim(); if (it.length < 5 || it.length > 150) e.iddTitle = 'Bitte gib einen IDD-Titel mit 5 bis 150 Zeichen an. Er ist bei IDD-Veranstaltungen Pflicht.';
-    var im = Number(v.iddMinutes) || 0, mx = Number(v.duration) - 2 * (IDD.frame || 5); if (!(im >= 5 && im <= mx && im % 5 === 0)) e.iddMinutes = 'Die IDD-Zeit muss in 5-Minuten-Schritten zwischen 5 Minuten und ' + Math.max(mx, 5) + ' Minuten liegen.';
+    var room = Number(v.duration) - 2 * (IDD.frame || 5), ag = v.agenda && v.agenda.length ? v.agenda : null, sm = 0, si = 0, bad = '';
+    if (!v.duration) bad = 'Bitte wähle zuerst die Dauer. Danach planst Du die Agenda.';
+    else if (ag) ag.forEach(function (b) { sm += Number(b.minutes) || 0; si += Number(b.iddMinutes) || 0; if (String(b.content || '').trim().length < 3) bad = bad || 'Jeder Agenda-Eintrag braucht Inhalte mit mindestens 3 Zeichen.'; if (Number(b.iddMinutes) > Number(b.minutes)) bad = bad || 'Die IDD-Bildungszeit eines Eintrags darf nicht länger sein als seine Dauer.'; });
+    if (!bad && ag && sm !== room) bad = 'Die Einträge der Agenda müssen zusammen ' + room + ' Minuten dauern. Aktuell sind es ' + sm + ' Minuten.';
+    if (!bad && ag && si < 5) bad = 'Mindestens ein Eintrag braucht IDD-Bildungszeit.';
+    if (bad) e.iddMinutes = bad;
   }
   return e;
 }
@@ -340,15 +345,20 @@ function fold(l) {
 function iddOn() { return !!IDD.on; }
 function fmtMinutes(m) { m = Math.round(m || 0); var hh = Math.floor(m / 60), r = m % 60; return hh ? hh + ' Std.' + (r ? ' ' + r + ' Min.' : '') : r + ' Min.'; }
 /* Agenda: Begruessung und Verabschiedung (je IDD.frame Minuten, keine Lernzeit) und ein Block fuer das Thema. Es wird nichts erfunden. */
+function iddBlocks(e) {
+  var room = Number(e.duration) - 2 * (IDD.frame || 5);
+  return e.agenda && e.agenda.length ? e.agenda : [{ content: e.iddTitle || e.title || 'Thema der Veranstaltung', minutes: room, iddMinutes: e.iddMinutes || room }];
+}
 function iddAgenda(e) {
-  var f = IDD.frame || 5, s0 = toMin(e.start), s1 = s0 + Number(e.duration);
-  return [{ from: s0, to: s0 + f, title: IDD.welcome.title || 'Begrüßung', text: IDD.welcome.text || '', learn: false },
-    { from: s0 + f, to: s1 - f, title: e.iddTitle || e.title, text: 'Anrechenbare IDD-Zeit: ' + e.iddMinutes + ' Minuten', learn: true },
-    { from: s1 - f, to: s1, title: IDD.farewell.title || 'Verabschiedung', text: IDD.farewell.text || '', learn: false }];
+  var f = IDD.frame || 5, t = toMin(e.start), s1 = t + Number(e.duration), rows = [{ from: t, to: t + f, title: IDD.welcome.title || 'Begrüßung', text: IDD.welcome.text || '', learn: false, fixed: true }];
+  t += f;
+  iddBlocks(e).forEach(function (b) { rows.push({ from: t, to: t + Number(b.minutes), title: b.content, text: Number(b.iddMinutes) ? 'IDD-Bildungszeit: ' + b.iddMinutes + ' Minuten' : 'Keine IDD-Bildungszeit', learn: Number(b.iddMinutes) > 0 }); t += Number(b.minutes); });
+  rows.push({ from: s1 - f, to: s1, title: IDD.farewell.title || 'Verabschiedung', text: IDD.farewell.text || '', learn: false, fixed: true });
+  return rows;
 }
 function agendaNode(e) {
   return h('div', { class: 'agenda' }, [h('h4', { text: 'Agenda' }), h('ol', { class: 'agenda-list' }, iddAgenda(e).map(function (r) {
-    return h('li', { class: r.learn ? 'learn' : '' }, [h('span', { class: 'ag-t', text: minToHm(r.from) + '–' + minToHm(r.to) }), h('span', { class: 'ag-b' }, [h('b', { text: r.title }), r.text ? h('span', { class: 'hint', text: r.text }) : null, r.learn ? null : h('span', { class: 'hint', text: 'Keine Lernzeit' })])]);
+    return h('li', { class: r.learn ? 'learn' : '' }, [h('span', { class: 'ag-t', text: minToHm(r.from) + '–' + minToHm(r.to) }), h('span', { class: 'ag-b' }, [h('b', { text: r.title }), r.text ? h('span', { class: 'hint', text: r.text }) : null, r.fixed ? h('span', { class: 'hint', text: 'Keine Lernzeit' }) : null])]);
   }))]);
 }
 /* Plausibilitaet des IDD-Titels: nur Hinweise, keine Sperre. Grundlage: Weiterbildung muss fachliche Inhalte der Versicherungsvermittlung
@@ -518,7 +528,11 @@ var Local = (function () {
     var er = validateEvent(v, admin); var k = Object.keys(er);
     if (k.length) throw ApiErr('invalid', er[k[0]]);
     if (v.idd) { if (!iddMode) throw ApiErr('forbidden', 'IDD-Veranstaltungen kannst Du erst nach Freischaltung durch die Administration anlegen.'); if (iddMode === 1 && !cfg.idd.on) throw ApiErr('invalid', 'Die IDD-Funktion ist nicht aktiv.'); }
-    target.idd = !!v.idd; target.iddTitle = v.idd ? String(v.iddTitle || '').replace(/\s+/g, ' ').trim() : ''; target.iddMinutes = v.idd ? Number(v.iddMinutes) : 0;
+    target.idd = !!v.idd; target.iddTitle = v.idd ? String(v.iddTitle || '').replace(/\s+/g, ' ').trim() : '';
+    if (v.idd) { var room = Number(v.duration) - 10, ag = (v.agenda && v.agenda.length ? v.agenda : [{ content: target.iddTitle, minutes: room, iddMinutes: Number(v.iddMinutes) || room }]).map(function (b) { return { content: String(b.content || '').replace(/\s+/g, ' ').trim(), minutes: Number(b.minutes), iddMinutes: Number(b.iddMinutes) }; });
+      var sm = 0, si = 0; ag.forEach(function (b) { sm += b.minutes; si += b.iddMinutes; });
+      if (sm !== room) throw ApiErr('invalid', 'Die Einträge der Agenda müssen zusammen ' + room + ' Minuten dauern. Aktuell sind es ' + sm + ' Minuten.');
+      target.agenda = ag; target.iddMinutes = si; } else { target.agenda = null; target.iddMinutes = 0; }
     target.title = v.title.trim(); target.category = v.category; target.type = v.type; target.topic = v.topic;
     target.date = v.date; target.start = v.start; target.duration = Number(v.duration); target.capacity = Number(v.capacity); target.teamsLink = v.teamsLink.trim();
     target.description = sanitizeHtml(v.description); target.placeholder = /^[a-z0-9-]{0,40}$/.test(v.placeholder || '') ? (v.placeholder || '') : '';
@@ -613,7 +627,7 @@ var Local = (function () {
   function meInfo(u, B) { var unread = data.notes.filter(function (n) { return n.userId === u.id && !n.read; }).length; return { id: u.id, username: u.username, firstName: u.firstName, lastName: u.lastName, xv: u.xv, email: u.email, role: u.role, level: levelOf(B, u.id), mustChange: !!u.mustChange, unread: unread, created: u.created, profilePublic: !!u.profilePublic, publicHintOff: !!u.publicHintOff, iddHost: !!u.iddHost, iddDuty: !!u.iddDuty, iddHours: u.iddHours === 30 ? 30 : 15, gbId: u.gbId || '' }; }
   function eventBase(B, e) {
     return { id: e.id, title: e.title, host: hostName(e), hostPublic: hostPublic(e), hostLevel: pubLevel(B, e.ownerId), hostExpert: pubExpert(B, e.ownerId, e.category, e.topic), category: e.category, type: e.type, topic: e.topic, date: e.date, start: e.start, duration: e.duration, capacity: e.capacity,
-      description: e.description, rev: e.rev || 0, idd: !!e.idd && !!cfg.idd.on, iddTitle: e.idd && cfg.idd.on ? e.iddTitle || '' : '', iddMinutes: e.idd && cfg.idd.on ? e.iddMinutes || 0 : 0, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
+      description: e.description, rev: e.rev || 0, idd: !!e.idd && !!cfg.idd.on, iddTitle: e.idd && cfg.idd.on ? e.iddTitle || '' : '', iddMinutes: e.idd && cfg.idd.on ? e.iddMinutes || 0 : 0, agenda: e.idd && cfg.idd.on ? e.agenda || [] : null, isTest: !!e.isTest, image: e.imageData || null, placeholder: e.placeholder || '', cancelled: !!e.cancelled, cancelReason: e.cancelReason || '', cancelledAt: e.cancelledAt || '' };
   }
   function anonymize(e) {
     var held = !e.cancelled, owner = userById(e.ownerId);
@@ -1626,6 +1640,53 @@ function weekdayOptions(selected, admin) {
   if (selected && out.indexOf(selected) < 0) { out.push(selected); out.sort(); }
   return out;
 }
+/* Agenda-Editor (Popup): Inhaltsbloecke mit Inhalten, Dauer und IDD-Bildungszeit; anpassen, loeschen, hinzufuegen, verschieben.
+   Begruessung und Verabschiedung sind fest und zaehlen nicht zur Lernzeit. */
+function openAgendaEditor(o, onApply) {
+  var f = IDD.frame || 5, room = o.duration - 2 * f, list = (o.agenda || []).map(function (b) { return { content: b.content, minutes: b.minutes, iddMinutes: b.iddMinutes }; });
+  if (!list.length) list = [{ content: '', minutes: room, iddMinutes: room }];
+  var body = h('div', { class: 'modal-body' }), host = h('div', { class: 'ag-edit' }), foot = h('div', { class: 'ag-foot', 'aria-live': 'polite' }), msg = h('div', { class: 'notice bad', role: 'alert', hidden: true }), m;
+  function opts(max, val, from) { var a = []; for (var x = from; x <= max; x += 5) a.push(h('option', { value: String(x), text: x + ' Min.', selected: x === val })); return a; }
+  function hm(min) { return o.start ? minToHm(min) : ''; }
+  function draw() {
+    clear(host); var t = o.start ? toMin(o.start) + f : 0, sm = 0, si = 0;
+    host.appendChild(h('div', { class: 'ag-row fixed' }, [h('span', { class: 'ag-t', text: o.start ? hm(t - f) + '–' + hm(t) : f + ' Min.' }), h('b', { text: IDD.welcome.title || 'Begrüßung' }), h('span', { class: 'hint', text: f + ' Min. · keine Lernzeit' })]));
+    list.forEach(function (b, i) {
+      var c = h('input', { type: 'text', class: 'ag-c', maxlength: '200', value: b.content, placeholder: 'Inhalte, z. B. Leistungsfall in der BU', 'aria-label': 'Inhalte, Eintrag ' + (i + 1) });
+      c.addEventListener('input', function () { b.content = c.value; });
+      var mi = h('select', { class: 'ag-m', 'aria-label': 'Dauer, Eintrag ' + (i + 1) }, opts(Math.max(room, b.minutes), b.minutes, 5));
+      mi.addEventListener('change', function () { b.minutes = Number(mi.value); if (b.iddMinutes > b.minutes) b.iddMinutes = b.minutes; draw(); });
+      var ii = h('select', { class: 'ag-i', 'aria-label': 'IDD-Bildungszeit, Eintrag ' + (i + 1) }, opts(b.minutes, b.iddMinutes, 0));
+      ii.addEventListener('change', function () { b.iddMinutes = Number(ii.value); draw(); });
+      function mv(d) { var j = i + d; if (j < 0 || j >= list.length) return; var x = list[i]; list[i] = list[j]; list[j] = x; draw(); var nx = $$('.ag-c', host)[j]; if (nx) nx.focus(); }
+      var up = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '↑', title: 'Nach oben', 'aria-label': 'Eintrag ' + (i + 1) + ' nach oben', disabled: i === 0, onclick: function () { mv(-1); } });
+      var dn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: '↓', title: 'Nach unten', 'aria-label': 'Eintrag ' + (i + 1) + ' nach unten', disabled: i === list.length - 1, onclick: function () { mv(1); } });
+      var del = h('button', { type: 'button', class: 'btn btn-danger btn-sm', text: 'Löschen', 'aria-label': 'Eintrag ' + (i + 1) + ' löschen', disabled: list.length === 1, onclick: function () { list.splice(i, 1); draw(); } });
+      host.appendChild(h('div', { class: 'ag-row' }, [h('span', { class: 'ag-t', text: o.start ? hm(t) + '–' + hm(t + b.minutes) : '' }), h('label', { class: 'ag-l' }, [h('span', { class: 'hint', text: 'Inhalte' }), c]), h('label', { class: 'ag-l' }, [h('span', { class: 'hint', text: 'Dauer' }), mi]), h('label', { class: 'ag-l' }, [h('span', { class: 'hint', text: 'IDD-Bildungszeit' }), ii]), h('div', { class: 'ag-acts' }, [up, dn, del])]));
+      t += b.minutes; sm += b.minutes; si += b.iddMinutes;
+    });
+    host.appendChild(h('div', { class: 'ag-row fixed' }, [h('span', { class: 'ag-t', text: o.start ? hm(t) + '–' + hm(t + f) : f + ' Min.' }), h('b', { text: IDD.farewell.title || 'Verabschiedung' }), h('span', { class: 'hint', text: f + ' Min. · keine Lernzeit' })]));
+    clear(foot);
+    foot.appendChild(h('span', { class: sm === room ? 'ag-ok' : 'ag-warn', text: 'Verplant: ' + sm + ' von ' + room + ' Minuten' + (sm < room ? ' (es fehlen ' + (room - sm) + ')' : sm > room ? ' (' + (sm - room) + ' zu viel)' : '') }));
+    foot.appendChild(h('span', null, [h('b', { text: si + ' Min.' }), ' IDD-Bildungszeit']));
+  }
+  var add = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Eintrag hinzufügen', onclick: function () { if (list.length >= 12) return; var sm = list.reduce(function (a, b) { return a + b.minutes; }, 0), rest = Math.max(5, room - sm); list.push({ content: '', minutes: rest, iddMinutes: rest }); draw(); var cs = $$('.ag-c', host); cs[cs.length - 1].focus(); } });
+  var ok = h('button', { type: 'button', class: 'btn btn-primary', text: 'Agenda übernehmen' });
+  ok.addEventListener('click', function () {
+    var sm = 0, si = 0, bad = '';
+    list.forEach(function (b) { sm += b.minutes; si += b.iddMinutes; if (String(b.content || '').trim().length < 3) bad = bad || 'Bitte beschreibe die Inhalte jedes Eintrags mit mindestens 3 Zeichen.'; });
+    if (!bad && sm !== room) bad = 'Die Einträge müssen zusammen genau ' + room + ' Minuten dauern. Aktuell sind es ' + sm + ' Minuten.';
+    if (!bad && si < 5) bad = 'Mindestens ein Eintrag braucht IDD-Bildungszeit.';
+    if (bad) { msg.hidden = false; msg.textContent = bad; return; }
+    m.close(); onApply(list.map(function (b) { return { content: String(b.content).replace(/\s+/g, ' ').trim(), minutes: b.minutes, iddMinutes: b.iddMinutes }; }));
+  });
+  body.appendChild(h('h2', { text: 'Agenda bearbeiten', style: 'padding-right:44px' }));
+  body.appendChild(h('p', { class: 'hint', text: 'Plane die Inhalte zwischen Begrüßung und Verabschiedung. Je Eintrag legst Du Dauer und IDD-Bildungszeit fest. Die Bildungszeit kann kürzer sein als die Dauer, etwa bei Pausen oder Fragerunden ohne Fachbezug.' }));
+  body.appendChild(host); body.appendChild(foot); body.appendChild(msg);
+  body.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between' }, [add, h('div', { style: 'display:flex;gap:12px' }, [h('button', { type: 'button', class: 'btn btn-secondary', text: 'Abbrechen', onclick: function () { m.close(); } }), ok])]));
+  draw();
+  m = openModal(body, { wide: true, label: 'Agenda bearbeiten' });
+}
 function buildEventForm(o) {
   o = o || {}; var ev = o.event || {}, admin = !!o.admin;
   var v = { title: ev.title || '', category: ev.category || 'dienstlich', date: ev.date || '', duration: ev.duration || 0, start: ev.start || '', type: ev.type || '', topic: ev.topic || '', capacity: ev.capacity || 10, teamsLink: ev.teamsLink || '', description: ev.description || '', imageData: '', removeImage: false, placeholder: ev.placeholder || '', idd: !!ev.idd, iddTitle: ev.iddTitle || '', iddMinutes: ev.iddMinutes || 0, iddTouched: !!ev.idd };
@@ -1735,34 +1796,38 @@ function buildEventForm(o) {
   cap.addEventListener('input', function () { f.capacity.setErr(''); }); link.addEventListener('input', function () { f.teamsLink.setErr(''); });
   rte.area.addEventListener('input', function () { f.description.setErr(''); });
 
-  /* IDD: nur fuer freigeschaltete Anbietende (oder Administration) und nur dienstlich */
-  var canIdd = iddOn() && (!!ev.idd || admin || !!(state.me && state.me.iddHost)), iddFs = null, iddSync = function () { };
+  /* IDD: nur fuer freigeschaltete Anbietende (oder Administration) und nur dienstlich.
+     Agenda: Begruessung und Verabschiedung (fest) und Inhaltsbloecke mit Dauer und IDD-Bildungszeit, im Popup bearbeitbar. */
+  v.agenda = (ev.agenda && ev.agenda.length ? ev.agenda : []).map(function (b) { return { content: b.content, minutes: Number(b.minutes), iddMinutes: Number(b.iddMinutes) }; });
+  var canIdd = iddOn() && (!!ev.idd || admin || isAdmin() || !!(state.me && state.me.iddHost)), iddFs = null, iddSync = function () { };
   if (canIdd) {
     var iddChk = h('input', { type: 'checkbox', id: 'f-idd', checked: v.idd });
     var iddTitleIn = h('input', { type: 'text', id: 'f-iddtitle', maxlength: '150', value: v.iddTitle, autocomplete: 'off', placeholder: 'z. B. Berufsunfähigkeitsversicherung: Bedarfsermittlung und Beratung' });
     f.iddTitle = field('IDD-Titel für die Dokumentation', iddTitleIn, { id: 'f-iddtitle', req: true, hint: 'Sachlicher Titel, der den fachlichen Inhalt nennt. Er steht im IDD-Nachweis der Teilnehmenden.' });
     var iddHints = h('div', { class: 'idd-hints', 'aria-live': 'polite' });
-    var iddMinSel = h('select', { id: 'f-iddmin' });
-    f.iddMinutes = field('Anrechenbare IDD-Zeit', iddMinSel, { id: 'f-iddmin', req: true, hint: 'Standard: Dauer minus 10 Minuten. Begrüßung und Verabschiedung zählen nicht zur Lernzeit.' });
-    var agendaBox = h('div'), privNote = h('p', { class: 'hint', text: 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.' });
-    var iddBody = h('div', { class: 'idd-body' }, [f.iddTitle, iddHints, f.iddMinutes, agendaBox]);
+    var agSum = h('div', { class: 'ag-sum', 'aria-live': 'polite' }), agPrev = h('div'), agBtn = h('button', { type: 'button', class: 'btn btn-secondary', id: 'f-agenda', text: 'Agenda bearbeiten' });
+    f.iddMinutes = field('Agenda und IDD-Bildungszeit', h('div', { class: 'ag-field' }, [agSum, agPrev, h('div', null, agBtn)]), { legend: true, req: true, hint: 'Begrüßung und Verabschiedung dauern je ' + (IDD.frame || 5) + ' Minuten und zählen nicht zur Lernzeit. Dazwischen planst Du die Inhalte.' });
+    var privNote = h('p', { class: 'hint', text: 'IDD-anrechenbar können nur dienstliche Veranstaltungen sein.' });
+    var iddBody = h('div', { class: 'idd-body' }, [f.iddTitle, iddHints, f.iddMinutes]);
     var showHints = function () { clear(iddHints); var hs = iddTitleHints(iddTitleIn.value); if (hs.length) iddHints.appendChild(h('div', { class: 'notice warn', role: 'status' }, h('div', { class: 'n-body' }, [h('b', { text: 'Hinweis zum IDD-Titel' })].concat(hs.map(function (x) { return h('div', { text: x }); }))))); };
+    var room = function () { return (Number(v.duration) || 0) - 2 * (IDD.frame || 5); };
+    var defaultAgenda = function () { return [{ content: iddTitleIn.value.trim() || 'Thema der Veranstaltung', minutes: room(), iddMinutes: room(), auto: true }]; };
     iddSync = function () {
       var biz = v.category === 'dienstlich'; iddChk.disabled = !biz; if (!biz) iddChk.checked = false;
       v.idd = biz && iddChk.checked; privNote.hidden = biz; iddBody.hidden = !v.idd;
-      var mx = (Number(v.duration) || 0) - 2 * (IDD.frame || 5); clear(iddMinSel);
-      if (mx < 5) iddMinSel.appendChild(h('option', { value: '', text: 'Bitte zuerst die Dauer wählen' }));
-      else {
-        if (!v.iddTouched || !v.iddMinutes || v.iddMinutes > mx) v.iddMinutes = mx;
-        for (var m = 5; m <= mx; m += 5) iddMinSel.appendChild(h('option', { value: String(m), text: m + ' Minuten' + (m === mx ? ' (Standard)' : ''), selected: m === v.iddMinutes }));
-      }
-      clear(agendaBox);
-      if (v.idd && v.start && v.duration) agendaBox.appendChild(agendaNode({ start: v.start, duration: Number(v.duration), iddTitle: iddTitleIn.value.trim() || 'Thema der Veranstaltung', title: '', iddMinutes: v.iddMinutes }));
+      var r = room();
+      /* Noch nicht angepasste Agenda folgt Dauer und IDD-Titel automatisch */
+      if (r >= 5 && (!v.agenda.length || (v.agenda.length === 1 && v.agenda[0].auto))) v.agenda = defaultAgenda();
+      var sm = 0, si = 0; v.agenda.forEach(function (b) { sm += b.minutes; si += b.iddMinutes; }); v.iddMinutes = si;
+      clear(agSum); clear(agPrev); agBtn.disabled = r < 5;
+      if (r < 5) { agSum.appendChild(h('span', { class: 'hint', text: 'Wähle zuerst die Dauer. Danach planst Du die Agenda.' })); return; }
+      agSum.appendChild(h('div', { class: 'ag-kpis' }, [h('span', null, [h('b', { text: v.duration + ' Min.' }), ' Dauer']), h('span', null, [h('b', { text: si + ' Min.' }), ' IDD-Bildungszeit']), sm !== r ? h('span', { class: 'ag-warn', text: 'Agenda: ' + sm + ' von ' + r + ' Minuten verplant' }) : null]));
+      if (v.start) agPrev.appendChild(agendaNode({ start: v.start, duration: Number(v.duration), agenda: v.agenda, title: '' }));
     };
+    agBtn.addEventListener('click', function () { openAgendaEditor({ duration: Number(v.duration), start: v.start, agenda: v.agenda }, function (list) { v.agenda = list; f.iddMinutes.setErr(''); iddSync(); }); });
     iddChk.addEventListener('change', function () { iddSync(); if (iddChk.checked) iddTitleIn.focus(); });
     iddTitleIn.addEventListener('input', function () { v.iddTitle = iddTitleIn.value; f.iddTitle.setErr(''); showHints(); iddSync(); });
-    iddMinSel.addEventListener('change', function () { v.iddMinutes = Number(iddMinSel.value) || 0; v.iddTouched = true; f.iddMinutes.setErr(''); iddSync(); });
-    iddFs = h('fieldset', { class: 'fs' }, [h('legend', { text: 'IDD-Weiterbildung' }), h('label', { class: 'chk' }, [iddChk, h('span', null, [h('b', { text: 'IDD-anrechenbare Veranstaltung' }), h('span', { class: 'hint', text: 'Nach Deiner Bestätigung der Teilnahme erhalten die Teilnehmenden die IDD-Zeit angerechnet.' })])]), privNote, iddBody]);
+    iddFs = h('fieldset', { class: 'fs' }, [h('legend', { text: 'IDD-Weiterbildung' }), h('label', { class: 'chk' }, [iddChk, h('span', null, [h('b', { text: 'IDD-anrechenbare Veranstaltung' }), h('span', { class: 'hint', text: 'Nach Deiner Bestätigung der Teilnahme erhalten die Teilnehmenden die IDD-Bildungszeit angerechnet.' })])]), privNote, iddBody]);
     showHints();
   }
   function collect() { v.title = title.value; v.capacity = Number(cap.value); v.teamsLink = link.value; v.description = rte.getHTML(); if (!canIdd) v.idd = false; return v; }
@@ -1776,9 +1841,9 @@ function buildEventForm(o) {
   var extra = o.extraButtons || [];
   var box = h('div', { class: 'notice bad', role: 'alert', hidden: true });
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Worum geht es?' }), f.title, h('div', { class: 'grid2' }, [f.category, f.topic])]));
+  if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Wann findet es statt?' }), h('div', { class: 'notice info' }, 'Veranstaltungen finden nur montags bis freitags statt, entweder morgens von 06:00 bis 09:00 Uhr oder nachmittags von 17:00 bis 20:00 Uhr. Die Veranstaltung muss innerhalb des Zeitfensters beendet sein.'), h('div', { class: 'grid3' }, [f.date, f.duration, f.start])]));
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Was wird angeboten?' }), h('div', { class: 'grid2' }, [f.type, f.capacity]), f.description, f.image]));
-  if (iddFs) { form.appendChild(iddFs); form.addEventListener('change', function () { iddSync(); }); iddSync(); }
   form.appendChild(h('fieldset', { class: 'fs' }, [h('legend', { text: 'Teams-Link' }), f.teamsLink]));
   form.appendChild(box);
   form.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap' }, [submit].concat(extra)));
@@ -1786,7 +1851,7 @@ function buildEventForm(o) {
     e.preventDefault(); box.hidden = true;
     if (!validate()) return;
     submit.disabled = true; var old = submit.textContent; submit.textContent = 'Wird gespeichert …';
-    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder, idd: !!v.idd, iddTitle: String(v.iddTitle || '').replace(/\s+/g, ' ').trim(), iddMinutes: v.idd ? v.iddMinutes : 0 };
+    var payload = { id: ev.id, title: v.title.trim(), category: v.category, type: v.type, topic: v.topic, date: v.date, start: v.start, duration: v.duration, capacity: v.capacity, teamsLink: v.teamsLink.trim(), description: v.description, imageData: v.imageData, removeImage: v.removeImage, placeholder: v.placeholder, idd: !!v.idd, iddTitle: String(v.iddTitle || '').replace(/\s+/g, ' ').trim(), iddMinutes: v.idd ? v.iddMinutes : 0, agenda: v.idd ? v.agenda.map(function (b) { return { content: String(b.content).trim(), minutes: b.minutes, iddMinutes: b.iddMinutes }; }) : [] };
     Promise.resolve(o.onSubmit(payload)).catch(function (err) { box.hidden = false; box.textContent = err.message || 'Das Speichern ist fehlgeschlagen.'; box.scrollIntoView({ block: 'center', behavior: 'smooth' }); }).then(function () { submit.disabled = false; submit.textContent = old; });
   });
   return form;
@@ -2280,7 +2345,7 @@ function iddCockpit(c) {
     var its = c.items.filter(function (x) { return x.year === cur; }), ok = its.filter(function (x) { return x.status === 'yes'; }), sum = ok.reduce(function (s, x) { return s + x.minutes; }, 0), goal = c.hours * 60;
     var pend = its.filter(function (x) { return x.ended && !x.status && !x.locked; }), no = its.filter(function (x) { return x.status === 'no' || (x.ended && !x.status && x.locked); }), up = its.filter(function (x) { return !x.ended; });
     var pct = Math.min(100, Math.round(sum / goal * 100));
-    var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kalenderjahr' }, ys.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
+    var seg = h('div', { class: 'yearbar', role: 'group', 'aria-label': 'Kalenderjahr' }, ys.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
     var pdf = h('button', { type: 'button', class: 'btn btn-primary', html: ico('download') + ' Nachweis ' + cur + ' als PDF', onclick: function () { saveBlob(iddPdf(c, cur), 'IDD-Nachweis-' + cur + '-' + (c.lastName || 'LearnTogether').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf'); } });
     host.appendChild(h('div', { style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between' }, [seg, pdf]));
     host.appendChild(h('div', { class: 'st-kpis', style: 'margin-top:20px' }, [
@@ -2385,7 +2450,7 @@ function viewProfile(q) {
     var count = h('span', { class: 'hint' }); function upd() { count.textContent = bio.value.length + ' / 300 Zeichen'; } bio.addEventListener('input', upd); upd();
     var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
     var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil veröffentlichen', null, true),
-      chk('showRating', 'Bewertung'), chk('showExpert', 'Themen mit Expertenstatus'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.'), chk('showUpcoming', 'Anstehende Veranstaltungen'), chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : null)]);
+      chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : 'Erscheint neben Deinem Benutzernamen im Profil.'), chk('showExpert', 'Themen mit Expertenstatus', 'Die Themen, in denen Du Experte bist.'), chk('showRating', 'Bewertung', 'Deine durchschnittliche Bewertung als Anbieter.'), chk('showUpcoming', 'Anstehende Veranstaltungen', 'Andere können sich direkt aus Deinem Profil anmelden.'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.')]);
     sync();
     /* Abzeichen und Rakete erscheinen auch ohne oeffentliches Profil neben dem Benutzernamen, deshalb eigener Schalter */
     var bc = h('input', { type: 'checkbox', id: 'pp-badges', checked: v.showBadges });
@@ -2601,7 +2666,7 @@ function saveBlob(blob, name) {
 function viewAdmin() {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' })), wrap = root.firstChild;
   var SECTIONS = [
-    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['users', 'Nutzer', 'Konten und Rechte'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte'], ['idd', 'IDD', 'IDD-Veranstaltungen und Teilnahmen']]],
+    ['Übersicht', [['events', 'Veranstaltungen', 'Veranstaltungen und Anmeldungen'], ['users', 'Nutzer', 'Konten und Rechte'], ['archive', 'Archiv', 'Archiv der Veranstaltungen'], ['stats', 'Statistik', 'Statistik und Berichte'], ['idd', 'IDD', 'IDD-Veranstaltungen und Teilnahmen'], ['iddarchiv', 'IDD-Archiv', 'IDD-Nachweise gelöschter Konten']]],
     ['Katalog', [['texts', 'Texte', 'Texte im Katalog'], ['taxonomy', 'Themen', 'Themenbereiche und Themen'], ['types', 'Arten', 'Arten der Veranstaltung'], ['photos', 'Fotos', 'Fotos als Platzhalterbilder'], ['badges', 'Abzeichen', 'Abzeichen und Expertenstatus']]],
     ['System', [['general', 'Allgemein', 'Allgemeine Einstellungen'], ['iddset', 'IDD-Einstellungen', 'IDD-Einstellungen'], ['testdata', 'Testdaten', 'Testdaten'], ['manual', 'Handbuch', 'Handbuch für Administrierende']]]
   ];
@@ -2627,7 +2692,7 @@ function viewAdmin() {
       var meta = null; SECTIONS.forEach(function (g) { g[1].forEach(function (it) { if (it[0] === section) meta = it; }); });
       if (!meta) { section = 'events'; meta = SECTIONS[0][1][0]; }
       head.textContent = meta[2]; clear(body); body.appendChild(loading());
-      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, photos: adminPhotos, users: adminUsers, general: adminGeneral, testdata: adminTest, idd: adminIdd, iddset: adminIddSet }[section];
+      var fn = { events: adminEvents, archive: adminArchive, stats: adminStats, manual: adminManual, texts: adminTexts, taxonomy: adminTaxonomy, types: adminTypes, badges: adminBadges, photos: adminPhotos, users: adminUsers, general: adminGeneral, testdata: adminTest, idd: adminIdd, iddset: adminIddSet, iddarchiv: adminIddArchiveView }[section];
       fn().then(function (n) { clear(body); body.appendChild(n); }, function (er) { if (authFail(er)) return; clear(body); body.appendChild(h('div', { class: 'notice bad', text: er.message })); });
     }
     draw();
@@ -2876,7 +2941,7 @@ function viewAdmin() {
           var acts = h('div', { class: 'acts' });
           if (meSuper && u.role !== 'superadmin') acts.appendChild(act(u.role === 'admin' ? 'Admin-Rechte entziehen' : 'Zum Admin machen', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetRole(u.id, u.role === 'admin' ? 'user' : 'admin'); }));
           if (u.role !== 'superadmin' || meSuper) acts.appendChild(act('Passwort zurücksetzen', 'Wirklich zurücksetzen?', 'btn-secondary', function () { return Api.adminResetPassword(u.id).then(function (r) { tempPassword(u, r.password); }); }));
-          if (iddOn()) acts.appendChild(act(u.iddHost ? 'IDD-Freischaltung entziehen' : 'IDD freischalten', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetIddHost(u.id, !u.iddHost); }));
+          if (iddOn()) acts.appendChild(act(u.iddHost ? 'IDD-Freischaltung entziehen' : 'IDD freischalten', 'Wirklich?', 'btn-secondary', function () { return Api.adminSetIddHost(u.id, !u.iddHost).then(function () { if (state.me && u.id === state.me.id) return refreshMe(); }); }));
           if (u.avatar) acts.appendChild(act('Profilbild löschen', 'Wirklich löschen?', 'btn-danger', function () { return Api.adminDeleteAvatar(u.id); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id) acts.appendChild(act(u.locked ? 'Entsperren' : 'Sperren', 'Wirklich?', u.locked ? 'btn-secondary' : 'btn-danger', function () { return Api.adminSetLocked(u.id, !u.locked); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id && (u.role !== 'admin' || meSuper)) acts.appendChild(act('Konto löschen', 'Endgültig löschen?', 'btn-danger', function () { return Api.adminDeleteUser(u.id).then(function () { toast('Das Konto ist gelöscht.'); }); }));
@@ -2892,6 +2957,32 @@ function viewAdmin() {
       return h('div', null, [h('p', { class: 'lead', text: meSuper ? 'Hier siehst Du alle Konten. Als Hauptadministration kannst Du Admin-Rechte vergeben, Passwörter zurücksetzen, Konten sperren und löschen.' : 'Hier siehst Du alle Konten. Du kannst Passwörter zurücksetzen, Konten sperren und löschen. Admin-Rechte vergibt nur die Hauptadministration.' }),
         h('p', { class: 'hint', style: 'margin:0 0 16px', text: 'Zum Schutz der Beschäftigten zeigt die Liste weder Anmeldezeiten noch Teilnahmen je Person. Konten ohne Anmeldung seit ' + res.inactiveMonths + ' Monaten löscht die Anwendung automatisch.' }),
         h('div', { class: 'afilter' }, h('div', { class: 'afld wide' }, [h('label', { text: 'Suche' }), search])), h('div', { class: 'toolrow' }, count), host]);
+    });
+  }
+      /* IDD-Nachweise geloeschter Konten: nur Nachweisdaten, bis zum Ende des fuenften Jahres nach dem Kalenderjahr der Teilnahme */
+  function adminIddArchiveView() {
+    if (!iddOn()) return Promise.resolve(h('div', { class: 'notice', role: 'status' }, 'Die IDD-Funktion ist ausgeschaltet. Du schaltest sie unter System › IDD-Einstellungen ein.'));
+    return Api.adminIddArchive().then(function (archive) {
+      return archiveNode();
+      function archiveNode() {
+        var kids = [h('p', { class: 'lead', text: 'Bei einer Kontolöschung hebt die Anwendung bestätigte IDD-Teilnahmen mit Name, XV-Nummer und gutBeraten-ID auf. Jede Teilnahme wird am Ende des fünften Jahres nach ihrem Kalenderjahr automatisch gelöscht.' })];
+        if (!archive.length) { kids.push(h('p', { class: 'hint', text: 'Keine gelöschten Konten mit IDD-Nachweisen.' })); return h('div', { id: 'idd-archive' }, kids); }
+        var tb = h('tbody');
+        archive.forEach(function (a) {
+          var yrs = {}; a.items.forEach(function (it) { var y = Number(it.date.slice(0, 4)); yrs[y] = (yrs[y] || 0) + it.minutes; });
+          var acts = h('div', { class: 'acts' }, Object.keys(yrs).map(Number).sort(function (x, y) { return y - x; }).map(function (y) {
+            return h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Nachweis ' + y, onclick: function () {
+              var c = { firstName: a.firstName, lastName: a.lastName, xv: a.xv, gbId: a.gbId, hours: a.iddHours || 15, provider: (a.items[0] && a.items[0].provider) || IDD.provider, archivedNote: 'Das Konto wurde am ' + dateFull(a.deletedAt.slice(0, 10)) + ' gelöscht. Nachweis aus dem Archiv der Administration.',
+                items: a.items.map(function (it) { return { year: Number(it.date.slice(0, 4)), status: 'yes', date: it.date, start: it.start, end: it.end, minutes: it.minutes, iddTitle: it.iddTitle, title: it.title, confirmedAt: it.confirmedAt }; }) };
+              saveBlob(iddPdf(c, y), 'IDD-Nachweis-' + y + '-' + (a.lastName || 'Archiv').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf');
+            } });
+          }));
+          tb.appendChild(h('tr', null, [h('td', null, [h('b', { text: (a.firstName + ' ' + a.lastName).trim() }), h('div', { class: 'hint', text: a.xv || '–' })]), h('td', { text: a.gbId || 'fehlt' }), h('td', { class: 'nowrap', text: dateFull(a.deletedAt.slice(0, 10)) }),
+            h('td', { text: Object.keys(yrs).sort().map(function (y) { return y + ': ' + fmtMinutes(yrs[y]); }).join(' · ') }), h('td', { class: 'c-act' }, acts)]));
+        });
+        kids.push(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Name / XV', 'gutBeraten-ID', 'Gelöscht am', 'IDD-Zeit je Jahr', 'PDF-Nachweis'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        return h('div', { id: 'idd-archive' }, kids);
+      }
     });
   }
   /* IDD-Einstellungen: Hauptschalter, Bildungsdienstleister, Texte fuer Begruessung und Verabschiedung */
@@ -2918,8 +3009,8 @@ function viewAdmin() {
   /* IDD: Veranstaltungen eines Kalenderjahres, Bestaetigungen, Nachtragen und erneute Freischaltung */
   function adminIdd() {
     if (!iddOn()) return Promise.resolve(h('div', { class: 'notice', role: 'status' }, 'Die IDD-Funktion ist ausgeschaltet. Du schaltest sie unter System › IDD-Einstellungen ein.'));
-    return Promise.all([Api.adminIdd(), Api.adminUsers(), Api.adminIddArchive()]).then(function (res) {
-      var evs = res[0], users = res[1].users, archive = res[2], host = h('div'), nowY = new Date().getFullYear();
+    return Promise.all([Api.adminIdd(), Api.adminUsers()]).then(function (res) {
+      var evs = res[0], users = res[1].users, host = h('div'), nowY = new Date().getFullYear();
       var ys = {}; evs.forEach(function (e) { ys[+e.date.slice(0, 4)] = 1; }); ys[nowY] = 1;
       var years = Object.keys(ys).map(Number).sort(function (a, b) { return b - a; }), cur = Number(sess.get('lt_iddadm_y')) || nowY; if (years.indexOf(cur) < 0) cur = years[0];
       function reload(openId) { return Api.adminIdd().then(function (l) { evs = l; draw(); if (openId) { var e = evs.filter(function (x) { return x.id === openId; })[0]; if (e) people(e); } }); }
@@ -2953,7 +3044,7 @@ function viewAdmin() {
         var list = evs.filter(function (e) { return +e.date.slice(0, 4) === cur; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
         var held = list.filter(function (e) { return !e.cancelled; }), all = [], yes = 0, open = 0, noId = 0, mins = 0;
         held.forEach(function (e) { e.bookings.forEach(function (b) { if (b.status === 'yes') { yes++; mins += e.iddMinutes; if (!b.gbId) noId++; } else if (!b.status && e.ended && !e.locked) open++; }); });
-        var seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kalenderjahr' }, years.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
+        var seg = h('div', { class: 'yearbar', role: 'group', 'aria-label': 'Kalenderjahr' }, years.map(function (y) { return h('button', { type: 'button', text: String(y), 'aria-pressed': String(y === cur), onclick: function () { cur = y; draw(); } }); }));
         host.appendChild(seg);
         host.appendChild(h('div', { class: 'st-kpis', style: 'margin-top:20px' }, [['IDD-Veranstaltungen', String(held.length)], ['Bestätigte Teilnahmen', String(yes)], ['Bestätigte IDD-Zeit', fmtMinutes(mins)], ['Offene Bestätigungen', String(open)], ['Bestätigt ohne gutBeraten-ID', String(noId)]].map(function (k) { return h('div', { class: 'st-kpi' }, [h('b', { text: k[1] }), h('span', { text: k[0] })]); })));
         var lockD = new Date(cur + 1, 0, 31, 23, 59, 59);
@@ -2971,27 +3062,7 @@ function viewAdmin() {
         host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'Anbietende', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       draw();
-      /* IDD-Nachweise geloeschter Konten: nur Nachweisdaten, bis zum Ende des fuenften Jahres nach dem Kalenderjahr der Teilnahme */
-      function archiveNode() {
-        var kids = [h('h3', { text: 'IDD-Nachweise gelöschter Konten (' + archive.length + ')', style: 'margin-top:36px' }), h('p', { class: 'hint', text: 'Bei einer Kontolöschung hebt die Anwendung bestätigte IDD-Teilnahmen mit Name, XV-Nummer und gutBeraten-ID auf. Jede Teilnahme wird am Ende des fünften Jahres nach ihrem Kalenderjahr automatisch gelöscht.' })];
-        if (!archive.length) { kids.push(h('p', { class: 'hint', text: 'Keine gelöschten Konten mit IDD-Nachweisen.' })); return h('div', { id: 'idd-archive' }, kids); }
-        var tb = h('tbody');
-        archive.forEach(function (a) {
-          var yrs = {}; a.items.forEach(function (it) { var y = Number(it.date.slice(0, 4)); yrs[y] = (yrs[y] || 0) + it.minutes; });
-          var acts = h('div', { class: 'acts' }, Object.keys(yrs).map(Number).sort(function (x, y) { return y - x; }).map(function (y) {
-            return h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Nachweis ' + y, onclick: function () {
-              var c = { firstName: a.firstName, lastName: a.lastName, xv: a.xv, gbId: a.gbId, hours: a.iddHours || 15, provider: (a.items[0] && a.items[0].provider) || IDD.provider, archivedNote: 'Das Konto wurde am ' + dateFull(a.deletedAt.slice(0, 10)) + ' gelöscht. Nachweis aus dem Archiv der Administration.',
-                items: a.items.map(function (it) { return { year: Number(it.date.slice(0, 4)), status: 'yes', date: it.date, start: it.start, end: it.end, minutes: it.minutes, iddTitle: it.iddTitle, title: it.title, confirmedAt: it.confirmedAt }; }) };
-              saveBlob(iddPdf(c, y), 'IDD-Nachweis-' + y + '-' + (a.lastName || 'Archiv').replace(/[^A-Za-zÄÖÜäöüß-]/g, '') + '.pdf');
-            } });
-          }));
-          tb.appendChild(h('tr', null, [h('td', null, [h('b', { text: (a.firstName + ' ' + a.lastName).trim() }), h('div', { class: 'hint', text: a.xv || '–' })]), h('td', { text: a.gbId || 'fehlt' }), h('td', { class: 'nowrap', text: dateFull(a.deletedAt.slice(0, 10)) }),
-            h('td', { text: Object.keys(yrs).sort().map(function (y) { return y + ': ' + fmtMinutes(yrs[y]); }).join(' · ') }), h('td', { class: 'c-act' }, acts)]));
-        });
-        kids.push(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Name / XV', 'gutBeraten-ID', 'Gelöscht am', 'IDD-Zeit je Jahr', 'PDF-Nachweis'].map(function (t) { return h('th', { text: t }); }))), tb])));
-        return h('div', { id: 'idd-archive' }, kids);
-      }
-      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt.' }), host, archiveNode()]);
+      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt. IDD-Nachweise gelöschter Konten stehen unter IDD-Archiv.' }), host]);
     });
   }
   function adminPhotos() {

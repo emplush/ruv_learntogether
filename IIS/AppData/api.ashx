@@ -88,6 +88,7 @@ namespace LearnTogether
         public string iddTitle { get; set; }      // Titel fuer die Dokumentation
         public int iddMinutes { get; set; }       // anrechenbare Bildungszeit, hoechstens Dauer minus 10 Minuten
         public string reopenUntil { get; set; }   // Bestaetigung fuer Anbietende erneut freigeschaltet bis
+        public List<AgendaItem> agenda { get; set; } // Inhaltsbloecke zwischen Begruessung und Verabschiedung
         public bool isTest { get; set; }
         public string created { get; set; }
         public bool cancelled { get; set; }
@@ -97,6 +98,12 @@ namespace LearnTogether
         public string anonymizedAt { get; set; }
     }
 
+    public class AgendaItem
+    {
+        public string content { get; set; }
+        public int minutes { get; set; }
+        public int iddMinutes { get; set; }
+    }
     public class BookingRec
     {
         public string id { get; set; }
@@ -267,7 +274,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.29.3";
+        const string Version = "0.30.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -1218,7 +1225,7 @@ namespace LearnTogether
             x["description"] = e.description; x["isTest"] = e.isTest;
             x["placeholder"] = e.placeholder ?? "";
             x["image"] = e.hasImage ? "AppData/api.ashx?action=img&id=" + e.id + "&v=" + e.imgVer : null;
-            x["rev"] = e.rev; { bool on = e.idd && LoadSettings().iddOn; x["idd"] = on; x["iddTitle"] = on ? e.iddTitle ?? "" : ""; x["iddMinutes"] = on ? e.iddMinutes : 0; } x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
+            x["rev"] = e.rev; { bool on = e.idd && LoadSettings().iddOn; x["idd"] = on; x["iddTitle"] = on ? e.iddTitle ?? "" : ""; x["iddMinutes"] = on ? e.iddMinutes : 0; x["agenda"] = on ? (object)(e.agenda ?? new List<AgendaItem>()) : null; } x["cancelled"] = e.cancelled; x["cancelReason"] = e.cancelReason ?? ""; x["cancelledAt"] = e.cancelledAt ?? "";
             return x;
         }
 
@@ -1270,7 +1277,7 @@ namespace LearnTogether
             if (PlainText(desc).Length < 10) throw new ApiException("invalid", "Bitte beschreibe die Veranstaltung mit mindestens 10 Zeichen.");
             if (desc.Length > 20000) throw new ApiException("invalid", "Die Beschreibung ist zu lang.");
             if (!admin && StartOfSafe(date, start) <= NowBerlin()) throw new ApiException("invalid", "Der Termin muss in der Zukunft liegen.");
-            bool idd = B(e, "idd"); string iddTitle = ""; int iddMin = 0;
+            bool idd = B(e, "idd"); string iddTitle = ""; int iddMin = 0; List<AgendaItem> agenda = null;
             if (idd)
             {
                 if (iddMode == 0) throw new ApiException("forbidden", "IDD-Veranstaltungen kannst Du erst nach Freischaltung durch die Administration anlegen.");
@@ -1278,15 +1285,36 @@ namespace LearnTogether
                 if (cat != "dienstlich") throw new ApiException("invalid", "IDD-anrechenbar k\u00f6nnen nur dienstliche Veranstaltungen sein.");
                 iddTitle = Regex.Replace(S(e, "iddTitle"), "\\s+", " ").Trim();
                 if (iddTitle.Length < 5 || iddTitle.Length > 150) throw new ApiException("invalid", "Bitte gib einen IDD-Titel mit 5 bis 150 Zeichen an. Er ist bei IDD-Veranstaltungen Pflicht.");
-                iddMin = I(e, "iddMinutes"); if (iddMin == 0) iddMin = dur - 2 * IddFrameMin;
-                if (iddMin < 5 || iddMin > dur - 2 * IddFrameMin || iddMin % 5 != 0) throw new ApiException("invalid", "Die IDD-Zeit muss in 5-Minuten-Schritten zwischen 5 Minuten und der Dauer minus 10 Minuten (" + (dur - 2 * IddFrameMin) + " Minuten) liegen.");
+                // Agenda: Inhaltsbloecke mit Dauer und IDD-Bildungszeit; zusammen genau Dauer minus Begruessung und Verabschiedung
+                int room = dur - 2 * IddFrameMin;
+                IEnumerable items = e.ContainsKey("agenda") ? e["agenda"] as IEnumerable : null;
+                agenda = new List<AgendaItem>();
+                if (items != null)
+                    foreach (object o in items)
+                    {
+                        Dictionary<string, object> x = o as Dictionary<string, object>; if (x == null) continue;
+                        AgendaItem it = new AgendaItem(); it.content = Regex.Replace(S(x, "content"), "\\s+", " ").Trim(); it.minutes = I(x, "minutes"); it.iddMinutes = I(x, "iddMinutes");
+                        if (it.content.Length < 3 || it.content.Length > 200) throw new ApiException("invalid", "Jeder Agenda-Eintrag braucht Inhalte mit 3 bis 200 Zeichen.");
+                        if (it.minutes < 5 || it.minutes % 5 != 0) throw new ApiException("invalid", "Die Dauer eines Agenda-Eintrags muss mindestens 5 Minuten in 5-Minuten-Schritten betragen.");
+                        if (it.iddMinutes < 0 || it.iddMinutes > it.minutes || it.iddMinutes % 5 != 0) throw new ApiException("invalid", "Die IDD-Bildungszeit eines Eintrags liegt zwischen 0 Minuten und seiner Dauer, in 5-Minuten-Schritten.");
+                        agenda.Add(it);
+                    }
+                if (agenda.Count == 0)
+                {
+                    int im = I(e, "iddMinutes"); if (im == 0) im = room;
+                    AgendaItem it = new AgendaItem(); it.content = iddTitle; it.minutes = room; it.iddMinutes = im; agenda.Add(it);
+                }
+                if (agenda.Count > 12) throw new ApiException("invalid", "Die Agenda darf h\u00f6chstens 12 Eintr\u00e4ge haben.");
+                int sumMin = 0; foreach (AgendaItem it in agenda) { sumMin += it.minutes; iddMin += it.iddMinutes; }
+                if (sumMin != room) throw new ApiException("invalid", "Die Eintr\u00e4ge der Agenda m\u00fcssen zusammen " + room + " Minuten dauern (Dauer minus Begr\u00fc\u00dfung und Verabschiedung). Aktuell sind es " + sumMin + " Minuten.");
+                if (iddMin < 5 || iddMin > room || iddMin % 5 != 0) throw new ApiException("invalid", "Die IDD-Bildungszeit muss zusammen zwischen 5 Minuten und " + room + " Minuten liegen.");
             }
 
             r.title = title; r.category = cat; r.type = type; r.topic = topic;
             string ph = S(e, "placeholder");
             if (!Regex.IsMatch(ph, "^[a-z0-9-]{0,40}$")) ph = "";
             r.date = date; r.start = start; r.duration = dur; r.capacity = cap; r.teamsLink = link; r.description = desc; r.placeholder = ph;
-            r.idd = idd; r.iddTitle = iddTitle; r.iddMinutes = iddMin;
+            r.idd = idd; r.iddTitle = iddTitle; r.iddMinutes = iddMin; r.agenda = idd ? agenda : null;
             return r;
         }
 

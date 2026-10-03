@@ -50,7 +50,8 @@ await p.click('#pub-box button:has-text("So sehen andere")'); await p.waitForSel
 // ---- IDD: Formular, Bestaetigung (anna.b), Konto und Cockpit (markus_v)
 await go('#/meine-veranstaltungen'); await p.waitForSelector('.panel h3'); await p.waitForTimeout(300);
 await p.locator('.panel:has(h3:text-is("Berufsunfähigkeit verständlich erklären")) button:has-text("Bearbeiten")').click(); await p.waitForSelector('.modal #f-idd', { state: 'attached' });
-await p.locator('.modal fieldset:has(#f-idd)').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await p.locator('.modal fieldset:has(#f-idd)').screenshot({ path: path.join(out, 'idd-formular.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+await p.locator('.modal fieldset:has(#f-idd)').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await p.locator('.modal fieldset:has(#f-idd)').screenshot({ path: path.join(out, 'idd-formular.jpg'), type: 'jpeg', quality: 80 });
+await p.click('.modal #f-agenda'); await p.waitForSelector('.ag-edit'); await p.waitForTimeout(200); await p.locator('.modal').last().screenshot({ path: path.join(out, 'idd-agenda.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape'); await p.waitForTimeout(200); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
 await p.click('.tabs-seg button:has-text("Vergangen")'); await p.waitForTimeout(300);
 const iddc = p.locator('.panel:has(h3:text-is("Betriebliche Altersversorgung im Mittelstand")) .idd-confirm'); await iddc.scrollIntoViewIfNeeded(); await iddc.screenshot({ path: path.join(out, 'idd-bestaetigen.jpg'), type: 'jpeg', quality: 80 });
 await p.click('.navout'); await p.waitForTimeout(300);

@@ -730,3 +730,25 @@ nav.main .navhelp { margin-left: 6px; color: var(--muted); font-weight: 600; }
 body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 body > main#main { flex: 1 0 auto; width: 100%; }
 body > footer.foot { flex-shrink: 0; margin-top: 0; }
+/* 0.30: Jahresauswahl ohne Rahmen; das gewaehlte Jahr ist hervorgehoben */
+.yearbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0 4px; }
+.yearbar button { font: inherit; font-weight: 700; padding: 6px 14px; border: 2px solid transparent; border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; }
+.yearbar button:hover { text-decoration: underline; }
+.yearbar button[aria-pressed="true"] { background: var(--mint); border-color: var(--mint); color: var(--on-mint); text-decoration: none; }
+.yearbar button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* 0.30: Agenda-Editor */
+.ag-field { display: flex; flex-direction: column; gap: 12px; }
+.ag-kpis { display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; }
+.ag-warn { color: var(--danger); font-weight: 700; }
+.ag-ok { color: var(--ok); font-weight: 700; }
+.ag-edit { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.ag-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 10px; border: 1px solid var(--line); border-radius: 4px; }
+.ag-row:not(.fixed) .ag-t { grid-row: 1 / span 2; align-self: start; padding-top: 26px; }
+.ag-row:not(.fixed) .ag-l:first-of-type { grid-column: 2 / -1; }
+.ag-row.fixed { grid-template-columns: 96px minmax(0, 1fr) auto; align-items: center; background: var(--surface); }
+.ag-row .ag-t { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; }
+.ag-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ag-l input, .ag-l select { width: 100%; }
+.ag-acts { display: flex; gap: 6px; }
+.ag-foot { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 12px; }
+@media (max-width: 760px) { .ag-row, .ag-row.fixed { grid-template-columns: 1fr 1fr; } .ag-row:not(.fixed) .ag-t { grid-row: auto; padding-top: 0; } .ag-row .ag-t, .ag-row:not(.fixed) .ag-l:first-of-type, .ag-acts { grid-column: 1 / -1; } }

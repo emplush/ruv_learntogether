@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.30.0 (03.10.2026)
+- **Agenda bearbeiten (IDD):** im Popup mit Einträgen aus „Inhalte“, „Dauer“ und „IDD-Bildungszeit“. Einträge anpassen, hinzufügen, löschen und verschieben. Begrüßung und Verabschiedung bleiben fest. Die Einträge füllen zusammen die Dauer minus 10 Minuten, die IDD-Zeit ist die Summe der Bildungszeiten.
+- **IDD-Optionen im Formular** stehen jetzt über „Wann findet es statt?“.
+- **Fehler behoben:** IDD-Optionen fehlten beim Anlegen, wenn die eigene Freischaltung gerade erst erteilt wurde, und für Admins ohne eigene Freischaltung.
+- **IDD-Archiv** als eigene Seite unter Übersicht › IDD-Archiv.
+- **Jahresauswahl** in IDD-Übersicht und IDD-Cockpit ohne Rahmen, das gewählte Jahr ist hervorgehoben, mit Abstand zum Text.
+- **Öffentliches Profil:** Reihenfolge der Freigaben neu (Profilbild, Expertenthemen, Bewertung, anstehende Veranstaltungen, E-Mail-Adresse), jede mit kurzer Erklärung.
+
 ## 0.29.3 (03.10.2026)
 - **Footer:** sitzt immer am Seitenende ohne Weißraum danach. Bei kurzen Seiten wie der Anmeldung steht er am unteren Fensterrand.
 - **Admin-Handbuch:** neuer Ablauf „Passwort der Hauptadministration vergessen“ (Rolle in data.json auf user setzen, neues Startpasswort in admin-startpasswort.txt).
