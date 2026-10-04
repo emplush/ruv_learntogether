@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.34.1 (04.10.2026)
+- **Startseite:** neuer, motivierender Hinweistext mit LearnMaker: „Lerne von denen, die es täglich machen …“. Bestehende Installationen mit dem alten Standardtext erhalten den neuen automatisch. Eigene Texte aus Katalog › Texte bleiben unverändert.
+- Screenshots und Präsentation aktualisiert.
+
 ## 0.34.0 (04.10.2026)
 - **Testdaten erweitert** (24 Beispielnutzer, neue Szenarien):
   - Konten: gesperrtes Konto, nie angemeldetes Konto, verteilte letzte Anmeldungen für die Statistik.

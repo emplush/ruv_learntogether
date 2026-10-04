@@ -232,7 +232,7 @@ namespace LearnTogether
             textColorDienstlich = "#ffffff";
             textColorPrivat = "#ffffff";
             heroTitle = "Voneinander lernen. *Miteinander wachsen.*";
-            heroText = "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).";
+            heroText = "Lerne von denen, die es täglich machen: Workshops, Erfahrungsaustausch und Best Practices aus dem Außendienst, dienstlich wie privat. Mit zwei Klicks bist Du dabei. Oder Du wirst selbst LearnMaker und teilst, was Du kannst. Live in Teams, montags bis freitags von 06:00 bis 09:00 Uhr oder von 17:00 bis 20:00 Uhr.";
             badgeLevels = new List<int>(new int[] { 1, 5, 10, 20, 40, 80 });
             expertMin = 5;
             audience = 6000;
@@ -278,7 +278,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.34.0";
+        const string Version = "0.34.1";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -931,6 +931,8 @@ namespace LearnTogether
                 if (string.IsNullOrEmpty(s.appTitle)) { s.appTitle = "LearnTogether@AD"; changed = true; }
                 if (s.badgeLevels == null || s.badgeLevels.Count != 6) { s.badgeLevels = new List<int>(new int[] { 1, 5, 10, 20, 40, 80 }); changed = true; }
                 if (s.expertMin < 1) { s.expertMin = 5; changed = true; }
+                // alter Standardtext (bis 0.34) wird durch den neuen ersetzt, eigene Texte bleiben
+                if (s.heroText == "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde dich in zwei Klicks an oder teile selbst, was du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr)." || s.heroText == "Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde Dich in zwei Klicks an oder teile selbst, was Du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).") { s.heroText = new SettingsRec().heroText; changed = true; }
                 if (changed)
                 {
                     try { WriteJson("settings.json", s); fallbackSettings = null; }

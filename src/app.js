@@ -86,7 +86,7 @@ var sess = {
 var TYPES = ['Workshop', 'Austausch', 'Best Practice'];
 var MAX_CAP = 50;
 var MAX_TYPES = 50;
-var DEFAULT_HERO = { title: 'Voneinander lernen. *Miteinander wachsen.*', text: 'Entdecke, was Kolleginnen und Kollegen bewegt: Workshops, Erfahrungsaustausch und Best Practices, dienstlich wie privat. Melde Dich in zwei Klicks an oder teile selbst, was Du weißt. Live online in Teams, montags bis freitags morgens (06:00 bis 09:00 Uhr) oder nachmittags (17:00 bis 20:00 Uhr).' };
+var DEFAULT_HERO = { title: 'Voneinander lernen. *Miteinander wachsen.*', text: 'Lerne von denen, die es täglich machen: Workshops, Erfahrungsaustausch und Best Practices aus dem Außendienst, dienstlich wie privat. Mit zwei Klicks bist Du dabei. Oder Du wirst selbst LearnMaker und teilst, was Du kannst. Live in Teams, montags bis freitags von 06:00 bis 09:00 Uhr oder von 17:00 bis 20:00 Uhr.' };
 var BADGES = { levels: [1, 5, 10, 20, 40, 80], expertMin: 5 };
 var AVATAR_UPLOAD = true, PHOTOS = []; /* Hochladen von Profilbildern erlaubt; eigene Fotos als Platzhalterbilder (Admin) */
 var HERO = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
@@ -522,6 +522,8 @@ var Local = (function () {
     if (!cfg.labels) cfg.labels = JSON.parse(JSON.stringify(DEFAULT_TAX.labels));
     if (!cfg.topics) cfg.topics = JSON.parse(JSON.stringify(DEFAULT_TAX.topics));
     if (!cfg.hero) cfg.hero = { title: DEFAULT_HERO.title, text: DEFAULT_HERO.text };
+    /* alter Standardtext (bis 0.34) wird durch den neuen ersetzt, eigene Texte bleiben */
+    var oh = String(cfg.hero.text || ''); if (oh.indexOf('Entdecke, was Kolleginnen und Kollegen bewegt: Workshops') === 0 && /Live online in Teams, montags bis freitags morgens \(06:00 bis 09:00 Uhr\) oder nachmittags \(17:00 bis 20:00 Uhr\)\.$/.test(oh) && oh.length < 300) cfg.hero.text = DEFAULT_HERO.text;
     if (!cfg.types) cfg.types = DEFAULT_TAX.types.slice();
     if (!cfg.idd) cfg.idd = { on: true, provider: 'R+V Allgemeine Versicherung AG', welcomeTitle: 'Begrüßung', welcomeText: 'Ankommen, kurze Vorstellung und Ablauf der Session.', farewellTitle: 'Verabschiedung', farewellText: 'Zusammenfassung, offene Fragen und Hinweis zur Teilnahmebestätigung.' };
     if (!cfg.headings) cfg.headings = JSON.parse(JSON.stringify(DEFAULT_TAX.headings));
