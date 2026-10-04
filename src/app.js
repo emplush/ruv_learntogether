@@ -500,6 +500,7 @@ var Local = (function () {
     if (!cfg.texts) cfg.texts = JSON.parse(JSON.stringify(DEFAULT_TAX.texts));
     if (!cfg.colors) cfg.colors = JSON.parse(JSON.stringify(DEFAULT_TAX.colors));
     if (!cfg.badges) cfg.badges = { levels: [1, 5, 10, 20, 40, 80], expertMin: 5 };
+    if (!cfg.badges.secret) cfg.badges.secret = SECRET_MIN;
     applyTaxonomy(cfg);
     ensureAdmin();
     if (!store.get('lt_seeded')) { store.set('lt_seeded', '1'); insertTest(); }
@@ -622,7 +623,8 @@ var Local = (function () {
   /* Fuer andere sichtbar: ohne Abzeichen, wenn die Person sie ausgeblendet hat */
   function pubLevel(B, uid) { return uid && B.hidden[uid] ? 0 : levelOf(B, uid); }
   function pubExpert(B, uid, cat, tp) { return !(uid && B.hidden[uid]) && expertOf(B, uid, cat, tp); }
-  function levelOf(B, uid) { var n = (uid && B.offered[uid]) || 0, lv = 0; BADGES.levels.forEach(function (t, i) { if (n >= t) lv = i + 1; }); return lv; }
+  /* Stufe 7 (Learnicorn) ist versteckt: Die Grenze kennt nur die Administration, sichtbar wird sie erst beim Erreichen */
+  function levelOf(B, uid) { var n = (uid && B.offered[uid]) || 0, lv = 0; BADGES.levels.forEach(function (t, i) { if (n >= t) lv = i + 1; }); if (lv === 6 && n >= (cfg.badges.secret || SECRET_MIN)) lv = 7; return lv; }
   function expertOf(B, uid, cat, tp) { return !!uid && (B.topic[uid + '|' + cat + '|' + tp] || 0) >= BADGES.expertMin; }
   function avInfo(u, own) { if (!u.avatar) return null; if (u.avatar === 'upload') { if (cfg.avatarUploadOff && !own) return null; return { kind: 'upload', url: u.avatarData || '', hidden: !!cfg.avatarUploadOff }; } return { kind: 'ph', id: u.avatar }; }
   function hostPublic(e) { var u = userById(e.ownerId); return !!u && !!u.profilePublic && !u.locked; }
@@ -754,6 +756,8 @@ var Local = (function () {
           lv.forEach(function (n, i) { if (!(n >= 1 && n <= 100000) || Math.floor(n) !== n) throw ApiErr('invalid', 'Die Grenzen der Stufen müssen ganze Zahlen von 1 bis 100000 sein.'); if (i && n <= lv[i - 1]) throw ApiErr('invalid', 'Die Grenzen müssen von Stufe zu Stufe ansteigen.'); });
           cfg.badges.levels = lv; applyTaxonomy(cfg);
         }
+        if ('badgeSecret' in s) { var sc = Number(s.badgeSecret); if (!(sc >= 1 && sc <= 100000) || Math.floor(sc) !== sc) throw ApiErr('invalid', 'Die Grenze für den Learnicorn muss eine ganze Zahl von 1 bis 100000 sein.'); cfg.badges.secret = sc; }
+        if ((cfg.badges.secret || SECRET_MIN) <= cfg.badges.levels[5]) throw ApiErr('invalid', 'Die Grenze für den Learnicorn muss über der Grenze für Stufe 6 liegen.');
         if ('avatarUpload' in s) { cfg.avatarUploadOff = !s.avatarUpload; applyTaxonomy({ avatarUpload: !!s.avatarUpload }); }
         if ('iddOn' in s) cfg.idd.on = !!s.iddOn;
         if ('iddProvider' in s) {
@@ -1154,7 +1158,7 @@ var Local = (function () {
         save(); return {};
       });
     },
-    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, expertMin: BADGES.expertMin, testPassword: TEST_PW, idd: iddPub(), audience: cfg.audience == null ? 6000 : cfg.audience, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
+    adminSettings: function () { return wrap(function () { needAdmin(); return { appTitle: cfg.appTitle, local: true, badgeLevels: BADGES.levels, badgeSecret: cfg.badges.secret || SECRET_MIN, expertMin: BADGES.expertMin, testPassword: TEST_PW, idd: iddPub(), audience: cfg.audience == null ? 6000 : cfg.audience, testUsers: data.users.filter(function (u) { return u.isTest; }).length, testEvents: data.events.filter(function (e) { return e.isTest; }).length, https: location.protocol === 'https:', avatarUpload: !cfg.avatarUploadOff, photos: (cfg.photos || []).map(function (f) { return { id: f.id, name: f.name, keywords: f.keywords, ver: f.ver, url: f.data }; }) }; }); },
     adminTestData: function (m) {
       return wrap(function () {
         needAdmin();
@@ -1441,6 +1445,9 @@ function openPhPicker(current, onPick) {
 /* ====================================================== Abzeichen, Anmeldestatus, Bewertungssterne */
 /* Stufen 1 bis 6: Bronze, Silber, Gold (Medaillen), Stern, Krone, Diamant. Die Rakete steht fuer den Expertenstatus in einem Thema. */
 var BADGE_NAMES = ['Bronzene Medaille', 'Silberne Medaille', 'Goldene Medaille', 'Stern', 'Krone', 'Diamant'];
+/* Versteckte Stufe 7: Learnicorn, das Einhorn unter den Anbietenden (nach dem Unicorn, einem Start-up mit 1 Milliarde Wert).
+   Erscheint nirgends als Ziel, nur bei Personen, die sie erreicht haben, und in der Administration. */
+var SECRET_NAME = 'Learnicorn', SECRET_MIN = 500;
 /* Flache, runde Störer im R+V-Stil: farbige Scheibe mit weißem Rand, Piktogramm zweifarbig, keine Verläufe */
 function discSvg(bg, inner) { return '<circle cx="12" cy="12" r="11" fill="' + bg + '" stroke="#ffffff" stroke-width="1.4"/>' + inner; }
 function medalIn(c) { return '<path d="M8.6 4.6h2.6l1.3 4.1-2.4.8zM15.4 4.6h-2.6l-1.3 4.1 2.4.8z" fill="' + c + '" opacity=".75"/><circle cx="12" cy="13.6" r="4.6" fill="' + c + '"/>'; }
@@ -1451,11 +1458,17 @@ var BADGE_SVG = [
   discSvg('#583720', '<path d="M6.6 15.6l-.8-6.6 3.3 2.5L12 6.6l2.9 4.9 3.3-2.5-.8 6.6z" fill="#f79506"/><rect x="6.6" y="16.4" width="10.8" height="1.8" fill="#f79506"/>'),
   discSvg('#001957', '<path d="M8.4 7h7.2l2.8 3.8L12 18.2l-6.4-7.4z" fill="#ffffff"/><path d="M5.6 10.8h12.8M10.2 7L9 10.8l3 7.4 3-7.4L13.8 7" fill="none" stroke="#001957" stroke-width=".9" stroke-linejoin="round"/>')
 ];
+/* Learnicorn: Einhornkopf mit orangem Horn und oranger Mähne auf dunkelblauer Scheibe mit orangem Rand */
+var UNICORN_SVG = '<circle cx="12" cy="12" r="11" fill="#001957" stroke="#f79506" stroke-width="1.4"/>' +
+  '<path d="M12.9 7.4c1.7-.6 3.5 0 4.4 1.3 1.1.2 1.8 1.3 1.6 2.4.9.7 1 2 .4 2.9.5 1 .2 2.2-.6 2.9l-.7 2.3h-1.7c.8-1.9 1.3-4 1.2-6.1-.1-2.6-1.4-4.6-3.2-5.5z" fill="#f79506"/>' +
+  '<path d="M9 19.2l.5-4.5c-1.3-.2-2.6-.7-3.3-1.4-.7-.7-.5-1.7.3-2.1l3.5-2.3c.5-.3 1-.6 1.6-.7l.7-1.8 1 1.6c2.2.5 3.6 2.4 3.6 4.8 0 2.4-.6 4.6-1.4 6.4z" fill="#ffffff"/>' +
+  '<path d="M10.3 9l-3-5.4 4.4 4.4z" fill="#f79506"/><path d="M8.6 6.1l1.1-.4M9.4 7.3l1.1-.5" stroke="#001957" stroke-width=".5"/>' +
+  '<circle cx="10.4" cy="11.2" r=".75" fill="#001957"/><circle cx="6.8" cy="12.6" r=".35" fill="#001957"/>';
 var ROCKET_SVG = discSvg('#001957', '<path d="M12 4.6c2.1 1.5 3.1 3.8 3.1 6.1 0 1.2-.3 2.3-.8 3.3H9.7c-.5-1-.8-2.1-.8-3.3 0-2.3 1-4.6 3.1-6.1z" fill="#ffffff"/><circle cx="12" cy="9.9" r="1.3" fill="#001957"/><path d="M9.5 11.9l-1.9 2.2.5 1.9 2-1.3zM14.5 11.9l1.9 2.2-.5 1.9-2-1.3z" fill="#ffffff"/><path d="M10.7 14.8h2.6L12 18.6z" fill="#f79506"/>');
-function badgeLabel(level) { return level >= 1 && level <= 6 ? 'Stufe ' + level + ': ' + BADGE_NAMES[level - 1] : ''; }
+function badgeLabel(level) { return level === 7 ? SECRET_NAME + ': das Einhorn unter den Anbietenden' : level >= 1 && level <= 6 ? 'Stufe ' + level + ': ' + BADGE_NAMES[level - 1] : ''; }
 function badgeNode(level, big) {
-  if (!level || level < 1 || level > 6) return null;
-  return h('span', { class: 'bdg' + (big ? ' big' : ''), role: 'img', 'aria-label': badgeLabel(level), title: badgeLabel(level), html: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + BADGE_SVG[level - 1] + '</svg>' });
+  if (!level || level < 1 || level > 7) return null;
+  return h('span', { class: 'bdg' + (big ? ' big' : '') + (level === 7 ? ' unicorn' : ''), role: 'img', 'aria-label': badgeLabel(level), title: badgeLabel(level), html: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (level === 7 ? UNICORN_SVG : BADGE_SVG[level - 1]) + '</svg>' });
 }
 function rocketNode(big) { return h('span', { class: 'bdg rocket' + (big ? ' big' : ''), role: 'img', 'aria-label': 'Expertenstatus im Thema', title: 'Expertenstatus im Thema', html: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ROCKET_SVG + '</svg>' }); }
 /* Benutzername mit Abzeichen (Stufe) und optional der Rakete fuer Experten */
@@ -2598,7 +2611,7 @@ function viewProfile(q) {
       tile('Teilnehmende bei mir', String(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0)), o.held ? 'Ø ' + fmtAvg(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0) / Math.max(1, o.list.filter(function (x) { return !x.cancelled; }).length)) + ' je Session' : null),
       tile('Meine Bewertungen', String(a.rated), a.held ? 'von ' + a.held + ' besuchten Sessions' : null),
       tile('Expertenstatus', String(experts.length), experts.length ? experts.map(function (t) { return capFirst(t.topic); }).join(', ') : 'ab ' + b.expertMin + ' Sessions je Thema')]);
-    var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }));
+    var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }).concat(b.level === 7 ? [h('div', { class: 'lvl cur got' }, [badgeNode(7, true), h('b', { text: SECRET_NAME }), h('span', { class: 'hint', text: 'Das Einhorn unter den Anbietenden' })])] : []));
     function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', null, title), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
     function overview() {
       var hiddenBadge = (b.level || experts.length) && !r.pub.showBadges ? h('div', { class: 'notice', role: 'status', style: 'margin-top:16px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Dein Abzeichen siehst nur Du' }), h('div', null, ['Andere sehen Abzeichen und Rakete erst, wenn Du zustimmst. ', h('a', { href: '#/profil?tab=oeffentlich', text: 'Unter Veröffentlichung freigeben' })])])) : null;
@@ -3106,13 +3119,15 @@ function viewAdmin() {
     return Api.adminSettings().then(function (s) {
       var lv = s.badgeLevels.slice(), msg = boxMsg(), exp = inp('bd-exp', s.expertMin, 'number', { min: '1', max: '1000', step: '1', inputmode: 'numeric' });
       var rows = BADGE_NAMES.map(function (nm, i) { var f = inp('bd-' + (i + 1), lv[i], 'number', { min: '1', max: '100000', step: '1', inputmode: 'numeric', 'aria-label': 'Grenze für Stufe ' + (i + 1) + ': ' + nm }); f.addEventListener('input', function () { lv[i] = Number(f.value); }); return h('div', { class: 'bd-row' }, [badgeNode(i + 1, true), h('div', { class: 'bd-n' }, [h('b', { text: 'Stufe ' + (i + 1) }), h('div', { class: 'hint', text: nm })]), field('ab Sessions', f, { id: 'bd-' + (i + 1) })]); });
+      var sec = inp('bd-7', s.badgeSecret || SECRET_MIN, 'number', { min: '1', max: '100000', step: '1', inputmode: 'numeric', 'aria-label': 'Grenze für die versteckte Stufe ' + SECRET_NAME });
+      rows.push(h('div', { class: 'bd-row bd-secret' }, [badgeNode(7, true), h('div', { class: 'bd-n' }, [h('b', { text: SECRET_NAME }), h('div', { class: 'hint', text: 'Versteckte Stufe. Nutzende sehen sie erst, wenn sie sie erreicht haben.' })]), field('ab Sessions', sec, { id: 'bd-7' })]));
       var save = h('button', { type: 'button', class: 'btn btn-primary', text: 'Einstellungen speichern' });
       save.addEventListener('click', function () {
         save.disabled = true;
-        Api.adminSaveSettings({ badgeLevels: lv, expertMin: Number(exp.value) }).then(function () { applyTaxonomy({ badges: { levels: lv.slice(), expertMin: Number(exp.value) } }); save.disabled = false; toast('Einstellungen gespeichert.'); say(msg, 'ok', 'Die neuen Grenzen gelten sofort für alle Nutzenden.'); }, function (er) { save.disabled = false; if (authFail(er)) return; say(msg, 'bad', er.message); });
+        Api.adminSaveSettings({ badgeLevels: lv, badgeSecret: Number(sec.value), expertMin: Number(exp.value) }).then(function () { applyTaxonomy({ badges: { levels: lv.slice(), expertMin: Number(exp.value) } }); save.disabled = false; toast('Einstellungen gespeichert.'); say(msg, 'ok', 'Die neuen Grenzen gelten sofort für alle Nutzenden.'); }, function (er) { save.disabled = false; if (authFail(er)) return; say(msg, 'bad', er.message); });
       });
       return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:900px' }, [
-        h('p', { class: 'lead', text: 'Das Abzeichen neben dem Benutzernamen richtet sich nach der Zahl der durchgeführten Sessions. Lege hier fest, ab wie vielen Sessions welche Stufe gilt. Abgesagte Sessions zählen nicht.' }),
+        h('p', { class: 'lead', text: 'Das Abzeichen neben dem Benutzernamen richtet sich nach der Zahl der durchgeführten Sessions. Lege hier fest, ab wie vielen Sessions welche Stufe gilt. Abgesagte Sessions zählen nicht. Der ' + SECRET_NAME + ' ist eine Überraschung: Er steht in keiner Übersicht für Nutzende und erscheint erst bei Personen, die ihn erreicht haben.' }),
         h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:14px' }, rows),
         h('h3', { text: 'Expertenstatus' }),
         h('div', { class: 'panel bd-row' }, [rocketNode(true), h('div', { class: 'bd-n' }, [h('b', { text: 'Rakete' }), h('div', { class: 'hint', text: 'Auf der Kachel einer Veranstaltung und im Profil' })]), field('Mindestzahl an Sessions je Thema', exp, { id: 'bd-exp', hint: 'Wer so viele Sessions in einem Thema angeboten hat, erhält die Rakete.' })]),

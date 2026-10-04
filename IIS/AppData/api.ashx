@@ -204,6 +204,7 @@ namespace LearnTogether
         public string heroText { get; set; }
         public List<int> badgeLevels { get; set; }
         public int expertMin { get; set; }
+        public int badgeSecret { get; set; }           // versteckte Stufe 7 (Learnicorn), 0 = Standard 500
         public bool avatarUploadOff { get; set; }      // Hochladen eigener Profilbilder abgeschaltet
         public int audience { get; set; }              // Groesse der Zielgruppe fuer die Kennzahl Reichweite
         public bool iddOn { get; set; }                // IDD-Funktion sichtbar (Standard: aus)
@@ -265,6 +266,7 @@ namespace LearnTogether
             int n; if (!offered.TryGetValue(uid, out n)) return 0;
             int lv = 0;
             for (int i = 0; i < s.badgeLevels.Count; i++) if (n >= s.badgeLevels[i]) lv = i + 1;
+            if (lv == 6 && n >= Api.SecretMin(s)) lv = 7;
             return lv;
         }
         public int Count(string uid) { int n; return !string.IsNullOrEmpty(uid) && offered.TryGetValue(uid, out n) ? n : 0; }
@@ -276,7 +278,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.31.2";
+        const string Version = "0.32.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -284,6 +286,8 @@ namespace LearnTogether
         const int RetainPrivateMonths = 12;
         const int IddFrameMin = 5;       // Begruessung und Verabschiedung, je 5 Minuten, keine Lernzeit
         const int IddHostDays = 14;
+        const int SecretDefault = 500;
+        internal static int SecretMin(SettingsRec s) { return s.badgeSecret > 0 ? s.badgeSecret : SecretDefault; }
         // Beschreibung des Lerninhalts: Kategorien wie in der Weiterbildungsdatenbank von gutBeraten
         static readonly string[] IddContents = new string[] { "Privat-Vorsorge-Lebens-/Rentenversicherung", "Privat-Vorsorge-Kranken-/Pflegeversicherung", "Privat-Sach-/Schadenversicherung", "Firmenkunden-Vorsorge (BAV/Personenversicherung)", "Firmenkunden-Sach-/Schadenversicherung", "Mehrere versicherungsrelevante Themen", "Kundenorientierte Beratung im Versicherungsvertrieb", "Management einer Vertriebseinheit in der Versicherungswirtschaft", "Wirtschaftswissenschaften mit Bezug zur Versicherungsvermittlung/-beratung", "Personalf\u00fchrung mit Bezug zur Versicherungsvermittlung/-beratung", "Versicherungsspezifische Software" };      // so lange bestaetigen Anbietende selbst
         const int SessionHours = 8;
@@ -2058,7 +2062,7 @@ namespace LearnTogether
             SettingsRec s = LoadSettings();
             DataFile d = LoadData();
             int tu = 0, te = 0; foreach (UserRec u in d.users) if (u.isTest) tu++; foreach (EventRec e in d.events) if (e.isTest) te++;
-            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection, audience = s.audience, idd = IddInfo(s) });
+            Send(new { ok = true, appTitle = s.appTitle, badgeLevels = s.badgeLevels, badgeSecret = SecretMin(s), expertMin = s.expertMin, testPassword = TestUserPassword, avatarUpload = !s.avatarUploadOff, photos = s.photos ?? new List<PhotoRec>(), testUsers = tu, testEvents = te, https = ctx.Request.IsSecureConnection, audience = s.audience, idd = IddInfo(s) });
         }
 
         void AdminSaveSettings()
@@ -2093,6 +2097,13 @@ namespace LearnTogether
                     }
                     s.badgeLevels = lv;
                 }
+                if (b.ContainsKey("badgeSecret"))
+                {
+                    int sc = I(b, "badgeSecret");
+                    if (sc < 1 || sc > 100000) throw new ApiException("invalid", "Die Grenze f\u00fcr den Learnicorn muss eine ganze Zahl von 1 bis 100000 sein.");
+                    s.badgeSecret = sc;
+                }
+                if (SecretMin(s) <= s.badgeLevels[5]) throw new ApiException("invalid", "Die Grenze f\u00fcr den Learnicorn muss \u00fcber der Grenze f\u00fcr Stufe 6 liegen.");
                 if (b.ContainsKey("avatarUpload")) s.avatarUploadOff = !B(b, "avatarUpload");
                 if (b.ContainsKey("iddOn")) s.iddOn = B(b, "iddOn");
                 if (b.ContainsKey("iddProvider"))

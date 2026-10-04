@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.32.0 (04.10.2026)
+- **Versteckte Abzeichenstufe „Learnicorn“:** das Einhorn unter den Anbietenden, Standard ab 500 durchgeführten Sessions. Eigenes Abzeichen (Einhornkopf mit orangem Horn auf dunkelblauer Scheibe mit orangem Rand). Die Stufe steht in keiner Übersicht für Nutzende und erscheint erst bei Personen, die sie erreicht haben. Andere sehen sie wie alle Abzeichen nur mit Zustimmung.
+- **Administration:** Grenze unter Katalog › Abzeichen einstellbar (muss über Stufe 6 liegen). Die Grenze geht nur an die Administration. Statistik „Konten nach Abzeichen“ mit der Zeile Learnicorn.
+- Admin-Handbuch und Screenshots aktualisiert. Das Benutzerhandbuch erwähnt die Stufe bewusst nicht.
+
 ## Präsentation (03.10.2026)
 - IDD-Anrechnung als geplant und im Ausbau dargestellt: für anrechnungsfähige Veranstaltungen aus dem beruflichen Bereich, Freischaltung folgt.
 

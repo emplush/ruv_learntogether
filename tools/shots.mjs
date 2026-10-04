@@ -74,6 +74,7 @@ await nav('Themen'); await shot('adm-themen', { clip: { x: 0, y: 60, width: 1280
 await nav('Arten'); await shot('adm-arten', { clip: { x: 0, y: 60, width: 1280, height: 600 } });
 await nav('Fotos'); await p.waitForSelector('#fo-name'); await shot('adm-fotos', { clip: { x: 0, y: 60, width: 1280, height: 700 } });
 await nav('Abzeichen'); await p.waitForSelector('#bd-1'); await shot('adm-abzeichen', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
+await p.locator('.bd-secret').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); await p.locator('.bd-secret').screenshot({ path: path.join(out, 'adm-learnicorn.jpg'), type: 'jpeg', quality: 85 });
 await nav('Archiv'); await p.waitForSelector('#ar-q'); await shot('adm-archiv', { clip: { x: 0, y: 60, width: 1280, height: 640 } });
 await p.click('.admin-nav button:text-is("IDD")'); await p.waitForSelector('.admin-content .st-kpis'); await p.waitForTimeout(300); await shot('adm-idd', { clip: { x: 0, y: 60, width: 1280, height: 840 } });
 await p.locator('tr:has-text("Betriebliche Altersversorgung") button:has-text("Teilnahmen")').click(); await p.waitForSelector('.modal .people-tbl'); await p.locator('.modal').screenshot({ path: path.join(out, 'adm-idd-teilnahmen.jpg'), type: 'jpeg', quality: 80 }); await p.keyboard.press('Escape');
