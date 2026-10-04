@@ -2147,6 +2147,7 @@ namespace LearnTogether
             if (mode == "load")
             {
                 Dictionary<string, string> ids = new Dictionary<string, string>();
+                Dictionary<string, string> changed = new Dictionary<string, string>();
                 IEnumerable us = b.ContainsKey("users") ? b["users"] as IEnumerable : null;
                 IEnumerable evs = b.ContainsKey("events") ? b["events"] as IEnumerable : null;
                 IEnumerable bks = b.ContainsKey("bookings") ? b["bookings"] as IEnumerable : null;
@@ -2158,6 +2159,11 @@ namespace LearnTogether
                         UserRec u = new UserRec(); u.id = "t-" + NewId(); u.username = S(x, "username"); u.firstName = S(x, "firstName"); u.lastName = S(x, "lastName"); u.xv = S(x, "xv"); u.email = S(x, "email").ToLowerInvariant();
                         u.pwHash = testHash; u.created = NowIso(); u.isTest = true;
                         u.profilePublic = B(x, "isPublic"); u.showRating = B(x, "showRating"); u.showExpert = B(x, "showExpert"); u.showEmail = B(x, "showEmail"); u.showUpcoming = B(x, "showUpcoming"); u.showBadges = B(x, "showBadges"); u.iddHost = B(x, "iddHost"); u.iddDuty = B(x, "iddDuty"); u.iddHours = I(x, "iddHours") == 30 ? 30 : 15; u.gbId = S(x, "gbId"); u.bio = S(x, "bio"); { string av = S(x, "avatar"); if (Regex.IsMatch(av, "^[a-z0-9-]{1,40}$")) { u.avatar = av; u.showAvatar = B(x, "showAvatar"); } }
+                        u.locked = B(x, "locked");
+                        if (x.ContainsKey("lastLoginDays") && x["lastLoginDays"] != null) u.lastLogin = NowBerlin().AddDays(-Math.Max(0, I(x, "lastLoginDays"))).ToString("s", CultureInfo.InvariantCulture);
+                        u.legacyOffered = Math.Max(0, I(x, "legacyOffered")); u.legacyAttended = Math.Max(0, I(x, "legacyAttended")); u.legacyRatingSum = Math.Max(0, I(x, "legacyRatingSum")); u.legacyRatingCount = Math.Max(0, I(x, "legacyRatingCount"));
+                        Dictionary<string, object> lt = x.ContainsKey("legacyTopics") ? x["legacyTopics"] as Dictionary<string, object> : null;
+                        if (lt != null) foreach (KeyValuePair<string, object> kv in lt) { int n; if (int.TryParse(Convert.ToString(kv.Value, CultureInfo.InvariantCulture), out n) && n > 0 && kv.Key.Length <= 120) u.legacyTopics[kv.Key] = n; }
                         if (d.users.Exists(delegate (UserRec y) { return y.username.ToLowerInvariant() == u.username.ToLowerInvariant() || y.email == u.email || y.xv == u.xv; })) continue;
                         d.users.Add(u); ids[u.username] = u.id; nu++;
                     }
@@ -2172,6 +2178,8 @@ namespace LearnTogether
                         string owner = S(e, "owner"); string oid;
                         if (ids.TryGetValue(owner, out oid)) { ev.ownerId = oid; ev.host = owner; } else ev.host = owner;
                         if (B(e, "cancelled")) { ev.cancelled = true; ev.cancelReason = S(e, "cancelReason"); ev.cancelledAt = NowIso(); }
+                        int rd = I(e, "reopenDays"); if (rd > 0 && rd <= 30) ev.reopenUntil = NowBerlin().AddDays(rd).ToString("s", CultureInfo.InvariantCulture);
+                        string chg = S(e, "changed"); if (chg.Length > 0) { ev.rev = 1; changed[ev.id] = chg.Length > 300 ? chg.Substring(0, 300) : chg; }
                         string img = S(e, "imageData");
                         if (img.Length > 0) StoreImage(ev, img);
                         d.events.Add(ev); ne++;
@@ -2183,10 +2191,12 @@ namespace LearnTogether
                         string uid; if (!ids.TryGetValue(S(x, "user"), out uid)) continue;
                         BookingRec bk = new BookingRec(); bk.id = "t-" + NewId(); bk.eventId = "t-" + Regex.Replace(S(x, "eventId"), "[^a-zA-Z0-9]", ""); bk.userId = uid; bk.created = NowIso(); bk.isTest = true;
                         int r = I(x, "rating"); if (r >= 1 && r <= 5) { bk.rating = r; bk.ratedAt = bk.created; }
-                        string ist = S(x, "idd"); if (ist == "yes" || ist == "no") { bk.idd = ist; bk.confirmedAt = bk.created; bk.confirmedBy = "Testdaten"; }
+                        string ab = S(x, "addedBy"); if (ab.Length > 0) { bk.addedBy = ab.Length > 40 ? ab.Substring(0, 40) : ab; bk.addReason = S(x, "addReason"); }
+                        string ist = S(x, "idd"); if (ist == "yes" || ist == "no") { bk.idd = ist; bk.confirmedAt = bk.created; bk.confirmedBy = ab.Length > 0 ? bk.addedBy : "Testdaten"; }
                         d.bookings.Add(bk); nb++;
                     }
                 foreach (EventRec ce in d.events) if (ce.isTest && ce.cancelled) foreach (BookingRec cb in d.bookings) if (cb.eventId == ce.id && cb.userId != null) AddNote(d, cb.userId, "cancelled", ce, ce.cancelReason);
+                foreach (EventRec ce in d.events) { string why; if (ce.isTest && changed.TryGetValue(ce.id, out why)) foreach (BookingRec cb in d.bookings) if (cb.eventId == ce.id && cb.userId != null) AddNote(d, cb.userId, "changed", ce, why); }
                 Anonymize(d);
             }
             SaveData(d);

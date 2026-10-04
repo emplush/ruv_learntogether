@@ -767,7 +767,7 @@ body > footer.foot { flex-shrink: 0; margin-top: 0; }
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.33.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.34.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -1031,7 +1031,8 @@ function buildTestData() {
   var d = nextWeekdays(12), pastDay = lastWeekday();
   var L = 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_TESTDATEN%40thread.v2/0';
   var TU = [['anna.b', 'Anna', 'Berger'], ['markus_v', 'Markus', 'Vogel'], ['sabine.k', 'Sabine', 'Krüger'], ['tobias_l', 'Tobias', 'Lang'], ['julia.n', 'Julia', 'Neumann'], ['stefan_r', 'Stefan', 'Roth'], ['katrin.a', 'Katrin', 'Albrecht'], ['jonas.p', 'Jonas', 'Peters'], ['miriam.k', 'Miriam', 'Kessler'], ['oliver_s', 'Oliver', 'Sander'],
-    ['lena.h', 'Lena', 'Hoffmann'], ['paul_r', 'Paul', 'Richter'], ['nina.w', 'Nina', 'Wagner'], ['felix.b', 'Felix', 'Braun'], ['clara_s', 'Clara', 'Schulz'], ['max.keller', 'Max', 'Keller'], ['sophie.l', 'Sophie', 'Lorenz'], ['david_w', 'David', 'Winter'], ['emma.f', 'Emma', 'Fuchs'], ['lukas.b', 'Lukas', 'Brandt']];
+    ['lena.h', 'Lena', 'Hoffmann'], ['paul_r', 'Paul', 'Richter'], ['nina.w', 'Nina', 'Wagner'], ['felix.b', 'Felix', 'Braun'], ['clara_s', 'Clara', 'Schulz'], ['max.keller', 'Max', 'Keller'], ['sophie.l', 'Sophie', 'Lorenz'], ['david_w', 'David', 'Winter'], ['emma.f', 'Emma', 'Fuchs'], ['lukas.b', 'Lukas', 'Brandt'],
+    ['jan.m', 'Jan', 'Meier'], ['heike.s', 'Heike', 'Schmidt'], ['tim.o', 'Tim', 'Otto'], ['ute.w', 'Ute', 'Wolf']];
   var users = TU.map(function (t, i) { return { username: t[0], firstName: t[1], lastName: t[2], xv: (i % 4 === 3 ? 'XVG' : 'XV') + (10001 + i), email: (t[1] + '.' + t[2]).toLowerCase().replace(/ü/g, 'ue') + '@example.org', avatar: ['p-frau-1', 'p-mann-2', 't-katze', 'p-mann-3', '', 'p-mann-1', 'm-schirm', '', 'p-frau-4', 'p-mann-6', 'p-frau-2'][i] || '', showAvatar: i < 3, isPublic: i < 4, showRating: i < 3, showExpert: i < 2, showEmail: i < 2, showUpcoming: i < 3, showBadges: i !== 4, bio: i === 0 ? 'Vertrieb ist für mich ein Handwerk. Ich teile gern, was im Alltag funktioniert.\nFragen gern per E-Mail.' : (i === 1 ? 'Fachlich fit, praktisch erklärt.' : '') }; });
   var RATE = [5, 4, 5, 3, 4, 5, 4, 2, 5, 4];
   // [Titel, Host, Kategorie, Art, Thema, Tag-Index, Start, Dauer, Kapazitaet, gebucht, Bild, Beschreibung]
@@ -1098,6 +1099,33 @@ function buildTestData() {
     events.push({ id: r[0], title: r[1], owner: TU[r[2]][0], category: 'dienstlich', type: TYPES[0], topic: mapTopic('dienstlich', 'fachlich'), date: r[3], start: r[4], duration: r[5], capacity: 12, teamsLink: L, description: descHtml('Testfall für eine IDD-anrechenbare Veranstaltung.', ['Fachlicher Input', 'Fragen aus der Beratungspraxis']), imageData: '', placeholder: phGuess(r[1], 'fachlich'), idd: true, iddTitle: r[7], iddMinutes: r[6], iddContent: r[10] });
     for (var b = 0; b < r[8]; b++) bookings.push({ user: TU[(r[2] + 1 + b) % TU.length][0], eventId: r[0], rating: 0, idd: r[9] ? r[9][b] : '' });
   });
+  /* Weitere Szenarien (Stand 0.34): Konten, Abzeichen, Termin-Update, Bewertungsschwelle, Zeitfenster-Grenze, Aufbewahrung, IDD-Fristen */
+  var LAST = [0, 1, 2, 0, 5, 9, 15, 3, 40, 70, 1, 2, 100, 200, 7, 25, 400, 0, 12, 60, 3, 1, 30, null];
+  users.forEach(function (u, i) { u.lastLoginDays = LAST[i]; });
+  users[20].locked = true;                                                                /* gesperrtes Konto */
+  users[21].legacyOffered = 520; users[21].legacyRatingSum = 2310; users[21].legacyRatingCount = 500; users[21].legacyAttended = 40; /* Learnicorn (versteckte Stufe) */
+  users[21].legacyTopics = {}; users[21].legacyTopics['dienstlich|' + mapTopic('dienstlich', 'vertrieblich')] = 320; users[21].legacyTopics['dienstlich|' + mapTopic('dienstlich', 'fachlich')] = 200;
+  users[21].isPublic = true; users[21].showBadges = true; users[21].showRating = true; users[21].showExpert = true; users[21].bio = 'Seit Jahren LearnMaker aus Leidenschaft.';
+  users[22].legacyOffered = 85; users[22].legacyRatingSum = 340; users[22].legacyRatingCount = 80; users[22].isPublic = true; users[22].showBadges = false; /* Diamant, aber Abzeichen nicht freigegeben */
+  users[23].iddDuty = true; users[23].iddHours = 30; users[23].gbId = 'RVTD-2023-GB23';  /* neues Konto, IDD-pflichtig, noch nie angemeldet */
+  function wdBack(n) { var x = new Date(); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - n); while (!isWeekday(x)) x.setDate(x.getDate() - 1); return ymd(x); }
+  var old = new Date(); old.setHours(0, 0, 0, 0); old.setMonth(old.getMonth() - 13); while (!isWeekday(old)) old.setDate(old.getDate() - 1); old = ymd(old);
+  function ev(id, title, oi, cat, type, topic, date, start, dur, cap, desc, more) { var e = { id: id, title: title, owner: TU[oi][0], category: cat, type: mapType(type), topic: mapTopic(cat, topic), date: date, start: start, duration: dur, capacity: cap, teamsLink: L, description: descHtml(desc, ['Testfall']), imageData: '', placeholder: phGuess(title, topic) }; Object.keys(more || {}).forEach(function (k) { e[k] = more[k]; }); events.push(e); return e; }
+  function bk(id, from, n, f) { for (var b = 0; b < n; b++) { var x = { user: TU[(from + b) % TU.length][0], eventId: id, rating: 0 }; if (f) f(x, b); bookings.push(x); } }
+  ev('s01', 'Vorsorge für junge Familien (Termin-Update)', 4, 'dienstlich', 'Workshop', 'fachlich', d[6], '07:00', 60, 10, 'Testfall: Der LearnMaker hat die Uhrzeit geändert. Angemeldete sehen ein Termin-Update.', { changed: 'Neue Uhrzeit: 07:00 Uhr statt 06:30 Uhr.' }); bk('s01', 5, 4);
+  ev('s02', 'Rückblick mit zwei Bewertungen (Testfall)', 12, 'dienstlich', 'Austausch', 'vertrieblich', days[5], '17:30', 45, 8, 'Testfall: Nur zwei Bewertungen. Der Durchschnitt erscheint erst ab drei.'); bk('s02', 13, 4, function (x, b) { if (b < 2) x.rating = b ? 4 : 5; });
+  ev('s03', 'Feierabend-Impuls bis 20:00 Uhr (Testfall)', 13, 'dienstlich', 'Best Practice', 'vertrieblich', d[2], '19:00', 60, 12, 'Testfall: Endet genau zum Ende des Zeitfensters um 20:00 Uhr.'); bk('s03', 14, 3);
+  ev('s04', 'Alter privater Termin (Testfall)', 14, 'privat', 'Austausch', 'Freizeit', old, '17:30', 45, 10, 'Testfall: älter als 12 Monate, daher anonymisiert.'); bk('s04', 15, 3, function (x, b) { x.rating = 4 + (b % 2); });
+  ev('s05', 'Archiv: Kfz-Schadenfall Grundlagen (Testfall)', 5, 'dienstlich', 'Workshop', 'fachlich', old, '07:00', 60, 10, 'Testfall: dienstlich und älter als 12 Monate, bleibt im Archiv.'); bk('s05', 6, 4, function (x, b) { x.rating = [5, 4, 4, 3][b]; });
+  /* IDD-Fristen: Frist der LearnMaker abgelaufen (nur Administration), erneut freigeschaltet, abgesagt, lange Agenda mit Pause */
+  ev('i04', 'Hausrat und Wohngebäude im Paket', 0, 'dienstlich', 'Workshop', 'fachlich', wdBack(20), '17:00', 60, 12, 'Testfall: Die Frist der LearnMaker ist abgelaufen. Nur die Administration kann noch bestätigen.', { idd: true, iddTitle: 'Hausrat- und Wohngebäudeversicherung: Leistungen im Paket', iddContent: IDD_CONTENTS[2] });
+  bk('i04', 1, 5, function (x, b) { x.idd = ['yes', 'yes', '', 'no', ''][b]; }); bookings.push({ user: TU[9][0], eventId: 'i04', rating: 0, idd: 'yes', addedBy: 'admin', addReason: 'Über weitergeleiteten Teams-Link teilgenommen' });
+  ev('i05', 'Pflegevorsorge im Beratungsgespräch', 0, 'dienstlich', 'Best Practice', 'fachlich', wdBack(25), '07:00', 45, 12, 'Testfall: Die Administration hat die Bestätigung erneut für den LearnMaker freigeschaltet.', { idd: true, iddTitle: 'Pflegeversicherung: Versorgungslücken erkennen und beraten', iddContent: IDD_CONTENTS[1], reopenDays: 7 });
+  bk('i05', 2, 3, function (x, b) { x.idd = b ? '' : 'yes'; });
+  ev('i06', 'Gewerbe-Inhaltsversicherung kompakt (abgesagt)', 3, 'dienstlich', 'Workshop', 'fachlich', d[5], '17:30', 60, 12, 'Testfall: abgesagte IDD-Veranstaltung mit Anmeldungen.', { idd: true, iddTitle: 'Gewerbliche Inhaltsversicherung: Deckung und Beratung', iddContent: IDD_CONTENTS[4], cancelled: true, cancelReason: 'Der Termin wird im nächsten Monat nachgeholt.' }); bk('i06', 6, 3);
+  ev('i07', 'Altersvorsorge ganzheitlich beraten', 0, 'dienstlich', 'Workshop', 'fachlich', d[9], '17:30', 120, 20, 'Testfall: zwei Stunden mit mehreren Agendapunkten und einer Pause ohne Lernzeit.', { idd: true, iddTitle: 'Private Altersvorsorge: Bedarfsanalyse, Produkte und Beratungsdokumentation', iddContent: IDD_CONTENTS[0],
+    agenda: [{ content: 'Bedarfsanalyse und Versorgungslücke', minutes: 40, iddMinutes: 40 }, { content: 'Pause', minutes: 10, iddMinutes: 0 }, { content: 'Produkte im Vergleich an Fallbeispielen', minutes: 45, iddMinutes: 45 }, { content: 'Beratungsdokumentation', minutes: 15, iddMinutes: 15 }] });
+  bk('i07', 2, 7);
   return { users: users, events: events, bookings: bookings };
 }
 
@@ -1286,14 +1314,20 @@ var Local = (function () {
   function insertTest() {
     removeTest();
     var t = buildTestData(), ids = {}, now = nowIso(), pw = hashPw(TEST_PW);
-    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, showBadges: !!x.showBadges, iddHost: !!x.iddHost, iddDuty: !!x.iddDuty, iddHours: x.iddHours === 30 ? 30 : 15, gbId: x.gbId || '', bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 }; data.users.push(u); ids[x.username] = u.id; });
+    t.users.forEach(function (x) { var u = { id: 't-' + rid(6), username: x.username, firstName: x.firstName, lastName: x.lastName, xv: x.xv, email: x.email, pwHash: pw, pwVersion: 0, role: 'user', locked: false, mustChange: false, created: now, lastLogin: '', isTest: true, legacyOffered: 0, legacyAttended: 0, legacyRatingSum: 0, legacyRatingCount: 0, legacyTopics: {}, profilePublic: !!x.isPublic, showRating: !!x.showRating, showExpert: !!x.showExpert, showEmail: !!x.showEmail, showUpcoming: !!x.showUpcoming, showBadges: !!x.showBadges, iddHost: !!x.iddHost, iddDuty: !!x.iddDuty, iddHours: x.iddHours === 30 ? 30 : 15, gbId: x.gbId || '', bio: x.bio || '', avatar: x.avatar || '', showAvatar: !!x.showAvatar, avatarVer: 1 };
+      u.locked = !!x.locked; if (x.lastLoginDays != null) u.lastLogin = new Date(Date.now() - x.lastLoginDays * 864e5).toISOString();
+      ['legacyOffered', 'legacyAttended', 'legacyRatingSum', 'legacyRatingCount'].forEach(function (k) { u[k] = Math.max(0, Math.floor(Number(x[k]) || 0)); }); Object.keys(x.legacyTopics || {}).forEach(function (k) { u.legacyTopics[k] = Math.max(0, Math.floor(Number(x.legacyTopics[k]) || 0)); });
+      data.users.push(u); ids[x.username] = u.id; });
     t.events.forEach(function (x) {
       var e = readEvent(x, { id: 't-' + x.id, ownerId: ids[x.owner] || null, host: x.owner, created: now, isTest: true }, true, 2);
       if (x.cancelled) { e.cancelled = true; e.cancelledAt = now; e.cancelReason = x.cancelReason || ''; }
+      if (x.reopenDays) e.reopenUntil = new Date(Date.now() + x.reopenDays * 864e5).toISOString();
+      if (x.changed) { e.rev = 1; e.changeNote = String(x.changed); }
       data.events.push(e);
     });
-    t.bookings.forEach(function (x) { if (!ids[x.user]) return; data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + x.eventId, userId: ids[x.user], created: now, rating: x.rating || 0, ratedAt: x.rating ? now : '', isTest: true, idd: x.idd === 'yes' || x.idd === 'no' ? x.idd : '', confirmedAt: x.idd ? now : '', confirmedBy: x.idd ? 'Testdaten' : '' }); });
+    t.bookings.forEach(function (x) { if (!ids[x.user]) return; data.bookings.push({ id: 't-' + rid(6), eventId: 't-' + x.eventId, userId: ids[x.user], created: now, rating: x.rating || 0, ratedAt: x.rating ? now : '', isTest: true, idd: x.idd === 'yes' || x.idd === 'no' ? x.idd : '', confirmedAt: x.idd ? now : '', confirmedBy: x.idd ? (x.addedBy || 'Testdaten') : '', addedBy: x.addedBy || '', addReason: x.addReason || '' }); });
     data.events.forEach(function (e) { if (e.isTest && e.cancelled) data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId) addNote(b.userId, 'cancelled', e, e.cancelReason); }); });
+    data.events.forEach(function (e) { if (e.isTest && e.changeNote) { data.bookings.forEach(function (b) { if (b.eventId === e.id && b.userId) addNote(b.userId, 'changed', e, e.changeNote); }); delete e.changeNote; } });
     return { events: t.events, bookings: t.bookings, users: t.users };
   }
   function booked(id) { return data.bookings.filter(function (b) { return b.eventId === id; }).length; }

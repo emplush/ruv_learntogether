@@ -1,5 +1,17 @@
 # Änderungen
 
+## 0.34.0 (04.10.2026)
+- **Testdaten erweitert** (24 Beispielnutzer, neue Szenarien):
+  - Konten: gesperrtes Konto, nie angemeldetes Konto, verteilte letzte Anmeldungen für die Statistik.
+  - Abzeichen: Learnicorn mit 520 Sessions, Diamant ohne Freigabe der Abzeichen.
+  - Mitteilungen: Termin-Update nach geänderter Uhrzeit.
+  - Bewertungen: Termin mit nur zwei Bewertungen (unter der Schwelle).
+  - Zeitfenster: Termin endet genau um 20:00 Uhr.
+  - Aufbewahrung: privater Termin älter als 12 Monate (anonymisiert), dienstlicher Termin älter als 12 Monate (bleibt).
+  - IDD: abgelaufene Frist der LearnMaker, erneut freigeschaltete Bestätigung, nachgetragene Teilnahme mit Begründung, abgesagte IDD-Veranstaltung, zwei Stunden mit Pause ohne Lernzeit, weitere Lerninhalte.
+- Testdaten-Import (Demo und IIS) übernimmt dafür Sperre, letzte Anmeldung, Zähler aus dem Verlauf, erneute Freischaltung, Termin-Update und Nachträge.
+- Admin-Handbuch mit Übersicht der Szenarien und Testkonten. Screenshots und Präsentation aktualisiert.
+
 ## 0.33.0 (04.10.2026)
 - **LearnMaker:** Personen, die Veranstaltungen anbieten, heißen jetzt LearnMaker. Der Name ersetzt „Anbietende“ und „Anbieter“ in App, Meldungen des Servers, Statistik, Handbüchern, Papier IT-Sicherheit und Datenschutz und Präsentation. Die Seite „Veranstaltung anbieten“ beginnt mit „Werde LearnMaker“. Der Learnicorn heißt jetzt „das Einhorn unter den LearnMakern“.
 - Screenshots aktualisiert.
