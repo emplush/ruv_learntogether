@@ -767,7 +767,7 @@ body > footer.foot { flex-shrink: 0; margin-top: 0; }
 </head>
 <body>
 <noscript><p style="padding:24px">Diese Anwendung benötigt JavaScript.</p></noscript>
-<script>window.__LT__ = {"version": "0.32.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
+<script>window.__LT__ = {"version": "0.33.0", "mode": "iis", "manualHtml": null, "manualBodyUrl": "AppData/handbuch/inhalt.html", "manualUrl": "AppData/Handbuch.html", "pdfUrl": "AppData/Nutzerhandbuch.pdf"};</script>
 <script>
 /* LearnTogether - Frontend (Vanilla JS, keine Abhaengigkeiten).
    Zwei Betriebsarten: "server" (IIS, AppData/api.ashx) und "local" (Demo im Browser, Daten in localStorage). Es werden keine E-Mails versendet. */
@@ -1073,7 +1073,7 @@ function buildTestData() {
   rows.forEach(function (r, i) {
     var id = 'x' + pad(i + 1), oi = r[1] % 10, past = r[5] < 0;
     var e = { id: id, title: r[0], owner: TU[oi][0], category: r[2], type: mapType(r[3]), topic: mapTopic(r[2], r[4]), date: past ? pastDay : d[r[5]], start: r[6], duration: r[7], capacity: r[8], teamsLink: L, description: r[11], imageData: r[10] ? makeImage(i + 1, 320) : '', placeholder: r[10] ? '' : phGuess(r[0], r[4]) };
-    if (r[12] === 'x') { e.cancelled = true; e.cancelReason = 'Der Anbieter ist erkrankt. Ein neuer Termin folgt.'; }
+    if (r[12] === 'x') { e.cancelled = true; e.cancelReason = 'Der LearnMaker ist erkrankt. Ein neuer Termin folgt.'; }
     events.push(e);
     for (var b = 0; b < r[9]; b++) bookings.push({ user: TU[(oi + 1 + b) % TU.length][0], eventId: id, rating: past && b > 0 ? RATE[(i + b) % RATE.length] : 0 });
   });
@@ -1086,7 +1086,7 @@ function buildTestData() {
       for (var b = 0; b < 3; b++) bookings.push({ user: TU[(hs[0] + 1 + b + k) % TU.length][0], eventId: hid, rating: RATE[(hn + b) % RATE.length] });
     }
   });
-  /* IDD: freigeschaltete Anbietende, IDD-pflichtige Personen mit gutBeraten-ID, je eine anstehende, eine gerade beendete und eine Veranstaltung aus dem Vorjahr */
+  /* IDD: freigeschaltete LearnMaker, IDD-pflichtige Personen mit gutBeraten-ID, je eine anstehende, eine gerade beendete und eine Veranstaltung aus dem Vorjahr */
   users[0].iddHost = true; users[3].iddHost = true;
   users.forEach(function (u, i) { if (i >= 1 && i <= 9) { u.iddDuty = true; u.iddHours = i === 3 ? 30 : 15; if (i !== 8) u.gbId = 'RVTD-' + (1000 + i) + '-GB' + pad(i); } });
   var ly = new Date(new Date().getFullYear() - 1, 11, 10); while (ly.getDay() === 0 || ly.getDay() === 6) ly.setDate(ly.getDate() - 1);
@@ -1383,7 +1383,7 @@ var Local = (function () {
     B.hidden = {}; data.users.forEach(function (u) { if (!u.showBadges) B.hidden[u.id] = 1; });
     return B;
   }
-  /* IDD (wie auf dem Server): Bestaetigung durch Anbietende 14 Tage nach dem Ende oder nach Freischaltung, Administration bis 31.01. des Folgejahres */
+  /* IDD (wie auf dem Server): Bestaetigung durch LearnMaker 14 Tage nach dem Ende oder nach Freischaltung, Administration bis 31.01. des Folgejahres */
   function iddPub() { var c = cfg.idd; return { on: !!c.on, provider: c.provider || '', frame: 5, contents: IDD_CONTENTS, welcome: { title: c.welcomeTitle || '', text: c.welcomeText || '' }, farewell: { title: c.farewellTitle || '', text: c.farewellText || '' } }; }
   function iddHardLock(e) { return new Date(startDate(e).getFullYear() + 1, 0, 31, 23, 59, 59); }
   function iddHostDeadline(e) { var d = new Date(endDate(e).getTime() + 14 * 864e5); if (e.reopenUntil) { var r = new Date(e.reopenUntil); if (r > d) d = r; } var hl = iddHardLock(e); return d > hl ? hl : d; }
@@ -1454,7 +1454,7 @@ var Local = (function () {
   function purgeInactive() {
     var lim = new Date(); lim.setMonth(lim.getMonth() - INACTIVE_MONTHS);
     var old = data.users.filter(function (u) { if (u.role === 'superadmin' || u.isTest) return false; var t = new Date(u.lastLogin || u.created || 0); return !isNaN(t) && t < lim; });
-    old.forEach(function (u) { deleteUser(u, 'Das Konto der anbietenden Person wurde gelöscht.'); });
+    old.forEach(function (u) { deleteUser(u, 'Das Konto des LearnMakers wurde gelöscht.'); });
     return old.length > 0;
   }
   function sweep() { var now = new Date(), ch = false; data.events.forEach(function (e) { if (!e.anonymized && now >= anonymizeOn(e)) { anonymize(e); ch = true; } }); if (purgeInactive()) ch = true; if (pruneIddArchive()) ch = true; if (ch) save(); }
@@ -1791,14 +1791,14 @@ var Local = (function () {
         var me = needAdmin(), u = userById(id); if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.');
         if (u.role === 'superadmin' || u.id === me.id) throw ApiErr('forbidden', 'Dieses Konto lässt sich hier nicht löschen.');
         if (u.role === 'admin' && me.role !== 'superadmin') throw ApiErr('forbidden', 'Admin-Konten kann nur die Hauptadministration löschen.');
-        deleteUser(u, 'Das Konto der anbietenden Person wurde gelöscht.'); save(); return {};
+        deleteUser(u, 'Das Konto des LearnMakers wurde gelöscht.'); save(); return {};
       });
     },
     deleteAccount: function (pw) {
       return wrap(function () {
         var me = curUser(true); if (me.role === 'superadmin') throw ApiErr('forbidden', 'Das Konto der Hauptadministration lässt sich nicht löschen.');
         if (!checkPw(pw || '', me.pwHash)) throw ApiErr('password', 'Das Passwort stimmt nicht.');
-        deleteUser(me, 'Die anbietende Person hat ihr Konto gelöscht.'); save(); sess.del('lt_me'); return {};
+        deleteUser(me, 'Der LearnMaker hat das eigene Konto gelöscht.'); save(); sess.del('lt_me'); return {};
       });
     },
     saveIdd: function (p) {
@@ -1816,7 +1816,7 @@ var Local = (function () {
         var bk = data.bookings.filter(function (b) { return b.id === bookingId; })[0], ev = bk && data.events.filter(function (e) { return e.id === bk.eventId; })[0];
         if (!bk || !ev || !ev.idd || !bk.userId) throw ApiErr('notfound', 'Diese Anmeldung gibt es nicht.');
         var admin = me.role !== 'user', owner = ev.ownerId === me.id;
-        if (!owner && !admin) throw ApiErr('forbidden', 'Nur die anbietende Person oder die Administration kann Teilnahmen bestätigen.');
+        if (!owner && !admin) throw ApiErr('forbidden', 'Nur der LearnMaker oder die Administration kann Teilnahmen bestätigen.');
         if (now > iddHardLock(ev)) throw ApiErr('locked', 'Die Teilnahmen dieser Veranstaltung sind seit dem 31.01. endgültig gesperrt.');
         if (endDate(ev) > now) throw ApiErr('invalid', 'Teilnahmen lassen sich erst nach dem Ende der Veranstaltung bestätigen.');
         if (ev.cancelled) throw ApiErr('invalid', 'Die Veranstaltung wurde abgesagt.');
@@ -1864,7 +1864,7 @@ var Local = (function () {
         if (!u) throw ApiErr('notfound', 'Diesen Benutzer gibt es nicht.');
         if (!iddAdminCan(ev, now)) throw ApiErr('locked', 'Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.');
         if (reason.length < 5 || reason.length > 300) throw ApiErr('invalid', 'Bitte gib eine Begründung mit 5 bis 300 Zeichen an.');
-        if (ev.ownerId === u.id) throw ApiErr('invalid', 'Die anbietende Person kann nicht als Teilnehmende eingetragen werden.');
+        if (ev.ownerId === u.id) throw ApiErr('invalid', 'Der LearnMaker kann nicht als Teilnehmende eingetragen werden.');
         var bk = data.bookings.filter(function (b) { return b.eventId === ev.id && b.userId === u.id; })[0];
         if (!bk) { bk = { id: rid(8), eventId: ev.id, userId: u.id, created: nowIso(), rating: 0, ratedAt: '', isTest: false }; data.bookings.push(bk); }
         bk.idd = 'yes'; bk.confirmedAt = nowIso(); bk.confirmedBy = me.username; bk.addedBy = me.username; bk.addReason = reason; save(); return {};
@@ -2216,7 +2216,7 @@ function openPhPicker(current, onPick) {
 /* ====================================================== Abzeichen, Anmeldestatus, Bewertungssterne */
 /* Stufen 1 bis 6: Bronze, Silber, Gold (Medaillen), Stern, Krone, Diamant. Die Rakete steht fuer den Expertenstatus in einem Thema. */
 var BADGE_NAMES = ['Bronzene Medaille', 'Silberne Medaille', 'Goldene Medaille', 'Stern', 'Krone', 'Diamant'];
-/* Versteckte Stufe 7: Learnicorn, das Einhorn unter den Anbietenden (nach dem Unicorn, einem Start-up mit 1 Milliarde Wert).
+/* Versteckte Stufe 7: Learnicorn, das Einhorn unter den LearnMakern (nach dem Unicorn, einem Start-up mit 1 Milliarde Wert).
    Erscheint nirgends als Ziel, nur bei Personen, die sie erreicht haben, und in der Administration. */
 var SECRET_NAME = 'Learnicorn', SECRET_MIN = 500;
 /* Flache, runde Störer im R+V-Stil: farbige Scheibe mit weißem Rand, Piktogramm zweifarbig, keine Verläufe */
@@ -2236,7 +2236,7 @@ var UNICORN_SVG = '<circle cx="12" cy="12" r="11" fill="#001957" stroke="#f79506
   '<path d="M10.3 9l-3-5.4 4.4 4.4z" fill="#f79506"/><path d="M8.6 6.1l1.1-.4M9.4 7.3l1.1-.5" stroke="#001957" stroke-width=".5"/>' +
   '<circle cx="10.4" cy="11.2" r=".75" fill="#001957"/><circle cx="6.8" cy="12.6" r=".35" fill="#001957"/>';
 var ROCKET_SVG = discSvg('#001957', '<path d="M12 4.6c2.1 1.5 3.1 3.8 3.1 6.1 0 1.2-.3 2.3-.8 3.3H9.7c-.5-1-.8-2.1-.8-3.3 0-2.3 1-4.6 3.1-6.1z" fill="#ffffff"/><circle cx="12" cy="9.9" r="1.3" fill="#001957"/><path d="M9.5 11.9l-1.9 2.2.5 1.9 2-1.3zM14.5 11.9l1.9 2.2-.5 1.9-2-1.3z" fill="#ffffff"/><path d="M10.7 14.8h2.6L12 18.6z" fill="#f79506"/>');
-function badgeLabel(level) { return level === 7 ? SECRET_NAME + ': das Einhorn unter den Anbietenden' : level >= 1 && level <= 6 ? 'Stufe ' + level + ': ' + BADGE_NAMES[level - 1] : ''; }
+function badgeLabel(level) { return level === 7 ? SECRET_NAME + ': das Einhorn unter den LearnMakern' : level >= 1 && level <= 6 ? 'Stufe ' + level + ': ' + BADGE_NAMES[level - 1] : ''; }
 function badgeNode(level, big) {
   if (!level || level < 1 || level > 7) return null;
   return h('span', { class: 'bdg' + (big ? ' big' : '') + (level === 7 ? ' unicorn' : ''), role: 'img', 'aria-label': badgeLabel(level), title: badgeLabel(level), html: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (level === 7 ? UNICORN_SVG : BADGE_SVG[level - 1]) + '</svg>' });
@@ -2585,7 +2585,7 @@ function buildEventForm(o) {
   cap.addEventListener('input', function () { f.capacity.setErr(''); }); link.addEventListener('input', function () { f.teamsLink.setErr(''); });
   rte.area.addEventListener('input', function () { f.description.setErr(''); });
 
-  /* IDD: nur fuer freigeschaltete Anbietende (oder Administration) und nur dienstlich.
+  /* IDD: nur fuer freigeschaltete LearnMaker (oder Administration) und nur dienstlich.
      Agenda: Begruessung und Verabschiedung (fest) und Inhaltsbloecke mit Dauer und IDD-Bildungszeit, im Popup bearbeitbar. */
   v.agenda = (ev.agenda && ev.agenda.length ? ev.agenda : []).map(function (b) { return { content: b.content, minutes: Number(b.minutes), iddMinutes: Number(b.iddMinutes) }; });
   var canIdd = iddOn() && (!!ev.idd || admin || isAdmin() || !!(state.me && state.me.iddHost)), iddFs = null, iddSync = function () { };
@@ -2939,15 +2939,15 @@ function viewCreate() {
   var root = h('div', { class: 'page' }, h('div', { class: 'wrap wide' }));
   var wrap = root.firstChild;
   if (!state.me) {
-    wrap.appendChild(topline('Mitmachen')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
-    wrap.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Zum Anbieten einer Veranstaltung brauchst Du ein Konto.' }));
+    wrap.appendChild(topline('Werde LearnMaker')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
+    wrap.appendChild(h('div', { class: 'notice info', role: 'status', text: 'Wer eine Veranstaltung anbietet, ist LearnMaker. Dafür brauchst Du ein Konto.' }));
     wrap.appendChild(h('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;margin-top:20px' }, [h('a', { class: 'btn btn-primary', href: '#/anmelden?next=' + encodeURIComponent('/anbieten'), text: 'Anmelden' }), h('a', { class: 'btn btn-secondary', href: '#/registrieren?next=' + encodeURIComponent('/anbieten'), text: 'Neu registrieren' })]));
     return root;
   }
   function show() {
     clear(wrap);
-    wrap.appendChild(topline('Mitmachen')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
-    wrap.appendChild(h('p', { class: 'lead', text: 'Teile Dein Wissen oder lade zum Austausch ein, dienstlich oder privat. Du trittst als ' + state.me.username + ' auf. Inhalte müssen legal, respektvoll und jugendfrei sein.' }));
+    wrap.appendChild(topline('Werde LearnMaker')); wrap.appendChild(h('h1', { html: 'Veranstaltung <span class="accent">anbieten</span>' }));
+    wrap.appendChild(h('p', { class: 'lead', text: 'Teile Dein Wissen oder lade zum Austausch ein, dienstlich oder privat. Wer eine Veranstaltung anbietet, ist LearnMaker. Du trittst als ' + state.me.username + ' auf. Inhalte müssen legal, respektvoll und jugendfrei sein.' }));
     wrap.appendChild(buildEventForm({ onSubmit: function (p) { return Api.createEvent(p).then(function () { done(p); }, function (er) { if (authFail(er)) return; throw er; }); } }));
   }
   function done(p) {
@@ -3063,7 +3063,7 @@ function viewMyBookings() {
 
 /* ---- Meine Veranstaltungen ---- */
 function viewMyEvents() {
-  var ps = pageShell('Für Anbietende', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, bearbeitest oder sagst Veranstaltungen ab und siehst die Bewertungen Deiner Sessions.', true);
+  var ps = pageShell('Für LearnMaker', 'Meine <span class="accent">Veranstaltungen</span>', 'Hier siehst Du, wer sich angemeldet hat, bearbeitest oder sagst Veranstaltungen ab und siehst die Bewertungen Deiner Sessions.', true);
   var box = h('div', null, loading()); ps.wrap.appendChild(box);
   if (!state.me) { clear(box); goLogin(); return ps.root; }
   function load() { Api.myEvents().then(function (r) { clear(box); render(r.events); }, function (er) { if (authFail(er)) return; clear(box); box.appendChild(h('div', { class: 'notice bad', text: er.message })); }); }
@@ -3205,7 +3205,7 @@ function iddPdf(c, year) {
     line(ML, y + hh, ML + CW, y + hh, LINE, .4); y += hh;
   });
   y += 18; if (y > PH - 110) newPage();
-  ['Angerechnet sind nur Teilnahmen, die die anbietende Person oder die Administration bestätigt hat.', 'Begrüßung und Verabschiedung (je ' + (IDD.frame || 5) + ' Minuten) zählen nicht zur Lernzeit.', 'Teilnahmen eines Kalenderjahres sind ab dem 31.01. des Folgejahres nicht mehr änderbar.', 'Maschinell erstellt über ' + appTitle + '.'].concat(c.archivedNote ? [c.archivedNote] : []).forEach(function (t) { pdfWrap(t, CW, 8.5, false).forEach(function (l) { text(ML, y + 10, l, 8.5, false, GREY); y += 12; }); });
+  ['Angerechnet sind nur Teilnahmen, die der LearnMaker oder die Administration bestätigt hat.', 'Begrüßung und Verabschiedung (je ' + (IDD.frame || 5) + ' Minuten) zählen nicht zur Lernzeit.', 'Teilnahmen eines Kalenderjahres sind ab dem 31.01. des Folgejahres nicht mehr änderbar.', 'Maschinell erstellt über ' + appTitle + '.'].concat(c.archivedNote ? [c.archivedNote] : []).forEach(function (t) { pdfWrap(t, CW, 8.5, false).forEach(function (l) { text(ML, y + 10, l, 8.5, false, GREY); y += 12; }); });
   var total = pages.length;
   pages.forEach(function (p, i) { cv = p; line(ML, PH - 34, ML + CW, PH - 34, LINE, .5); text(ML, PH - 22, pdfFit(appTitle + ' · ' + title + ' · ' + (c.firstName + ' ' + c.lastName).trim(), CW - 80, 8, false), 8, false, GREY); text(ML + CW, PH - 22, 'Seite ' + (i + 1) + ' von ' + total, 8, false, GREY, 'r'); });
   var objs = [], kids = [];
@@ -3244,7 +3244,7 @@ function viewProfile(q) {
     var count = h('span', { class: 'hint' }); function upd() { count.textContent = bio.value.length + ' / 300 Zeichen'; } bio.addEventListener('input', upd); upd();
     var msg = h('div', { class: 'notice', hidden: true, role: 'status' }), go = h('button', { type: 'button', class: 'btn btn-primary', text: 'Speichern' }), view = h('button', { type: 'button', class: 'btn btn-secondary', text: 'So sehen andere mein Profil', onclick: function () { openPublicProfile(me.username); } });
     var list = h('div', { class: 'chklist' }, [chk('isPublic', 'Mein Profil veröffentlichen', null, true),
-      chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : 'Erscheint neben Deinem Benutzernamen im Profil.'), chk('showExpert', 'Themen mit Expertenstatus', 'Die Themen, in denen Du Experte bist.'), chk('showRating', 'Bewertung', 'Deine durchschnittliche Bewertung als Anbieter.'), chk('showUpcoming', 'Anstehende Veranstaltungen', 'Andere können sich direkt aus Deinem Profil anmelden.'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.')]);
+      chk('showAvatar', 'Profilbild', noAv ? 'Wähle zuerst ein Profilbild aus oder lade eines hoch.' : 'Erscheint neben Deinem Benutzernamen im Profil.'), chk('showExpert', 'Themen mit Expertenstatus', 'Die Themen, in denen Du Experte bist.'), chk('showRating', 'Bewertung', 'Deine durchschnittliche Bewertung als LearnMaker.'), chk('showUpcoming', 'Anstehende Veranstaltungen', 'Andere können sich direkt aus Deinem Profil anmelden.'), chk('showEmail', 'E-Mail-Adresse', 'Andere können Dich damit kontaktieren.')]);
     sync();
     /* Abzeichen und Rakete erscheinen auch ohne oeffentliches Profil neben dem Benutzernamen, deshalb eigener Schalter */
     var bc = h('input', { type: 'checkbox', id: 'pp-badges', checked: v.showBadges });
@@ -3378,11 +3378,11 @@ function viewProfile(q) {
     var kp = h('div', { class: 'st-kpis', style: 'margin-top:28px' }, [
       tile('Angebotene Sessions', String(o.held), o.upcoming ? o.upcoming + ' geplant' + (o.cancelled ? ', ' + o.cancelled + ' abgesagt' : '') : (o.cancelled ? o.cancelled + ' abgesagt' : 'durchgeführt')),
       tile('Teilgenommen', String(a.held), a.upcoming ? a.upcoming + ' angemeldet' : 'besuchte Sessions'),
-      tile('Meine Bewertung als Anbieter', o.ratingCount ? ratingNode(o.ratingAvg, o.ratingCount) : h('span', { class: 'rating', title: 'Noch keine Bewertung' }, [h('span', { class: 'stars', 'aria-hidden': 'true', text: starsText(0) }), ' 0,0']), (function () { var ev = o.list.filter(function (x) { return !x.cancelled && x.ratingCount > 0; }).length; return o.ratingCount + ' Bewertung' + (o.ratingCount === 1 ? '' : 'en') + ' aus ' + ev + ' Veranstaltung' + (ev === 1 ? '' : 'en'); })()),
+      tile('Meine Bewertung als LearnMaker', o.ratingCount ? ratingNode(o.ratingAvg, o.ratingCount) : h('span', { class: 'rating', title: 'Noch keine Bewertung' }, [h('span', { class: 'stars', 'aria-hidden': 'true', text: starsText(0) }), ' 0,0']), (function () { var ev = o.list.filter(function (x) { return !x.cancelled && x.ratingCount > 0; }).length; return o.ratingCount + ' Bewertung' + (o.ratingCount === 1 ? '' : 'en') + ' aus ' + ev + ' Veranstaltung' + (ev === 1 ? '' : 'en'); })()),
       tile('Teilnehmende bei mir', String(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0)), o.held ? 'Ø ' + fmtAvg(o.list.reduce(function (s, x) { return s + (x.cancelled ? 0 : x.booked); }, 0) / Math.max(1, o.list.filter(function (x) { return !x.cancelled; }).length)) + ' je Session' : null),
       tile('Meine Bewertungen', String(a.rated), a.held ? 'von ' + a.held + ' besuchten Sessions' : null),
       tile('Expertenstatus', String(experts.length), experts.length ? experts.map(function (t) { return capFirst(t.topic); }).join(', ') : 'ab ' + b.expertMin + ' Sessions je Thema')]);
-    var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }).concat(b.level === 7 ? [h('div', { class: 'lvl cur got' }, [badgeNode(7, true), h('b', { text: SECRET_NAME }), h('span', { class: 'hint', text: 'Das Einhorn unter den Anbietenden' })])] : []));
+    var lv = h('div', { class: 'levels' }, b.levels.map(function (t, i) { return h('div', { class: 'lvl' + (b.level === i + 1 ? ' cur' : '') + (b.level > i ? ' got' : '') }, [badgeNode(i + 1, true), h('b', { text: BADGE_NAMES[i] }), h('span', { class: 'hint', text: 'ab ' + t + (t === 1 ? ' Session' : ' Sessions') })]); }).concat(b.level === 7 ? [h('div', { class: 'lvl cur got' }, [badgeNode(7, true), h('b', { text: SECRET_NAME }), h('span', { class: 'hint', text: 'Das Einhorn unter den LearnMakern' })])] : []));
     function sec(title, hint, kids) { return h('section', { class: 'prof-sec' }, [h('h2', null, title), hint ? h('p', { class: 'hint', text: hint }) : null].concat(kids)); }
     function overview() {
       var hiddenBadge = (b.level || experts.length) && !r.pub.showBadges ? h('div', { class: 'notice', role: 'status', style: 'margin-top:16px' }, h('div', { class: 'n-body' }, [h('b', { text: 'Dein Abzeichen siehst nur Du' }), h('div', null, ['Andere sehen Abzeichen und Rakete erst, wenn Du zustimmst. ', h('a', { href: '#/profil?tab=oeffentlich', text: 'Unter Veröffentlichung freigeben' })])])) : null;
@@ -3529,8 +3529,8 @@ function viewAdmin() {
       if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; tot.hours += x.n * x.e.duration / 60; if (!x.c) tot.hoursBiz += x.n * x.e.duration / 60; tot.held++; (x.e.bookings || []).forEach(function (b) { if (b.p) reach[b.p] = (reach[b.p] || 0) + 1; }); }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
-    /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu Anbietenden. Gezeigt wird ein Wert erst,
-       wenn er auf mindestens drei Bewertungen und drei verschiedenen Anbietenden beruht. */
+    /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu LearnMakern. Gezeigt wird ein Wert erst,
+       wenn er auf mindestens drei Bewertungen und drei verschiedenen LearnMakern beruht. */
     var fm = F.from ? F.from.slice(0, 7) : '', tm = F.to ? F.to.slice(0, 7) : '';
     var RB = (all.ratingBuckets || []).filter(function (b) { return (!fm || b.m >= fm) && (!tm || b.m <= tm) && (!F.cat || b.c === F.cat) && !(F.noTest && b.test); });
     var hostsBy = [{}, {}], hostsAll = {};
@@ -3540,7 +3540,7 @@ function viewAdmin() {
     var reachN = Object.keys(reach).length, repeatN = Object.keys(reach).filter(function (k) { return reach[k] >= 2; }).length;
     var now = Date.now(), active30 = act[0] + act[1];
     var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
-    /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
+    /* Expertenstatus: LearnMaker mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
     var EX = {}; all.forEach(function (e) { if (e.cancelled || !eventEnded(e) || !e.ownerId) return; var k = e.ownerId + '|' + e.category + '|' + e.topic; EX[k] = (EX[k] || 0) + 1; });
     var experts = {}; Object.keys(EX).forEach(function (k) { if (EX[k] >= BADGES.expertMin) experts[k.split('|')[0]] = 1; });
     function kpi(group, label, value) { return { group: group, label: label, value: value }; }
@@ -3548,7 +3548,7 @@ function viewAdmin() {
       kpi('ueberblick', 'Veranstaltungen', stNum(tot.ev)), kpi('ueberblick', 'Anmeldungen', stNum(tot.pt)), kpi('ueberblick', 'Ø Auslastung', tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–'),
       kpi('ueberblick', 'Lernstunden', stNum(Math.round(tot.hours))), kpi('ueberblick', 'Erreichte Personen', stNum(reachN)),
       all.audience ? kpi('ueberblick', 'Reichweite in der Zielgruppe', stPct(reachN, all.audience) + ' %') : null, kpi('ueberblick', 'Wiederkehrende Teilnehmende', reachN ? stPct(repeatN, reachN) + ' %' : '–'),
-      kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'Anbietende', stNum(Object.keys(hosts).length)),
+      kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'LearnMaker', stNum(Object.keys(hosts).length)),
       kpi('veranstaltungen', 'Durchgeführt', stNum(tot.held)), kpi('veranstaltungen', 'Dienstliche Lernstunden', stNum(Math.round(tot.hoursBiz))),
       kpi('veranstaltungen', 'Ø Anmeldungen je Veranstaltung', tot.ev ? stDec(tot.pt / tot.ev) : '–'), kpi('veranstaltungen', 'Ohne Anmeldung', stNum(tot.zero)), kpi('veranstaltungen', 'Ausgebucht', stNum(tot.full)),
       kpi('veranstaltungen', 'Abgesagt', stNum(cancelledN)), kpi('veranstaltungen', 'Absagequote', kept ? stPct(cancelledN, kept) + ' %' : '–'), kpi('veranstaltungen', 'Ø Vorlauf der Anmeldung', lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–'),
@@ -3614,10 +3614,10 @@ function viewAdmin() {
     add('nutzende', { id: 'abzeichen', title: 'Konten nach Abzeichen', hint: 'Verteilung der Abzeichenstufen. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['Ohne Abzeichen'].concat(BADGE_NAMES, [SECRET_NAME]).map(function (k, i) { return { label: k, sub: i === 7 ? 'Versteckte Stufe' : i ? 'Stufe ' + i + ', ab ' + BADGES.levels[i - 1] + ' Sessions' : '', v: [LV[i], 0] }; }) });
     add('nutzende', { id: 'profile', title: 'Profile und Profilbilder', hint: 'Freiwillige Angaben der Nutzenden. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: [['Profil öffentlich', pubN], ['Profil nicht öffentlich', acc.length - pubN], ['Mit Profilbild', avN], ['Ohne Profilbild', acc.length - avN]].map(function (r) { return { label: r[0], sub: '', v: [r[1], 0] }; }) });
     /* Bewertungen */
-    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Ein Bereich erscheint erst ab drei verschiedenen Anbietenden, damit niemand einzeln erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
+    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Ein Bereich erscheint erst ab drei verschiedenen LearnMakern, damit niemand einzeln erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
     var RT = {}; RB.forEach(function (b) { var k = CAT_LABEL[b.c] + '|' + capFirst(b.t); if (!RT[k]) RT[k] = { s: 0, n: 0, h: {} }; b.d.forEach(function (n, i) { RT[k].s += n * (i + 1); RT[k].n += n; }); b.h.forEach(function (x) { RT[k].h[x] = 1; }); });
     Object.keys(RT).forEach(function (k) { if (RT[k].n < MIN_RATINGS || Object.keys(RT[k].h).length < MIN_RATINGS) delete RT[k]; });
-    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema. Ein Thema erscheint erst ab drei Bewertungen und drei verschiedenen Anbietenden.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
+    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema. Ein Thema erscheint erst ab drei Bewertungen und drei verschiedenen LearnMakern.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
       rows: Object.keys(RT).sort(function (a, b) { return RT[b].s / RT[b].n - RT[a].s / RT[a].n; }).map(function (k) { var p = k.split('|'); return [p[0], p[1], RT[k].n, stDec(RT[k].s / RT[k].n)]; }) });
     /* Datenschutz */
     var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };
@@ -4158,7 +4158,7 @@ function viewAdmin() {
           if (u.role !== 'superadmin' && u.id !== state.me.id) acts.appendChild(act(u.locked ? 'Entsperren' : 'Sperren', 'Wirklich?', u.locked ? 'btn-secondary' : 'btn-danger', function () { return Api.adminSetLocked(u.id, !u.locked); }));
           if (u.role !== 'superadmin' && u.id !== state.me.id && (u.role !== 'admin' || meSuper)) acts.appendChild(act('Konto löschen', 'Endgültig löschen?', 'btn-danger', function () { return Api.adminDeleteUser(u.id).then(function () { toast('Das Konto ist gelöscht.'); }); }));
           tb.appendChild(h('tr', { class: u.locked ? 'past' : '' }, [
-            h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null, iddOn() && u.iddHost ? h('span', { class: 'tag', text: 'IDD-Anbietende' }) : null, iddOn() && u.iddDuty ? h('span', { class: 'tag', text: 'IDD-pflichtig' }) : null])])])),
+            h('td', { class: 'c-title' }, h('div', { class: 'au-row' }, [u.avatar ? avatarNode(u.avatar, 44, 'Profilbild von ' + u.username) : h('span', { class: 'au-noav' }), h('div', null, [userTag(u.username, u.level, false), h('div', { class: 'meta' }, [u.role === 'superadmin' ? h('span', { class: 'tag cat-dienstlich', text: 'Hauptadmin' }) : (u.role === 'admin' ? h('span', { class: 'tag cat-dienstlich', text: 'Admin' }) : null), u.locked ? h('span', { class: 'tag past', text: 'gesperrt' }) : null, u.isTest ? h('span', { class: 'tag test', text: 'Testdaten' }) : null, u.mustChange ? h('span', { class: 'tag', text: 'Passwort ändern' }) : null, iddOn() && u.iddHost ? h('span', { class: 'tag', text: 'IDD-LearnMaker' }) : null, iddOn() && u.iddDuty ? h('span', { class: 'tag', text: 'IDD-pflichtig' }) : null])])])),
             h('td', null, [u.firstName + ' ' + u.lastName, h('div', { class: 'hint', text: (u.xv || '–') })]), h('td', { text: u.email, style: 'overflow-wrap:anywhere' }),
             h('td', null, [h('b', { text: String(u.offered) }), h('div', { class: 'hint', text: 'angeboten' })]), h('td', { class: 'c-when', text: (u.created || '').slice(0, 10).split('-').reverse().join('.') }), h('td', { class: 'c-act' }, acts)]));
         });
@@ -4265,16 +4265,16 @@ function viewAdmin() {
         var tb = h('tbody');
         list.forEach(function (e) {
           var y_ = e.bookings.filter(function (b) { return b.status === 'yes'; }).length, n_ = e.bookings.filter(function (b) { return b.status === 'no'; }).length, o_ = e.bookings.length - y_ - n_;
-          var fr = e.cancelled ? 'abgesagt' : !e.ended ? 'anstehend' : e.locked ? 'gesperrt' : e.hostOpen ? 'Anbietende bis ' + dateFull(e.hostUntil.slice(0, 10)) : 'nur Administration';
+          var fr = e.cancelled ? 'abgesagt' : !e.ended ? 'anstehend' : e.locked ? 'gesperrt' : e.hostOpen ? 'LearnMaker bis ' + dateFull(e.hostUntil.slice(0, 10)) : 'nur Administration';
           var acts = h('div', { class: 'acts' }, [h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Teilnahmen', onclick: function () { people(e); } })]);
-          if (e.ended && !e.locked && !e.cancelled && !e.hostOpen) acts.appendChild(twoStep(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Für Anbietende freischalten' }), 'Für Anbietende freischalten', 'Wirklich?', function (reset) { Api.adminIddReopen(e.id).then(function () { toast('Für 14 Tage freigeschaltet.'); return reload(); }, function (er) { reset(); toast(er.message, true); }); }));
+          if (e.ended && !e.locked && !e.cancelled && !e.hostOpen) acts.appendChild(twoStep(h('button', { type: 'button', class: 'btn btn-secondary btn-sm', text: 'Für LearnMaker freischalten' }), 'Für LearnMaker freischalten', 'Wirklich?', function (reset) { Api.adminIddReopen(e.id).then(function () { toast('Für 14 Tage freigeschaltet.'); return reload(); }, function (er) { reset(); toast(er.message, true); }); }));
           tb.appendChild(h('tr', { class: e.cancelled ? 'past' : '' }, [h('td', { class: 'nowrap', text: dateFull(e.date) }), h('td', null, [h('b', { text: e.iddTitle }), h('div', { class: 'hint', text: e.title + (e.iddContent ? ' · ' + e.iddContent : '') })]), h('td', null, [h('span', { text: e.owner ? e.owner.username : 'Anonymisiert' }), e.owner ? h('div', { class: 'hint', text: e.owner.firstName + ' ' + e.owner.lastName }) : null]),
             h('td', { text: e.iddMinutes + ' Min.' }), h('td', { text: y_ + ' / ' + n_ + ' / ' + o_ }), h('td', { text: fr }), h('td', { class: 'c-act' }, acts)]));
         });
-        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'Anbietende', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
+        host.appendChild(h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Datum', 'IDD-Titel', 'LearnMaker', 'IDD-Zeit', 'Ja / Nein / offen', 'Bestätigung', 'Aktionen'].map(function (t) { return h('th', { text: t }); }))), tb])));
       }
       draw();
-      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. Anbietende bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt. IDD-Nachweise gelöschter Konten stehen unter IDD-Archiv.' }), host]);
+      return h('div', null, [h('p', { class: 'lead', text: 'Alle IDD-Veranstaltungen eines Kalenderjahres mit dem Stand der Teilnahmebestätigungen. LearnMaker bestätigen 14 Tage nach dem Ende. Danach bestätigst Du, trägst nach oder schaltest die Bestätigung erneut frei. Ab dem 31.01. des Folgejahres ist das Jahr gesperrt. IDD-Nachweise gelöschter Konten stehen unter IDD-Archiv.' }), host]);
     });
   }
   function adminPhotos() {
@@ -4298,7 +4298,7 @@ function viewAdmin() {
       }
       render();
       return h('div', { style: 'display:flex;flex-direction:column;gap:20px;max-width:1100px' }, [
-        h('p', { class: 'lead', text: 'Hier hinterlegst Du echte Fotos, zum Beispiel aus der R+V-Mediendatenbank. Anbietende sehen sie bei „Platzhalterbild wählen“ vor den Illustrationen. Nutze nur Fotos mit den nötigen Nutzungsrechten.' }),
+        h('p', { class: 'lead', text: 'Hier hinterlegst Du echte Fotos, zum Beispiel aus der R+V-Mediendatenbank. LearnMaker sehen sie bei „Platzhalterbild wählen“ vor den Illustrationen. Nutze nur Fotos mit den nötigen Nutzungsrechten.' }),
         h('div', { class: 'panel', style: 'display:flex;flex-direction:column;gap:16px' }, [h('h3', { text: 'Neues Foto' }), h('div', { class: 'imgpick' }, [prev, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [h('button', { type: 'button', class: 'btn btn-secondary', text: 'Foto auswählen', onclick: function () { file.value = ''; file.click(); } }), file])]),
           h('div', { class: 'grid2' }, [field('Name', name, { id: 'fo-name', req: true }), field('Suchbegriffe', kw, { id: 'fo-kw', hint: 'Mit Leerzeichen getrennt. Sie helfen bei der Suche.' })]), msg, h('div', null, add)]),
         fhead, host]);

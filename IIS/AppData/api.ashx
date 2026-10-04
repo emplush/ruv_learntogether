@@ -56,7 +56,7 @@ namespace LearnTogether
         public bool showBadges { get; set; }      // Abzeichen und Expertenstatus fuer andere zeigen: nur nach Zustimmung (Standard: aus)
         public string extId { get; set; }         // Vorbereitung Single Sign-on: Kennung im Unternehmensverzeichnis (noch nicht genutzt)
         public string authSource { get; set; }
-        // IDD: Freischaltung als Anbietende, eigene Angaben zur Weiterbildungspflicht
+        // IDD: Freischaltung als LearnMaker, eigene Angaben zur Weiterbildungspflicht
         public bool iddHost { get; set; }
         public bool iddDuty { get; set; }
         public int iddHours { get; set; }         // 15 oder 30
@@ -87,7 +87,7 @@ namespace LearnTogether
         public bool idd { get; set; }             // IDD-anrechenbar (nur dienstlich)
         public string iddTitle { get; set; }      // Titel fuer die Dokumentation
         public int iddMinutes { get; set; }       // anrechenbare Bildungszeit, hoechstens Dauer minus 10 Minuten
-        public string reopenUntil { get; set; }   // Bestaetigung fuer Anbietende erneut freigeschaltet bis
+        public string reopenUntil { get; set; }   // Bestaetigung fuer LearnMaker erneut freigeschaltet bis
         public List<AgendaItem> agenda { get; set; }
         public string iddContent { get; set; }    // Beschreibung des Lerninhalts (Kategorie nach gutBeraten) // Inhaltsbloecke zwischen Begruessung und Verabschiedung
         public bool isTest { get; set; }
@@ -278,7 +278,7 @@ namespace LearnTogether
     {
         const string DefaultAdminPassword = "RuVTest1234";
         const string TestUserPassword = "Test-Passwort-2026";
-        const string Version = "0.32.0";
+        const string Version = "0.33.0";
         static readonly object Gate = new object();
         const int MaxCapacity = 50;
         const int PwIter = 100000;
@@ -289,7 +289,7 @@ namespace LearnTogether
         const int SecretDefault = 500;
         internal static int SecretMin(SettingsRec s) { return s.badgeSecret > 0 ? s.badgeSecret : SecretDefault; }
         // Beschreibung des Lerninhalts: Kategorien wie in der Weiterbildungsdatenbank von gutBeraten
-        static readonly string[] IddContents = new string[] { "Privat-Vorsorge-Lebens-/Rentenversicherung", "Privat-Vorsorge-Kranken-/Pflegeversicherung", "Privat-Sach-/Schadenversicherung", "Firmenkunden-Vorsorge (BAV/Personenversicherung)", "Firmenkunden-Sach-/Schadenversicherung", "Mehrere versicherungsrelevante Themen", "Kundenorientierte Beratung im Versicherungsvertrieb", "Management einer Vertriebseinheit in der Versicherungswirtschaft", "Wirtschaftswissenschaften mit Bezug zur Versicherungsvermittlung/-beratung", "Personalf\u00fchrung mit Bezug zur Versicherungsvermittlung/-beratung", "Versicherungsspezifische Software" };      // so lange bestaetigen Anbietende selbst
+        static readonly string[] IddContents = new string[] { "Privat-Vorsorge-Lebens-/Rentenversicherung", "Privat-Vorsorge-Kranken-/Pflegeversicherung", "Privat-Sach-/Schadenversicherung", "Firmenkunden-Vorsorge (BAV/Personenversicherung)", "Firmenkunden-Sach-/Schadenversicherung", "Mehrere versicherungsrelevante Themen", "Kundenorientierte Beratung im Versicherungsvertrieb", "Management einer Vertriebseinheit in der Versicherungswirtschaft", "Wirtschaftswissenschaften mit Bezug zur Versicherungsvermittlung/-beratung", "Personalf\u00fchrung mit Bezug zur Versicherungsvermittlung/-beratung", "Versicherungsspezifische Software" };      // so lange bestaetigen LearnMaker selbst
         const int SessionHours = 8;
         const int MinRatings = 3;        // Durchschnittswerte erst ab drei Bewertungen, damit niemand auf einzelne Stimmen schliessen kann
         const int InactiveMonths = 24;   // Konten ohne Anmeldung werden danach automatisch geloescht
@@ -611,7 +611,7 @@ namespace LearnTogether
                 string last = !string.IsNullOrEmpty(u.lastLogin) ? u.lastLogin : u.created;
                 return DateTime.TryParse(last, CultureInfo.InvariantCulture, DateTimeStyles.None, out t) && t < limit;
             });
-            foreach (UserRec u in old) DeleteUser(d, u, "Das Konto der anbietenden Person wurde gel\u00f6scht.");
+            foreach (UserRec u in old) DeleteUser(d, u, "Das Konto des LearnMakers wurde gel\u00f6scht.");
             return old.Count > 0;
         }
 
@@ -1409,7 +1409,7 @@ namespace LearnTogether
             }
         }
 
-        // Eigene, noch nicht begonnene Veranstaltung bearbeiten (Anbietende). Angemeldete erhalten bei Termin- oder Link-Aenderung eine Mitteilung.
+        // Eigene, noch nicht begonnene Veranstaltung bearbeiten (LearnMaker). Angemeldete erhalten bei Termin- oder Link-Aenderung eine Mitteilung.
         void UpdateEvent()
         {
             Dictionary<string, object> b = Body();
@@ -1548,7 +1548,7 @@ namespace LearnTogether
             }
         }
 
-        // Profil: Stammdaten, Abzeichen, Zaehler, Bewertungen und Archiv als Anbieter und Teilnehmende
+        // Profil: Stammdaten, Abzeichen, Zaehler, Bewertungen und Archiv als LearnMaker und Teilnehmende
         void Profile()
         {
             DateTime now = NowBerlin();
@@ -1840,7 +1840,7 @@ namespace LearnTogether
 
         // ---------------------------------------------------------------- Admin
         // Veranstaltungen fuer die Administration.
-        // Bewertungen: je Veranstaltung nur die Anzahl; die Sterne gibt es nur zusammengefasst (ratingBuckets), ohne Bezug zu Anbietenden.
+        // Bewertungen: je Veranstaltung nur die Anzahl; die Sterne gibt es nur zusammengefasst (ratingBuckets), ohne Bezug zu LearnMakern.
         // Private Veranstaltungen: keine Namen der Teilnehmenden (Freizeit), nur Anzahl. Fuer Zaehlungen dient ein zufaelliges Kennzeichen je Antwort.
         void AdminEvents(DataFile d)
         {
@@ -1914,7 +1914,7 @@ namespace LearnTogether
             if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
             if (u.role == "superadmin" || u.id == me.id) throw new ApiException("forbidden", "Dieses Konto l\u00e4sst sich hier nicht l\u00f6schen.");
             if (u.role == "admin" && me.role != "superadmin") throw new ApiException("forbidden", "Admin-Konten kann nur die Hauptadministration l\u00f6schen.");
-            DeleteUser(d, u, "Das Konto der anbietenden Person wurde gel\u00f6scht.");
+            DeleteUser(d, u, "Das Konto des LearnMakers wurde gel\u00f6scht.");
             SaveData(d);
             Send(new { ok = true });
         }
@@ -1929,7 +1929,7 @@ namespace LearnTogether
                 if (me.role == "superadmin") throw new ApiException("forbidden", "Das Konto der Hauptadministration l\u00e4sst sich nicht l\u00f6schen.");
                 ThrottleCheck("p:" + me.id);
                 if (!CheckPassword(pw, me.pwHash)) { ThrottleFail("p:" + me.id); Thread.Sleep(500); throw new ApiException("password", "Das Passwort stimmt nicht."); }
-                DeleteUser(d, me, "Die anbietende Person hat ihr Konto gel\u00f6scht.");
+                DeleteUser(d, me, "Der LearnMaker hat das eigene Konto gel\u00f6scht.");
                 SaveData(d);
                 WriteCookie("", 0);
                 Send(new { ok = true });
@@ -2196,7 +2196,7 @@ namespace LearnTogether
 
         // ---------------------------------------------------------------- IDD: anrechenbare Weiterbildung
         // Regeln: nur dienstlich, IDD-Titel Pflicht, IDD-Zeit in 5-Minuten-Schritten bis Dauer minus 10 Minuten (Begruessung und Verabschiedung zaehlen nicht).
-        // Bestaetigung der Teilnahme: Anbietende 14 Tage nach dem Ende (oder nach erneuter Freischaltung), Administration bis zum 31.01. des Folgejahres.
+        // Bestaetigung der Teilnahme: LearnMaker 14 Tage nach dem Ende (oder nach erneuter Freischaltung), Administration bis zum 31.01. des Folgejahres.
         // Danach ist nichts mehr aenderbar. Angerechnet werden nur bestaetigte Teilnahmen.
         static bool IsAdmin(UserRec u) { return u != null && (u.role == "admin" || u.role == "superadmin"); }
 
@@ -2246,7 +2246,7 @@ namespace LearnTogether
             }
         }
 
-        // Teilnahme bestaetigen: status "yes", "no" oder "" (offen). Anbietende in ihrer Frist, Administration bis zur Sperre.
+        // Teilnahme bestaetigen: status "yes", "no" oder "" (offen). LearnMaker in ihrer Frist, Administration bis zur Sperre.
         void ConfirmAttendance()
         {
             Dictionary<string, object> b = Body();
@@ -2260,7 +2260,7 @@ namespace LearnTogether
                 EventRec ev = bk == null ? null : FindEvent(d, bk.eventId);
                 if (bk == null || ev == null || !ev.idd || string.IsNullOrEmpty(bk.userId)) throw new ApiException("notfound", "Diese Anmeldung gibt es nicht.");
                 bool admin = IsAdmin(me), owner = ev.ownerId == me.id;
-                if (!owner && !admin) throw new ApiException("forbidden", "Nur die anbietende Person oder die Administration kann Teilnahmen bestätigen.");
+                if (!owner && !admin) throw new ApiException("forbidden", "Nur der LearnMaker oder die Administration kann Teilnahmen bestätigen.");
                 if (now > IddHardLock(ev)) throw new ApiException("locked", "Die Teilnahmen dieser Veranstaltung sind seit dem 31.01. endgültig gesperrt.");
                 if (EventEnd(ev) > now) throw new ApiException("invalid", "Teilnahmen lassen sich erst nach dem Ende der Veranstaltung bestätigen.");
                 if (ev.cancelled) throw new ApiException("invalid", "Die Veranstaltung wurde abgesagt.");
@@ -2319,7 +2319,7 @@ namespace LearnTogether
             Send(new { ok = true, events = l });
         }
 
-        // Bestaetigung fuer die anbietende Person erneut freischalten (14 Tage, hoechstens bis zur Sperre)
+        // Bestaetigung fuer den LearnMaker erneut freischalten (14 Tage, hoechstens bis zur Sperre)
         void AdminIddReopen(DataFile d)
         {
             EventRec ev = FindEvent(d, S(Body(), "id")); DateTime now = NowBerlin();
@@ -2339,7 +2339,7 @@ namespace LearnTogether
             if (u == null) throw new ApiException("notfound", "Diesen Benutzer gibt es nicht.");
             if (!IddAdminCan(ev, now)) throw new ApiException("locked", "Die Teilnahmen dieser Veranstaltung lassen sich nicht mehr ändern.");
             if (reason.Length < 5 || reason.Length > 300) throw new ApiException("invalid", "Bitte gib eine Begründung mit 5 bis 300 Zeichen an.");
-            if (ev.ownerId == u.id) throw new ApiException("invalid", "Die anbietende Person kann nicht als Teilnehmende eingetragen werden.");
+            if (ev.ownerId == u.id) throw new ApiException("invalid", "Der LearnMaker kann nicht als Teilnehmende eingetragen werden.");
             BookingRec bk = d.bookings.Find(delegate (BookingRec x) { return x.eventId == ev.id && x.userId == u.id; });
             if (bk == null) { bk = new BookingRec(); bk.id = NewId(); bk.eventId = ev.id; bk.userId = u.id; bk.created = NowIso(); d.bookings.Add(bk); }
             bk.idd = "yes"; bk.confirmedAt = NowIso(); bk.confirmedBy = me.username; bk.addedBy = me.username; bk.addReason = reason;

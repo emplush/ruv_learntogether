@@ -36,8 +36,8 @@
       if (eventEnded(x.e)) { rt.ended += x.n; if (r) rt.ratedEv++; tot.hours += x.n * x.e.duration / 60; if (!x.c) tot.hoursBiz += x.n * x.e.duration / 60; tot.held++; (x.e.bookings || []).forEach(function (b) { if (b.p) reach[b.p] = (reach[b.p] || 0) + 1; }); }
       (x.e.bookings || []).forEach(function (b) { if (b.created) { var d = (startDate(x.e) - new Date(b.created)) / 864e5; if (d >= 0 && d < 400) lead.push(d); } });
     });
-    /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu Anbietenden. Gezeigt wird ein Wert erst,
-       wenn er auf mindestens drei Bewertungen und drei verschiedenen Anbietenden beruht. */
+    /* Sterne gibt es nur zusammengefasst (Monat, Bereich, Thema), ohne Bezug zu LearnMakern. Gezeigt wird ein Wert erst,
+       wenn er auf mindestens drei Bewertungen und drei verschiedenen LearnMakern beruht. */
     var fm = F.from ? F.from.slice(0, 7) : '', tm = F.to ? F.to.slice(0, 7) : '';
     var RB = (all.ratingBuckets || []).filter(function (b) { return (!fm || b.m >= fm) && (!tm || b.m <= tm) && (!F.cat || b.c === F.cat) && !(F.noTest && b.test); });
     var hostsBy = [{}, {}], hostsAll = {};
@@ -47,7 +47,7 @@
     var reachN = Object.keys(reach).length, repeatN = Object.keys(reach).filter(function (k) { return reach[k] >= 2; }).length;
     var now = Date.now(), active30 = act[0] + act[1];
     var pubN = acc.filter(function (u) { return u.profilePublic; }).length, avN = acc.filter(function (u) { return u.avatar; }).length;
-    /* Expertenstatus: Anbietende mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
+    /* Expertenstatus: LearnMaker mit mindestens einem Thema ab der Mindestzahl (durchgeführte Veranstaltungen) */
     var EX = {}; all.forEach(function (e) { if (e.cancelled || !eventEnded(e) || !e.ownerId) return; var k = e.ownerId + '|' + e.category + '|' + e.topic; EX[k] = (EX[k] || 0) + 1; });
     var experts = {}; Object.keys(EX).forEach(function (k) { if (EX[k] >= BADGES.expertMin) experts[k.split('|')[0]] = 1; });
     function kpi(group, label, value) { return { group: group, label: label, value: value }; }
@@ -55,7 +55,7 @@
       kpi('ueberblick', 'Veranstaltungen', stNum(tot.ev)), kpi('ueberblick', 'Anmeldungen', stNum(tot.pt)), kpi('ueberblick', 'Ø Auslastung', tot.cap ? stPct(tot.pt, tot.cap) + ' %' : '–'),
       kpi('ueberblick', 'Lernstunden', stNum(Math.round(tot.hours))), kpi('ueberblick', 'Erreichte Personen', stNum(reachN)),
       all.audience ? kpi('ueberblick', 'Reichweite in der Zielgruppe', stPct(reachN, all.audience) + ' %') : null, kpi('ueberblick', 'Wiederkehrende Teilnehmende', reachN ? stPct(repeatN, reachN) + ' %' : '–'),
-      kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'Anbietende', stNum(Object.keys(hosts).length)),
+      kpi('ueberblick', 'Registrierte Konten', stNum(acc.length)), kpi('ueberblick', 'Ø Bewertung', rt.n ? stDec(rt.sum / rt.n) + ' von 5' : '–'), kpi('ueberblick', 'LearnMaker', stNum(Object.keys(hosts).length)),
       kpi('veranstaltungen', 'Durchgeführt', stNum(tot.held)), kpi('veranstaltungen', 'Dienstliche Lernstunden', stNum(Math.round(tot.hoursBiz))),
       kpi('veranstaltungen', 'Ø Anmeldungen je Veranstaltung', tot.ev ? stDec(tot.pt / tot.ev) : '–'), kpi('veranstaltungen', 'Ohne Anmeldung', stNum(tot.zero)), kpi('veranstaltungen', 'Ausgebucht', stNum(tot.full)),
       kpi('veranstaltungen', 'Abgesagt', stNum(cancelledN)), kpi('veranstaltungen', 'Absagequote', kept ? stPct(cancelledN, kept) + ' %' : '–'), kpi('veranstaltungen', 'Ø Vorlauf der Anmeldung', lead.length ? stDec(lead.reduce(function (s, v) { return s + v; }, 0) / lead.length) + ' Tage' : '–'),
@@ -121,10 +121,10 @@
     add('nutzende', { id: 'abzeichen', title: 'Konten nach Abzeichen', hint: 'Verteilung der Abzeichenstufen. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: ['Ohne Abzeichen'].concat(BADGE_NAMES, [SECRET_NAME]).map(function (k, i) { return { label: k, sub: i === 7 ? 'Versteckte Stufe' : i ? 'Stufe ' + i + ', ab ' + BADGES.levels[i - 1] + ' Sessions' : '', v: [LV[i], 0] }; }) });
     add('nutzende', { id: 'profile', title: 'Profile und Profilbilder', hint: 'Freiwillige Angaben der Nutzenden. (Anzahl Konten)', type: 'bars', series: ['Konten'], countUnit: 'Konten', rows: [['Profil öffentlich', pubN], ['Profil nicht öffentlich', acc.length - pubN], ['Mit Profilbild', avN], ['Ohne Profilbild', acc.length - avN]].map(function (r) { return { label: r[0], sub: '', v: [r[1], 0] }; }) });
     /* Bewertungen */
-    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Ein Bereich erscheint erst ab drei verschiedenen Anbietenden, damit niemand einzeln erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
+    add('bewertungen', { id: 'bewertungen', title: 'Verteilung der Bewertungen', hint: 'Abgegebene Sterne nach Bereich. Ein Bereich erscheint erst ab drei verschiedenen LearnMakern, damit niemand einzeln erkennbar ist.', type: 'bars', series: names, countUnit: 'Bewertungen', rows: [5, 4, 3, 2, 1].map(function (n) { return { label: n + (n === 1 ? ' Stern' : ' Sterne'), sub: '', v: rt.d[n - 1] }; }) });
     var RT = {}; RB.forEach(function (b) { var k = CAT_LABEL[b.c] + '|' + capFirst(b.t); if (!RT[k]) RT[k] = { s: 0, n: 0, h: {} }; b.d.forEach(function (n, i) { RT[k].s += n * (i + 1); RT[k].n += n; }); b.h.forEach(function (x) { RT[k].h[x] = 1; }); });
     Object.keys(RT).forEach(function (k) { if (RT[k].n < MIN_RATINGS || Object.keys(RT[k].h).length < MIN_RATINGS) delete RT[k]; });
-    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema. Ein Thema erscheint erst ab drei Bewertungen und drei verschiedenen Anbietenden.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
+    add('bewertungen', { id: 'bewertung-thema', title: 'Bewertung nach Thema', hint: 'Durchschnittliche Sterne je Thema. Ein Thema erscheint erst ab drei Bewertungen und drei verschiedenen LearnMakern.', type: 'table', wide: false, head: ['Bereich', 'Thema', 'Bewertungen', 'Ø Sterne'], widths: [1.4, 2, 1.3, 1.1], align: ['l', 'l', 'r', 'r'],
       rows: Object.keys(RT).sort(function (a, b) { return RT[b].s / RT[b].n - RT[a].s / RT[a].n; }).map(function (k) { var p = k.split('|'); return [p[0], p[1], RT[k].n, stDec(RT[k].s / RT[k].n)]; }) });
     /* Datenschutz */
     var DS = { 'Personenbezogen gespeichert': [0, 0], 'Anonymisiert': [0, 0] };

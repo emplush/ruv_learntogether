@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.33.0 (04.10.2026)
+- **LearnMaker:** Personen, die Veranstaltungen anbieten, heißen jetzt LearnMaker. Der Name ersetzt „Anbietende“ und „Anbieter“ in App, Meldungen des Servers, Statistik, Handbüchern, Papier IT-Sicherheit und Datenschutz und Präsentation. Die Seite „Veranstaltung anbieten“ beginnt mit „Werde LearnMaker“. Der Learnicorn heißt jetzt „das Einhorn unter den LearnMakern“.
+- Screenshots aktualisiert.
+
 ## 0.32.0 (04.10.2026)
 - **Versteckte Abzeichenstufe „Learnicorn“:** das Einhorn unter den Anbietenden, Standard ab 500 durchgeführten Sessions. Eigenes Abzeichen (Einhornkopf mit orangem Horn auf dunkelblauer Scheibe mit orangem Rand). Die Stufe steht in keiner Übersicht für Nutzende und erscheint erst bei Personen, die sie erreicht haben. Andere sehen sie wie alle Abzeichen nur mit Zustimmung.
 - **Administration:** Grenze unter Katalog › Abzeichen einstellbar (muss über Stufe 6 liegen). Die Grenze geht nur an die Administration. Statistik „Konten nach Abzeichen“ mit der Zeile Learnicorn.
